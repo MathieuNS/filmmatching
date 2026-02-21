@@ -1,3 +1,12 @@
 from django.contrib import admin
+from .models import Tag, Plateform, Films, Swipe, Friendship
 
-# Register your models here.
+# admin.site.register() rend un modèle visible et éditable
+# dans le panneau d'administration Django (accessible via /admin/).
+# C'est très utile pour ajouter des films à la main, voir les swipes, etc.
+
+admin.site.register(Tag)
+admin.site.register(Plateform)
+admin.site.register(Films)
+admin.site.register(Swipe)
+admin.site.register(Friendship)
