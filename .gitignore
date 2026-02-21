@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Django
+*.sqlite3
+backend/media/
+backend/static/
+backend/staticfiles/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Node / npm
+node_modules/
+package-lock.json
+
+# Vite / React build
+frontend/dist/
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Django local settings
+local_settings.py
+
+# Certificates / keys
+*.pem
+*.key
+*.cert
+
+# Vite cache
+frontend/.vite/
+frontend/node_modules/
+
+# Claude Code
+.claude/*
+!.claude/agents/
+CLAUDE.md
