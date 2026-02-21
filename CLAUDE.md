@@ -93,6 +93,38 @@ The backend requires a `.env` file at the root or `backend/`:
 SECRET_KEY=your-django-secret-key
 ```
 
+## Visual identity
+
+Every frontend page and component MUST follow this design system strictly. The full specification is in `.claude/agents/frontend-designer.md`.
+
+### Fonts
+- **Display** (titles, buttons, logo): `'Outfit', sans-serif` — weights 300–900
+- **Body** (text, descriptions, UI): `'Sora', sans-serif` — weights 300–700
+
+### Colors (dark theme only)
+
+Base:
+- `--noir-cinema: #0D0D0F` — main background
+- `--noir-carte: #16161A` — cards, modals
+- `--gris-sombre: #1E1E24` — inputs
+- `--gris-moyen: #2A2A32` — borders
+- `--gris-texte: #8B8B9E` — secondary text
+- `--blanc-doux: #F0EEF2` — primary text
+
+Semantic accents:
+- `--corail-vif: #FF4D6A` — like, primary CTA
+- `--ambre-dore: #FFAA2B` — already seen, badges
+- `--violet-nuit: #7B5CFF` — profiles, social links
+- `--vert-match: #2EE0A1` — match confirmed, success
+
+Gradients: Passion (`#FF4D6A → #FFAA2B`), Connexion (`#7B5CFF → #FF4D6A`), Match (`#2EE0A1 → #7B5CFF`)
+
+### UI tokens
+- Cards: `border-radius: 20px`, `border: 1px solid rgba(255,255,255,0.04)`
+- Buttons: `border-radius: 14px`, glow via `box-shadow: 0 4px 24px <accent-glow>`
+- Tags/pills: `border-radius: 100px`
+- Transitions: `all 0.25s ease`
+
 ## Coding guidelines
 
 The developer is a **beginner learning to code** through this project. Every interaction is a learning opportunity:
