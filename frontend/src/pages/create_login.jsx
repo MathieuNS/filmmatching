@@ -1,7 +1,7 @@
-function create_login() {
-    return <div>
-        <h1>Create Login Page</h1>
-    </div>
+import CreateAccountForm from "../components/Create_account_form";
+
+function Create_login() {
+    return <CreateAccountForm />
 }
 
-export default create_login;
+export default Create_login;
