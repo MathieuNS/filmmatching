@@ -32,7 +32,7 @@ class Films(models.Model):
     main_actors = models.CharField(max_length=200)
     synopsis = models.TextField()
     tags = models.ManyToManyField('Tag', blank=True)
-    plateform = models.ManyToManyField('Plateform', blank=True)
+    plateforms = models.ManyToManyField('Plateform', blank=True)
     type = models.CharField(max_length=10,
                             choices=TYPE_CHOICES,
                             default='Film')
