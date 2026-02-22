@@ -105,7 +105,8 @@ def create_dico(film,
             'synopsis': film[synopsis_field],
             'tags' : genres,
             'plateforms': plateforme,
-            'type': type_field
+            'type': type_field,
+            'popularity': film["popularity"]
         }
 
 def get_films_and_series(url=FILMS_URL, 

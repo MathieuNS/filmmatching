@@ -36,6 +36,7 @@ class Films(models.Model):
     type = models.CharField(max_length=10,
                             choices=TYPE_CHOICES,
                             default='Film')
+    popularity = models.FloatField(default=0.0)
 
     class Meta:
         verbose_name = "Film"
