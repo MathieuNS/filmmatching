@@ -6,7 +6,6 @@ tuto https://www.youtube.com/watch?v=c-QsfbznSXI&t=4120s
 crééer la landing page
 crééer les films et séries dans la database
 récupérer les nouveautés qui ne sont pas déjà dans la database
-créer le composant film
 afficher les séries et films sur la home page
 ajouter des filtres sur la home page (série/film et par genre (action, documentaire...))
 créer une identité visuelle et tout styliser

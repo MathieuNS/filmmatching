@@ -40,6 +40,7 @@ class Films(models.Model):
     class Meta:
         verbose_name = "Film"
         verbose_name_plural = "Films"
+        unique_together = ('title', 'release_year', 'director')  # Empêche les doublons de films
 
 
     def __str__(self):
