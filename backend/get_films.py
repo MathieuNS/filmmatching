@@ -143,16 +143,24 @@ def get_films_and_series(url,
 
     response_films = requests.get(url, headers=headers)
 
-    films = response_films.json()["results"]
+    try:
+        films = response_films.json()["results"]
+    except KeyError:
+        print("Erreur lors de la récupération des films")
+        return []
 
     list_films = []
 
     for film in films:
 
+        if film["overview"] == "":  # Si le synopsis est vide, on ne récupère pas les détails du film pour éviter d'avoir des films sans description dans la base de données
+            continue
+
         # On passe directement les IDs TMDB des genres, car le model Genres
         # utilise tmdb_id comme primary_key
         list_genres = film["genre_ids"]
 
+        # S'il n'y a pas de plateformes disponibles pour le film, on ne récupère pas les détails du film pour éviter d'avoir des films sans plateforme dans la base de données
         try:
             plateforms = get_plateforms(movie_id=film["id"], headers=headers)
         except KeyError:
@@ -178,7 +186,7 @@ def get_films_and_series(url,
 
 if __name__ == "__main__":
 
-    start_date = datetime(1950, 1, 1)
+    start_date = datetime(2022, 6, 1)
     end_date = datetime.now()
     month_delta = relativedelta(months=1)
 
@@ -186,10 +194,10 @@ if __name__ == "__main__":
     while start_date < end_date:
         end_of_month = start_date.replace(day=monthrange(start_date.year, start_date.month)[1])
 
-        print(start_date.strftime("%Y-%m-%d"))
+        print(f"------------------- {start_date.strftime('%Y-%m-%d')} - {end_of_month.strftime('%Y-%m-%d')} -------------------")
 
         for i in range(1, 501):  # TMDB ne retourne que les 500 premières pages, on boucle donc pour récupérer les films et séries mois par mois
-            print(f"Page {i}")
+            print(f"------------------ Page {i} ------------------")
             film_url = f"https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=fr-FR&page={i}&primary_release_date.gte={start_date.strftime('%Y-%m-%d')}&primary_release_date.lte={end_of_month.strftime('%Y-%m-%d')}&sort_by=popularity.desc&watch_region=FR"
             tv_url = f"https://api.themoviedb.org/3/discover/tv?first_air_date.gte={start_date.strftime('%Y-%m-%d')}&first_air_date.lte={end_of_month.strftime('%Y-%m-%d')}&include_adult=false&include_null_first_air_dates=false&language=fr-FR&page={i}&sort_by=popularity.desc&watch_region=FR"
         
@@ -199,45 +207,47 @@ if __name__ == "__main__":
                                   title_field="name", 
                                   release_date_field="first_air_date")
             
+            print(f"Nombre de films récupérés : {len(films)}")
+            print(f"Nombre de séries récupérées : {len(series)}")
+
             if not films and not series:  # Si on n'a plus de films ou de séries à récupérer, on sort de la boucle
+                print("Aucun film ou série trouvé, passage au mois suivant")
                 break
             
             if films:
                 for film in films: # On ajoute les films à la base de données, en vérifiant que le synopsis n'est pas vide pour éviter d'avoir des films sans description
-                    if film["synopsis"] != "":
-                        print("Ajout du film :", film["title"])
-                        new_film =Films.objects.get_or_create(tmdb_id=film["tmdb_id"], 
-                                                    title=film["title"], 
-                                                    img=film["img"], 
-                                                    release_year=film["release_year"],  
-                                                    synopsis=film["synopsis"],
-                                                    type=film["type"],
-                                                    popularity=film["popularity"])
+                    print("Ajout du film :", film["title"])
+                    new_film =Films.objects.get_or_create(tmdb_id=film["tmdb_id"], 
+                                                title=film["title"], 
+                                                img=film["img"], 
+                                                release_year=film["release_year"],  
+                                                synopsis=film["synopsis"],
+                                                type=film["type"],
+                                                popularity=film["popularity"])
                         
-                        #Ajout des relations ManyToMany après la création du film, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
-                        new_film[0].main_actors.set(film["main_actors"])
-                        new_film[0].director_id = film["director"]
-                        new_film[0].save()
-                        new_film[0].genres.set(film["genres"])
-                        new_film[0].plateforms.set(film["plateforms"])
+                    #Ajout des relations ManyToMany après la création du film, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
+                    new_film[0].main_actors.set(film["main_actors"])
+                    new_film[0].director_id = film["director"]
+                    new_film[0].save()
+                    new_film[0].genres.set(film["genres"])
+                    new_film[0].plateforms.set(film["plateforms"])
             if series:
                 for serie in series: # On ajoute les séries à la base de données, en vérifiant que le synopsis n'est pas vide pour éviter d'avoir des séries sans description
-                    if serie["synopsis"] != "":
-                        print("Ajout de la série :", serie["title"])
-                        new_serie = Films.objects.get_or_create(tmdb_id=serie["tmdb_id"], 
-                                                    title=serie["title"], 
-                                                    img=serie["img"], 
-                                                    release_year=serie["release_year"],  
-                                                    synopsis=serie["synopsis"], 
-                                                    type=serie["type"],
-                                                    popularity=serie["popularity"])
-                        
-                        #Ajout des relations ManyToMany après la création de la série, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
-                        new_serie[0].main_actors.set(serie["main_actors"])
-                        new_serie[0].director_id = serie["director"]
-                        new_serie[0].save()
-                        new_serie[0].genres.set(serie["genres"])
-                        new_serie[0].plateforms.set(serie["plateforms"])
+                    print("Ajout de la série :", serie["title"])
+                    new_serie = Films.objects.get_or_create(tmdb_id=serie["tmdb_id"], 
+                                                title=serie["title"], 
+                                                img=serie["img"], 
+                                                release_year=serie["release_year"],  
+                                                synopsis=serie["synopsis"], 
+                                                type=serie["type"],
+                                                popularity=serie["popularity"])
+                    
+                    #Ajout des relations ManyToMany après la création de la série, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
+                    new_serie[0].main_actors.set(serie["main_actors"])
+                    new_serie[0].director_id = serie["director"]
+                    new_serie[0].save()
+                    new_serie[0].genres.set(serie["genres"])
+                    new_serie[0].plateforms.set(serie["plateforms"])
 
 
         start_date += month_delta

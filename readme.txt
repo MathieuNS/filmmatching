@@ -1,23 +1,48 @@
+https://www.youtube.com/watch?v=c-QsfbznSXI&t=6734s
+
 Todo:
 
-tuto https://www.youtube.com/watch?v=c-QsfbznSXI&t=4120s
-1:46:00
+=== BACKEND ===
 
-crééer la landing page
-crééer les films et séries dans la database
-récupérer les nouveautés qui ne sont pas déjà dans la database
-afficher les séries et films sur la home page
-ajouter des filtres sur la home page (série/film et par genre (action, documentaire...))
-créer une identité visuelle et tout styliser
-ajouter un ami, s'il accepte les deux sont connectés
-supprimer un ami
-créer le compte utilisateur:
-    - Données perso
-    - suppression du compte
-    - films vu 
-    - films liké
-    - films disliké
-    - liste des amis
-    - liste des films liké en commun
-Choix de film aléatoire dans les films en commun entre amis
-filtres type de film/série dans les film en commun
+[ ] Remplir la database avec les genres (table Genres, via l'API TMDB genre/movie/list)
+[ ] Remplir la database avec les plateformes (table Plateform, via l'API TMDB watch/providers)
+[ ] Remplir la database avec les films et séries (table Films, via get_films.py)
+[ ] Créer une commande Django (manage.py) pour lancer l'import des films/séries automatiquement
+[ ] Récupérer les nouveautés TMDB qui ne sont pas déjà dans la database (mise à jour périodique)
+[ ] Endpoint pour supprimer un ami (DELETE /api/friends/<id>/)
+[ ] Endpoint pour supprimer son compte utilisateur (DELETE /api/users/me/)
+[ ] Endpoint pour récupérer/modifier les données perso de l'utilisateur (GET/PATCH /api/users/me/)
+[ ] Endpoint pour le choix aléatoire d'un film parmi les matchs avec un ami
+[ ] Filtres sur l'endpoint films/random : par type (Film/Série) et par genre
+[ ] Filtres sur l'endpoint matchs : par type (Film/Série) et par genre
+[ ] Passer la base de données sur PostgreSQL (pour la mise en prod)
+
+=== FRONTEND ===
+
+[ ] Créer la landing page (page d'accueil publique, présentation de l'app)
+[ ] Page de swipe : afficher un film avec ses détails + boutons like/dislike/déjà vu
+[ ] Animation de swipe (style Tinder : glisser à droite = like, gauche = dislike)
+[ ] Page profil utilisateur :
+    [ ] Données personnelles (username, email)
+    [ ] Suppression du compte
+    [ ] Liste des films likés
+    [ ] Liste des films dislikés
+    [ ] Liste des films déjà vus
+[ ] Page amis :
+    [ ] Liste des amis
+    [ ] Envoyer une demande d'ami
+    [ ] Accepter/refuser une demande d'ami
+    [ ] Supprimer un ami
+[ ] Page matchs (avec un ami) :
+    [ ] Liste des films likés en commun
+    [ ] Filtres par type (Film/Série) et par genre
+    [ ] Bouton "choix aléatoire" parmi les matchs
+[ ] Appliquer l'identité visuelle sur toutes les pages (design system CLAUDE.md)
+
+=== DÉPLOIEMENT ===
+
+[ ] Configurer PostgreSQL et migrer les données
+[ ] Déployer le backend (Railway, Render ou autre)
+[ ] Déployer le frontend (Vercel, Netlify ou autre)
+[ ] Configurer les variables d'environnement en production
+[ ] Mettre CORS_ALLOWED_ORIGINS au lieu de CORS_ALLOW_ALL_ORIGINS
