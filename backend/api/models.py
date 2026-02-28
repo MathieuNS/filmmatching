@@ -1,16 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-class Tag(models.Model):
-    tag = models.CharField(max_length=50)
+class Genres(models.Model):
+    tmdb_id = models.IntegerField(unique=True, primary_key=True)  # ID du genre dans TMDB, pour éviter les doublons
+    genre = models.CharField(max_length=50)
     class Meta:
-        verbose_name = "Tag"
-        verbose_name_plural = "Tags"
+        verbose_name = "Genre"
+        verbose_name_plural = "Genres"
 
     def __str__(self):
-        return self.tag
+        return self.genre
     
 class Plateform(models.Model):
+    tmdb_id = models.IntegerField(unique=True, primary_key=True)  # ID de la plateforme dans TMDB, pour éviter les doublons
     plateform = models.CharField(max_length=100)
     class Meta:
         verbose_name = "Plateform"
@@ -18,6 +20,24 @@ class Plateform(models.Model):
 
     def __str__(self):
         return self.plateform
+    
+class Casting(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # Nom de l'acteur, unique pour éviter les doublons
+    class Meta:
+        verbose_name = "Casting"
+        verbose_name_plural = "Castings"
+
+    def __str__(self):
+        return self.name
+    
+class Director(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # Nom du réalisateur, unique pour éviter les doublons
+    class Meta:
+        verbose_name = "Director"
+        verbose_name_plural = "Directors"
+
+    def __str__(self):
+        return self.name
 class Films(models.Model):
 
     TYPE_CHOICES = [
@@ -25,13 +45,14 @@ class Films(models.Model):
         ('Serie', 'Serie'),
     ]
 
+    tmdb_id = models.IntegerField(null=True, blank=True)
     title = models.CharField(max_length=200)
-    img = models.ImageField(upload_to='images/')
+    img = models.URLField()
     release_year = models.IntegerField()
-    director = models.CharField(max_length=100)
-    main_actors = models.CharField(max_length=200)
+    director = models.ForeignKey('Director', blank=True, null=True, on_delete=models.SET_NULL)
+    main_actors = models.ManyToManyField('Casting', blank=True)
     synopsis = models.TextField()
-    tags = models.ManyToManyField('Tag', blank=True)
+    genres = models.ManyToManyField('Genres', blank=True)
     plateforms = models.ManyToManyField('Plateform', blank=True)
     type = models.CharField(max_length=10,
                             choices=TYPE_CHOICES,
@@ -41,7 +62,7 @@ class Films(models.Model):
     class Meta:
         verbose_name = "Film"
         verbose_name_plural = "Films"
-        unique_together = ('title', 'release_year', 'director')  # Empêche les doublons de films
+        unique_together = ('tmdb_id', 'type')  # Un même tmdb_id peut exister pour un Film ET une Série, mais pas deux fois pour le même type
 
 
     def __str__(self):
