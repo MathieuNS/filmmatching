@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Films, Swipe, Friendship
+from .models import Films, Genres, Plateform, Swipe, Friendship
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,6 +45,30 @@ class FilmsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Films
         fields = '__all__'
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour le modèle Genres.
+    Renvoie l'ID TMDB et le nom du genre (ex: "Action", "Comédie").
+    Utilisé par l'endpoint /api/genres/ pour remplir les filtres côté frontend.
+    """
+
+    class Meta:
+        model = Genres
+        fields = ['tmdb_id', 'genre']
+
+
+class PlateformSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour le modèle Plateform.
+    Renvoie l'ID TMDB et le nom de la plateforme (ex: "Netflix", "Disney+").
+    Utilisé par l'endpoint /api/platforms/ pour remplir les filtres côté frontend.
+    """
+
+    class Meta:
+        model = Plateform
+        fields = ['tmdb_id', 'plateform']
 
 
 class SwipeSerializer(serializers.ModelSerializer):

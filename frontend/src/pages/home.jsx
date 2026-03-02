@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import Film from "../components/Film";
+import FilterBottomSheet from "../components/FilterBottomSheet";
 import "../styles/Home.css";
 
 /**
@@ -28,6 +29,21 @@ function Home() {
   // true quand il n'y a plus de films à proposer
   const [noMoreFilms, setNoMoreFilms] = useState(false);
 
+  // --- States pour les filtres ---
+  // Contrôle l'ouverture/fermeture du bottom sheet
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Les filtres actuellement appliqués (envoyés à l'API)
+  const [activeFilters, setActiveFilters] = useState({
+    type: "",
+    genres: [],
+    plateforms: [],
+    yearMin: "",
+    yearMax: "",
+  });
+  // Listes de genres et plateformes récupérées depuis l'API (pour les chips)
+  const [availableGenres, setAvailableGenres] = useState([]);
+  const [availablePlateforms, setAvailablePlateforms] = useState([]);
+
   // --- States pour le drag/swipe ---
   // deltaX et deltaY = décalage en pixels pendant le drag
   const [deltaX, setDeltaX] = useState(0);
@@ -43,19 +59,84 @@ function Home() {
   // Seuil en pixels pour valider un swipe
   const SWIPE_THRESHOLD = 120;
 
+  // Au montage du composant, on charge les genres et plateformes
+  // disponibles depuis l'API pour remplir les filtres.
+  useEffect(() => {
+    async function loadFilterOptions() {
+      try {
+        // Promise.all lance les 2 requêtes en parallèle (plus rapide)
+        const [genresRes, plateformsRes] = await Promise.all([
+          api.get("/api/genres/"),
+          api.get("/api/platforms/"),
+        ]);
+        setAvailableGenres(genresRes.data);
+        setAvailablePlateforms(plateformsRes.data);
+      } catch (error) {
+        console.error("Erreur chargement filtres :", error);
+      }
+    }
+    loadFilterOptions();
+  }, []);
+
+  // Quand les filtres changent, on recharge les films depuis zéro
   useEffect(() => {
     initializeFilms();
-  }, []);
+  }, [activeFilters]);
+
+  /**
+   * Construit l'URL de l'API /api/films/random/ avec les filtres actifs.
+   *
+   * URLSearchParams est un objet JavaScript qui aide à construire
+   * les paramètres d'une URL. Au lieu de concaténer des strings
+   * manuellement (?type=Film&genres=Action), on ajoute chaque
+   * paramètre proprement et il s'occupe des "?" et "&".
+   *
+   * @param {Object} filters - Les filtres à appliquer
+   * @param {number|null} excludeId - L'ID du film à exclure (optionnel)
+   * @returns {string} L'URL complète avec les paramètres
+   */
+  function buildFilmUrl(filters, excludeId = null) {
+    const params = new URLSearchParams();
+
+    if (excludeId) {
+      params.append("exclude", excludeId);
+    }
+    if (filters.type) {
+      params.append("type", filters.type);
+    }
+    if (filters.genres.length > 0) {
+      // join(",") transforme ["Action", "Comédie"] en "Action,Comédie"
+      params.append("genres", filters.genres.join(","));
+    }
+    if (filters.plateforms.length > 0) {
+      params.append("plateforms", filters.plateforms.join(","));
+    }
+    if (filters.yearMin) {
+      params.append("year_min", filters.yearMin);
+    }
+    if (filters.yearMax) {
+      params.append("year_max", filters.yearMax);
+    }
+
+    // toString() renvoie "type=Film&genres=Action" (sans le "?")
+    const queryString = params.toString();
+    return `/api/films/random/${queryString ? `?${queryString}` : ""}`;
+  }
 
   /**
    * Charge le premier film puis pré-charge le suivant.
+   * Utilise buildFilmUrl pour inclure les filtres actifs dans la requête.
    */
   async function initializeFilms() {
     setLoading(true);
+    setNoMoreFilms(false);
     try {
-      const response = await api.get("/api/films/random/");
+      const url = buildFilmUrl(activeFilters);
+      const response = await api.get(url);
 
       if (response.status === 204) {
+        setFilm(null);
+        setNextFilm(null);
         setNoMoreFilms(true);
       } else {
         const currentFilm = response.data;
@@ -71,12 +152,15 @@ function Home() {
 
   /**
    * Pré-charge le prochain film en arrière-plan.
+   * Inclut les filtres actifs pour que le prochain film
+   * corresponde aussi aux critères sélectionnés.
    *
    * @param {number} excludeId - L'ID du film à exclure (celui affiché)
    */
   async function prefetchNext(excludeId) {
     try {
-      const response = await api.get(`/api/films/random/?exclude=${excludeId}`);
+      const url = buildFilmUrl(activeFilters, excludeId);
+      const response = await api.get(url);
 
       if (response.status === 204) {
         setNextFilm(null);
@@ -138,6 +222,34 @@ function Home() {
       setDeltaY(0);
     }
   }
+
+  /**
+   * Appelée quand l'utilisateur clique "Appliquer" dans le bottom sheet.
+   * Met à jour les filtres actifs, ce qui déclenche le useEffect
+   * et recharge automatiquement les films.
+   *
+   * @param {Object} newFilters - Les nouveaux filtres à appliquer
+   */
+  function handleApplyFilters(newFilters) {
+    setActiveFilters(newFilters);
+  }
+
+  /**
+   * Compte le nombre de filtres actifs pour afficher un badge.
+   * Chaque critère rempli compte pour 1 (type, genres, plateformes, année).
+   *
+   * @returns {number} Le nombre de filtres actifs
+   */
+  function getActiveFilterCount() {
+    let count = 0;
+    if (activeFilters.type) count++;
+    if (activeFilters.genres.length > 0) count++;
+    if (activeFilters.plateforms.length > 0) count++;
+    if (activeFilters.yearMin || activeFilters.yearMax) count++;
+    return count;
+  }
+
+  const filterCount = getActiveFilterCount();
 
   // =============================================
   // Gestion du drag (souris + tactile)
@@ -289,11 +401,38 @@ function Home() {
     return Math.min(Math.abs(delta) / SWIPE_THRESHOLD, 1);
   }
 
+  // --- Bouton filtre (réutilisé dans plusieurs écrans) ---
+  // On le définit ici pour ne pas le dupliquer dans chaque return
+  const filterButton = (
+    <div className="home__header">
+      <button
+        className="home__filter-btn"
+        onClick={() => setIsFilterOpen(true)}
+      >
+        <span className="home__filter-icon">⚙</span>
+        Filtres
+        {/* Badge avec le nombre de filtres actifs */}
+        {filterCount > 0 && (
+          <span className="home__filter-badge">{filterCount}</span>
+        )}
+      </button>
+    </div>
+  );
+
   // --- Affichage pendant le chargement ---
   if (loading) {
     return (
       <div className="home">
+        {filterButton}
         <div className="home__loading">Chargement...</div>
+        <FilterBottomSheet
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          onApply={handleApplyFilters}
+          currentFilters={activeFilters}
+          availableGenres={availableGenres}
+          availablePlateforms={availablePlateforms}
+        />
       </div>
     );
   }
@@ -302,6 +441,7 @@ function Home() {
   if (noMoreFilms) {
     return (
       <div className="home">
+        {filterButton}
         <div className="home__empty">
           <div className="home__empty-icon">🎬</div>
           <h2 className="home__empty-title">Tu as tout vu !</h2>
@@ -309,6 +449,14 @@ function Home() {
             Il n'y a plus de films à découvrir pour le moment.
           </p>
         </div>
+        <FilterBottomSheet
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          onApply={handleApplyFilters}
+          currentFilters={activeFilters}
+          availableGenres={availableGenres}
+          availablePlateforms={availablePlateforms}
+        />
       </div>
     );
   }
@@ -330,6 +478,9 @@ function Home() {
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
     >
+      {/* Bouton filtre en haut */}
+      {filterButton}
+
       {/* La carte du film avec le drag */}
       <div
         className="home__film-wrapper"
@@ -402,6 +553,16 @@ function Home() {
           Pas intéressé
         </button>
       </div>
+
+      {/* Bottom sheet de filtres */}
+      <FilterBottomSheet
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={handleApplyFilters}
+        currentFilters={activeFilters}
+        availableGenres={availableGenres}
+        availablePlateforms={availablePlateforms}
+      />
     </div>
   );
 }

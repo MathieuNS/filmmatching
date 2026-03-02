@@ -21,6 +21,58 @@
   box-sizing: border-box;
 }
 
+/* --- Header avec le bouton Filtres --- */
+.home__header {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* Bouton filtre — style pill (pilule) violet */
+.home__filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(123, 92, 255, 0.3);
+  background-color: rgba(123, 92, 255, 0.1);
+  color: #7B5CFF;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.home__filter-btn:hover {
+  background-color: rgba(123, 92, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(123, 92, 255, 0.2);
+}
+
+.home__filter-icon {
+  font-size: 1rem;
+}
+
+/* Badge compteur de filtres actifs */
+.home__filter-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 100px;
+  /* Dégradé Connexion du design system */
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  color: #F0EEF2;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 /* --- Zone qui contient la carte du film (draggable) --- */
 .home__film-wrapper {
   /* Largeur max pour que la carte ne soit pas trop large sur grand écran */
@@ -230,6 +282,10 @@
 @media (max-width: 480px) {
   .home {
     padding: 8px 8px 10px;
+  }
+
+  .home__header {
+    margin-bottom: 4px;
   }
 
   .home__actions {

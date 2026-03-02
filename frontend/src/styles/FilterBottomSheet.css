@@ -1,0 +1,255 @@
+/* ============================================
+   FilterBottomSheet.css — Bottom sheet de filtres
+   Panneau qui glisse depuis le bas de l'écran pour
+   permettre à l'utilisateur de filtrer les films.
+   ============================================ */
+
+/* --- Fond sombre semi-transparent derrière le panneau --- */
+.filter-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Fond noir semi-transparent pour attirer l'attention sur le panneau */
+  background-color: rgba(0, 0, 0, 0.6);
+  /* z-index élevé pour passer au-dessus de tout le reste */
+  z-index: 100;
+  /* Animation de fondu à l'ouverture */
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Le panneau lui-même (glisse depuis le bas) --- */
+.filter-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  /* Hauteur max = 85% de l'écran, avec scroll si le contenu dépasse */
+  max-height: 85vh;
+  background-color: #16161A;
+  /* Coins arrondis uniquement en haut */
+  border-radius: 20px 20px 0 0;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  /* Animation de glissement vers le haut */
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* --- Barre de poignée en haut du panneau --- */
+.filter-sheet__handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  /* flex-shrink: 0 pour que la poignée ne rétrécisse jamais */
+  flex-shrink: 0;
+}
+
+.filter-sheet__handle-bar {
+  width: 40px;
+  height: 4px;
+  border-radius: 100px;
+  background-color: #2A2A32;
+}
+
+/* --- En-tête avec le titre "Filtres" --- */
+.filter-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px 16px;
+  flex-shrink: 0;
+}
+
+.filter-sheet__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  margin: 0;
+}
+
+/* Bouton X pour fermer le panneau */
+.filter-sheet__close {
+  background: none;
+  border: none;
+  color: #8B8B9E;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.filter-sheet__close:hover {
+  color: #F0EEF2;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Zone scrollable du contenu --- */
+.filter-sheet__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px;
+  /* Barre de scroll fine et discrète */
+  scrollbar-width: thin;
+  scrollbar-color: #2A2A32 transparent;
+}
+
+/* --- Section de filtre (Type, Genres, etc.) --- */
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.filter-section__label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #8B8B9E;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+/* --- Conteneur de chips (petites pastilles cliquables) --- */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* --- Chip individuelle --- */
+.filter-chip {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid #2A2A32;
+  background-color: #1E1E24;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  /* Empêche la sélection de texte */
+  user-select: none;
+}
+
+.filter-chip:hover {
+  border-color: #7B5CFF;
+  color: #F0EEF2;
+}
+
+/* Chip sélectionnée — fond violet avec glow */
+.filter-chip--active {
+  background-color: rgba(123, 92, 255, 0.15);
+  border-color: #7B5CFF;
+  color: #7B5CFF;
+  font-weight: 600;
+}
+
+/* --- Champs année (min / max) --- */
+.filter-year-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-year-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #2A2A32;
+  background-color: #1E1E24;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.25s ease;
+  /* Masque les flèches du input number */
+  -moz-appearance: textfield;
+}
+
+.filter-year-input::-webkit-inner-spin-button,
+.filter-year-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.filter-year-input:focus {
+  border-color: #7B5CFF;
+}
+
+.filter-year-input::placeholder {
+  color: #8B8B9E;
+}
+
+.filter-year-separator {
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+}
+
+/* --- Pied du panneau avec les boutons Réinitialiser / Appliquer --- */
+.filter-sheet__footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  /* Bordure fine en haut pour séparer du contenu */
+  border-top: 1px solid #2A2A32;
+  flex-shrink: 0;
+  /* Espace en bas pour le safe area sur mobile (encoche, barre de navigation) */
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Bouton "Réinitialiser" — style discret */
+.filter-btn-reset {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #2A2A32;
+  background-color: transparent;
+  color: #8B8B9E;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.filter-btn-reset:hover {
+  border-color: #8B8B9E;
+  color: #F0EEF2;
+}
+
+/* Bouton "Appliquer" — style principal violet avec glow */
+.filter-btn-apply {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  /* Dégradé Connexion du design system */
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(123, 92, 255, 0.3);
+}
+
+.filter-btn-apply:hover {
+  box-shadow: 0 6px 32px rgba(123, 92, 255, 0.4);
+  transform: translateY(-1px);
+}

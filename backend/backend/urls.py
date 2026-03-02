@@ -4,6 +4,8 @@ from api.views import (
     CreateUserView,
     FilmListCreateView,
     RandomFilmView,
+    GenreListView,
+    PlateformListView,
     SwipeCreateView,
     UserSwipeListView,
     FriendshipView,
@@ -25,6 +27,10 @@ urlpatterns = [
     # --- Films ---
     path('api/films/', FilmListCreateView.as_view(), name='film-list-create'),
     path('api/films/random/', RandomFilmView.as_view(), name='film-random'),
+
+    # --- Genres et Plateformes (pour les filtres) ---
+    path('api/genres/', GenreListView.as_view(), name='genre-list'),
+    path('api/platforms/', PlateformListView.as_view(), name='platform-list'),
 
     # --- Swipes (like/dislike/déjà vu) ---
     path('api/swipes/', SwipeCreateView.as_view(), name='swipe-create'),

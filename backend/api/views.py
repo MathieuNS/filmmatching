@@ -4,10 +4,12 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import Films, Swipe, Friendship
+from .models import Films, Genres, Plateform, Swipe, Friendship
 from .serializers import (
     UserSerializer,
     FilmsSerializer,
+    GenreSerializer,
+    PlateformSerializer,
     SwipeSerializer,
     FriendshipSerializer,
 )
@@ -25,6 +27,38 @@ class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+
+
+class GenreListView(generics.ListAPIView):
+    """
+    Liste tous les genres disponibles, triés par ordre alphabétique.
+
+    - GET /api/genres/
+    - Accessible uniquement aux utilisateurs connectés.
+
+    Cette vue est utilisée par le frontend pour afficher la liste
+    des genres dans le bottom sheet de filtres.
+    """
+
+    queryset = Genres.objects.all().order_by('genre')
+    serializer_class = GenreSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class PlateformListView(generics.ListAPIView):
+    """
+    Liste toutes les plateformes disponibles, triées par ordre alphabétique.
+
+    - GET /api/platforms/
+    - Accessible uniquement aux utilisateurs connectés.
+
+    Cette vue est utilisée par le frontend pour afficher la liste
+    des plateformes dans le bottom sheet de filtres.
+    """
+
+    queryset = Plateform.objects.all().order_by('plateform')
+    serializer_class = PlateformSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class FilmListCreateView(generics.ListCreateAPIView):
@@ -91,6 +125,43 @@ class RandomFilmView(APIView):
             # int() convertit chaque string en nombre
             exclude_ids = [int(id) for id in exclude_param.split(',') if id.isdigit()]
             queryset = queryset.exclude(id__in=exclude_ids)
+
+        # --- Filtres optionnels ---
+        # Ces filtres permettent à l'utilisateur de ne voir que certains types
+        # de contenus. Chaque filtre est optionnel : s'il n'est pas dans l'URL,
+        # on ne filtre pas sur ce critère.
+
+        # Filtre par type : ?type=Film ou ?type=Serie
+        type_param = request.query_params.get('type')
+        if type_param:
+            queryset = queryset.filter(type=type_param)
+
+        # Filtre par genres : ?genres=Action,Comédie
+        # On sépare les noms par virgule, puis on filtre les films
+        # qui ont AU MOINS un de ces genres.
+        # .distinct() évite les doublons quand un film a plusieurs genres correspondants.
+        genres_param = request.query_params.get('genres')
+        if genres_param:
+            genre_list = [g.strip() for g in genres_param.split(',') if g.strip()]
+            queryset = queryset.filter(genres__genre__in=genre_list).distinct()
+
+        # Filtre par plateformes : ?plateforms=Netflix,Disney+
+        # Même logique que pour les genres.
+        plateforms_param = request.query_params.get('plateforms')
+        if plateforms_param:
+            plateform_list = [p.strip() for p in plateforms_param.split(',') if p.strip()]
+            queryset = queryset.filter(plateforms__plateform__in=plateform_list).distinct()
+
+        # Filtre par année : ?year_min=2020&year_max=2024
+        # __gte = "greater than or equal" (supérieur ou égal)
+        # __lte = "less than or equal" (inférieur ou égal)
+        year_min = request.query_params.get('year_min')
+        if year_min and year_min.isdigit():
+            queryset = queryset.filter(release_year__gte=int(year_min))
+
+        year_max = request.query_params.get('year_max')
+        if year_max and year_max.isdigit():
+            queryset = queryset.filter(release_year__lte=int(year_max))
 
         # order_by('-popularity') trie par popularité décroissante :
         # le film le plus populaire non encore swipé apparaît en premier.
