@@ -21,24 +21,68 @@
   box-sizing: border-box;
 }
 
-/* --- Zone qui contient la carte du film --- */
+/* --- Zone qui contient la carte du film (draggable) --- */
 .home__film-wrapper {
   /* Largeur max pour que la carte ne soit pas trop large sur grand écran */
   max-width: 420px;
   width: 100%;
   /* flex: 1 = prend tout l'espace vertical restant (entre le haut et les boutons) */
   flex: 1;
-  /* Permet de scroller à l'intérieur de la carte si le contenu dépasse */
-  overflow-y: auto;
-  /* Petit arrondi en bas pour que le scroll soit joli */
-  border-radius: 20px;
-  /* Cache la barre de scroll tout en gardant le scroll fonctionnel */
-  scrollbar-width: none; /* Firefox */
+  /* min-height: 0 est nécessaire pour que flex: 1 fonctionne correctement
+     quand l'enfant (la carte) a une hauteur à 100% */
+  min-height: 0;
+  /* position: relative pour positionner les indicateurs de swipe par-dessus */
+  position: relative;
+  /* Empêche la sélection de texte pendant le drag */
+  user-select: none;
+  /* Désactive les gestes natifs du navigateur (scroll, pull to refresh)
+     pour que le swipe dans toutes les directions fonctionne correctement */
+  touch-action: none;
 }
 
-/* Cache la barre de scroll sur Chrome/Safari */
-.home__film-wrapper::-webkit-scrollbar {
-  display: none;
+/* --- Indicateurs de swipe ("À voir" / "Pas intéressé") --- */
+/* Ces textes apparaissent sur la carte pendant le drag pour montrer
+   à l'utilisateur ce qui va se passer s'il relâche */
+.home__swipe-indicator {
+  position: absolute;
+  top: 24px;
+  /* z-index élevé pour apparaître au-dessus de l'image et du dégradé */
+  z-index: 10;
+  padding: 8px 20px;
+  border-radius: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  /* Bordure épaisse pour bien ressortir sur l'image */
+  border: 3px solid;
+  /* L'opacité est contrôlée dynamiquement par le JS (via style inline) */
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+/* Indicateur "À voir" (like) — en haut à droite quand on glisse à gauche */
+.home__swipe-indicator--like {
+  right: 20px;
+  color: #FF4D6A;
+  border-color: #FF4D6A;
+  background-color: rgba(255, 77, 106, 0.15);
+}
+
+/* Indicateur "Pas intéressé" (dislike) — en haut à gauche quand on glisse à droite */
+.home__swipe-indicator--dislike {
+  left: 20px;
+  color: #8B8B9E;
+  border-color: #8B8B9E;
+  background-color: rgba(139, 139, 158, 0.15);
+}
+
+/* Indicateur "Déjà vu" (seen) — centré en haut quand on glisse vers le haut */
+.home__swipe-indicator--seen {
+  left: 50%;
+  transform: translateX(-50%);
+  color: #FFAA2B;
+  border-color: #FFAA2B;
+  background-color: rgba(255, 170, 43, 0.15);
 }
 
 /* --- Barre de boutons d'action (like / déjà vu / dislike) --- */

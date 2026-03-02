@@ -3,12 +3,11 @@ import React from "react";
 import "../styles/Films.css";
 
 /**
- * Composant Film - Carte réutilisable affichant les informations d'un film ou d'une série.
+ * Composant Film - Carte immersive affichant un film ou une série.
  *
- * Ce composant est utilisé sur plusieurs pages de l'application :
- * - Page d'accueil (swipe)
- * - Liste des films likés
- * - Page des matchs
+ * L'affiche du film est utilisée en fond, avec un dégradé sombre
+ * en bas pour rendre le texte lisible. Toutes les infos sont
+ * superposées sur l'image (style Netflix/Tinder).
  *
  * @param {Object} props - Les propriétés du composant
  * @param {string} props.title - Le titre du film ou de la série
@@ -34,24 +33,26 @@ function Film({
   director,
 }) {
   return (
-    // Conteneur principal de la carte
+    // Conteneur principal : position relative pour superposer le contenu sur l'image
     <div className="film-card">
 
-      {/* --- Section image --- */}
-      <div className="film-card__image-wrapper">
-        <img
-          className="film-card__image"
-          src={img}
-          alt={`Affiche de ${title}`}
-        />
-      </div>
+      {/* --- Image de fond (l'affiche du film) --- */}
+      <img
+        className="film-card__image"
+        src={img}
+        alt={`Affiche de ${title}`}
+      />
 
-      {/* --- Section informations principales --- */}
-      <div className="film-card__body">
+      {/* --- Dégradé sombre superposé sur l'image --- */}
+      {/* Ce dégradé part du transparent en haut vers le noir en bas,
+          pour que le texte soit lisible sur l'image */}
+      <div className="film-card__gradient" />
+
+      {/* --- Contenu textuel superposé en bas de la carte --- */}
+      <div className="film-card__overlay">
 
         {/* Ligne du haut : badge type (Film/Serie) + année de sortie */}
         <div className="film-card__meta">
-          {/* Le badge change de couleur selon le type (Film ou Serie) */}
           <span
             className={`film-card__type-badge ${
               type === "Film"
@@ -62,7 +63,6 @@ function Film({
             {type}
           </span>
 
-          {/* Année de sortie affichée à droite */}
           {release_year && (
             <span className="film-card__year">{release_year}</span>
           )}
@@ -71,60 +71,45 @@ function Film({
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
 
-        {/* Synopsis du film (juste sous le titre) */}
+        {/* Synopsis (limité à 3 lignes pour rester compact) */}
         {synopsis && (
-          <div className="film-card__section">
-            <span className="film-card__label">Synopsis</span>
-            <p className="film-card__synopsis">{synopsis}</p>
-          </div>
+          <p className="film-card__synopsis">{synopsis}</p>
         )}
 
-        {/* Séparateur visuel */}
-        <hr className="film-card__divider" />
-
-        {/* Réalisateur (affiché seulement s'il est fourni) */}
+        {/* Réalisateur */}
         {director && (
           <p className="film-card__director">
             <span className="film-card__label">Réalisateur :</span> {director}
           </p>
         )}
 
-        {/* Acteurs principaux (affichés seulement s'ils sont fournis) */}
+        {/* Acteurs principaux */}
         {main_actors && (
           <p className="film-card__actors">
             <span className="film-card__label">Acteurs :</span> {main_actors}
           </p>
         )}
 
-        {/* Séparateur visuel */}
-        <hr className="film-card__divider" />
-
-        {/* Liste des tags/genres affichés sous forme de badges */}
+        {/* Tags / Genres */}
         {tags && tags.length > 0 && (
-          <div className="film-card__section">
-            <span className="film-card__label">Genres</span>
-            <div className="film-card__tags">
-              {tags.map((tag, index) => (
-                // Chaque tag est un petit badge cliquable visuellement
-                <span key={index} className="film-card__tag">
-                  {tag}
-                </span>
-              ))}
-            </div>
+          <div className="film-card__tags">
+            {tags.map((tag, index) => (
+              <span key={index} className="film-card__tag">
+                {tag}
+              </span>
+            ))}
           </div>
         )}
 
-        {/* Liste des plateformes de streaming affichées sous forme de badges */}
+        {/* Plateformes de streaming */}
         {plateform && plateform.length > 0 && (
-          <div className="film-card__section">
+          <div className="film-card__platforms">
             <span className="film-card__label">Disponible sur :</span>
-            <div className="film-card__platforms">
-              {plateform.map((plat, index) => (
-                <span key={index} className="film-card__platform">
-                  {plat}
-                </span>
-              ))}
-            </div>
+            {plateform.map((plat, index) => (
+              <span key={index} className="film-card__platform">
+                {plat}
+              </span>
+            ))}
           </div>
         )}
       </div>

@@ -17,8 +17,6 @@ Todo:
 === FRONTEND ===
 
 [ ] Créer la landing page (page d'accueil publique, présentation de l'app)
-[ ] Page de swipe : afficher un film avec ses détails + boutons like/dislike/déjà vu
-[ ] Animation de swipe (style Tinder : glisser à droite = like, gauche = dislike)
 [ ] Page profil utilisateur :
     [ ] Données personnelles (username, email)
     [ ] Suppression du compte

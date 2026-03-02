@@ -1,94 +1,109 @@
 /* ============================================
    Films.css — Styles pour le composant Film
-   Thème sombre cohérent avec le reste de l'app
+   Layout immersif : l'affiche en fond + dégradé + texte superposé
    ============================================ */
 
 /* --- Carte principale --- */
 .film-card {
-  /* Couleurs du thème sombre */
-  background-color: #1a1a2e;
-  border-radius: 16px;
+  /* position: relative permet de superposer le dégradé et le texte
+     par-dessus l'image grâce à position: absolute sur les enfants */
+  position: relative;
+  border-radius: 20px;
   overflow: hidden;
-  /* Ombre portée pour donner de la profondeur */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  /* Largeur max pour ne pas s'étirer sur grand écran */
-  max-width: 420px;
-  width: 100%;
-  /* Transition pour un effet au survol */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Léger zoom au survol de la carte */
-.film-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-}
-
-/* --- Section image --- */
-.film-card__image-wrapper {
-  width: 100%;
-  /* Ratio d'aspect 2:3 typique des affiches de film */
-  aspect-ratio: 2 / 3;
-  overflow: hidden;
-  background-color: #0f0f1a;
-}
-
-.film-card__image {
+  /* La carte prend toute la hauteur disponible (définie par le parent) */
   width: 100%;
   height: 100%;
-  /* L'image remplit le conteneur sans déformation */
+  background-color: #0D0D0F;
+}
+
+/* --- Image de fond (l'affiche du film) --- */
+.film-card__image {
+  /* L'image remplit toute la carte */
+  width: 100%;
+  height: 100%;
+  /* object-fit: cover = l'image couvre tout l'espace sans déformation,
+     quitte à être recadrée sur les bords */
   object-fit: cover;
   display: block;
 }
 
-/* --- Corps de la carte (toutes les infos textuelles) --- */
-.film-card__body {
+/* --- Dégradé sombre superposé sur l'image --- */
+.film-card__gradient {
+  /* position: absolute + inset: 0 = couvre toute la carte */
+  position: absolute;
+  inset: 0;
+  /* Dégradé : transparent en haut (on voit l'image) → noir en bas (texte lisible) */
+  background: linear-gradient(
+    to bottom,
+    transparent 20%,
+    rgba(13, 13, 15, 0.6) 45%,
+    rgba(13, 13, 15, 0.95) 70%,
+    #0D0D0F 100%
+  );
+  /* pointer-events: none = le dégradé ne bloque pas les clics */
+  pointer-events: none;
+}
+
+/* --- Contenu textuel superposé en bas --- */
+.film-card__overlay {
+  /* Positionné en bas de la carte */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Espacement intérieur */
   padding: 20px;
+  /* Le texte ne bloque pas les interactions */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* --- Ligne du haut : badge type + année --- */
 .film-card__meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 10px;
 }
 
-/* Badge du type (Film ou Serie) — style commun */
+/* Badge du type (Film ou Serie) */
 .film-card__type-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.7rem;
   font-weight: 700;
+  font-family: 'Outfit', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Couleur spécifique pour le type "Film" (bleu) */
+/* Couleur pour "Film" */
 .film-card__type-badge--film {
-  background-color: rgba(99, 102, 241, 0.2);
+  background-color: rgba(99, 102, 241, 0.25);
   color: #818cf8;
 }
 
-/* Couleur spécifique pour le type "Serie" (violet/rose) */
+/* Couleur pour "Serie" */
 .film-card__type-badge--serie {
-  background-color: rgba(236, 72, 153, 0.2);
+  background-color: rgba(236, 72, 153, 0.25);
   color: #f472b6;
 }
 
 /* Année de sortie */
 .film-card__year {
-  color: #9ca3af;
-  font-size: 0.875rem;
+  color: rgba(240, 238, 242, 0.7);
+  font-size: 0.8rem;
   font-weight: 500;
+  font-family: 'Sora', sans-serif;
 }
 
 /* --- Titre du film --- */
 .film-card__title {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
   /* Limiter à 2 lignes maximum */
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -96,109 +111,94 @@
   overflow: hidden;
 }
 
-/* Labels (Réalisateur, Acteurs) */
-.film-card__label {
-  color: #9ca3af;
-  font-weight: 600;
-}
-
-/* Texte du réalisateur */
-.film-card__director {
-  margin: 4px 0;
-  font-size: 0.875rem;
-  color: #d1d5db;
-}
-
-/* Texte des acteurs */
-.film-card__actors {
-  margin: 4px 0;
-  font-size: 0.875rem;
-  color: #d1d5db;
-  /* Limiter à 2 lignes pour ne pas surcharger */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* --- Séparateur --- */
-.film-card__divider {
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin: 14px 0;
-}
-
 /* --- Synopsis --- */
 .film-card__synopsis {
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: #9ca3af;
-  /* Limiter à 5 lignes pour garder la carte compacte */
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(240, 238, 242, 0.65);
+  font-family: 'Sora', sans-serif;
+  /* Limiter à 3 lignes pour rester compact */
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* --- Section avec intitulé (Genres, Disponible sur) --- */
-.film-card__section {
-  margin-bottom: 10px;
+/* --- Labels (Réalisateur, Acteurs, Disponible sur) --- */
+.film-card__label {
+  color: rgba(240, 238, 242, 0.5);
+  font-weight: 600;
+  font-size: 0.75rem;
+  font-family: 'Sora', sans-serif;
 }
 
-.film-card__section .film-card__label {
-  display: block;
-  margin-bottom: 8px;
+/* --- Réalisateur --- */
+.film-card__director {
+  margin: 0;
   font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+  font-family: 'Sora', sans-serif;
+}
+
+/* --- Acteurs --- */
+.film-card__actors {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+  font-family: 'Sora', sans-serif;
+  /* Limiter à 1 ligne pour rester compact */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* --- Tags / Genres (badges) --- */
 .film-card__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .film-card__tag {
-  background-color: rgba(99, 102, 241, 0.12);
+  background-color: rgba(123, 92, 255, 0.15);
   color: #a5b4fc;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.7rem;
   font-weight: 500;
+  font-family: 'Sora', sans-serif;
 }
 
 /* --- Plateformes de streaming (badges) --- */
 .film-card__platforms {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .film-card__platform {
-  background-color: rgba(16, 185, 129, 0.12);
-  color: #6ee7b7;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  background-color: rgba(46, 224, 161, 0.12);
+  color: #2EE0A1;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.7rem;
   font-weight: 500;
+  font-family: 'Sora', sans-serif;
 }
 
 /* ============================================
    Responsive — Adaptation mobile
    ============================================ */
 
-/* Sur les petits écrans (mobile) */
 @media (max-width: 480px) {
-  .film-card {
-    /* La carte prend toute la largeur disponible */
-    max-width: 100%;
-    border-radius: 12px;
-  }
-
-  .film-card__body {
+  .film-card__overlay {
     padding: 16px;
+    gap: 4px;
   }
 
   .film-card__title {
@@ -206,7 +206,12 @@
   }
 
   .film-card__synopsis {
-    /* Moins de lignes de synopsis sur mobile */
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
+    font-size: 0.75rem;
+  }
+
+  .film-card__director,
+  .film-card__actors {
+    font-size: 0.75rem;
   }
 }

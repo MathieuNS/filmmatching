@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../api";
 import Film from "../components/Film";
 import "../styles/Home.css";
@@ -8,89 +8,285 @@ import "../styles/Home.css";
  *
  * Cette page est le cœur de l'application. Elle affiche les films
  * un par un (le plus populaire en premier) et propose 3 actions :
- * - "À voir" (like) : l'utilisateur veut voir ce film
- * - "Déjà vu" (seen) : l'utilisateur a déjà vu ce film
- * - "Pas intéressé" (dislike) : l'utilisateur ne veut pas voir ce film
+ * - "À voir" (like) : glisser vers la gauche ou cliquer le bouton
+ * - "Déjà vu" (seen) : glisser vers le haut ou cliquer le bouton
+ * - "Pas intéressé" (dislike) : glisser vers la droite ou cliquer le bouton
  *
- * Quand l'utilisateur clique sur un bouton, le swipe est enregistré
- * dans la base de données et le film suivant s'affiche automatiquement.
+ * Pour éviter un temps de chargement entre chaque film, le prochain film
+ * est toujours pré-chargé en avance (prefetch). Quand l'utilisateur swipe,
+ * le film suivant s'affiche instantanément.
  *
  * @returns {JSX.Element} La page d'accueil avec le système de swipe
  */
 function Home() {
-  // Le film actuellement affiché (null = pas encore chargé ou plus de films)
+  // Le film actuellement affiché
   const [film, setFilm] = useState(null);
-  // true pendant le chargement d'un film depuis l'API
+  // Le prochain film, pré-chargé en avance pour un affichage instantané
+  const [nextFilm, setNextFilm] = useState(null);
+  // true uniquement au tout premier chargement
   const [loading, setLoading] = useState(true);
   // true quand il n'y a plus de films à proposer
   const [noMoreFilms, setNoMoreFilms] = useState(false);
 
-  /**
-   * Récupère le prochain film à afficher depuis l'API.
-   *
-   * useEffect avec [] en 2ème argument = s'exécute une seule fois
-   * au premier affichage du composant (comme un "au chargement de la page").
-   */
+  // --- States pour le drag/swipe ---
+  // deltaX et deltaY = décalage en pixels pendant le drag
+  const [deltaX, setDeltaX] = useState(0);
+  const [deltaY, setDeltaY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  // Direction de sortie : "left", "right", "up" ou null
+  const [exitDirection, setExitDirection] = useState(null);
+
+  // Positions de départ du drag (souris/doigt)
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+
+  // Seuil en pixels pour valider un swipe
+  const SWIPE_THRESHOLD = 120;
+
   useEffect(() => {
-    fetchNextFilm();
+    initializeFilms();
   }, []);
 
   /**
-   * Appelle l'API pour récupérer le prochain film non swipé,
-   * trié par popularité décroissante.
-   *
-   * - 200 = un film est disponible → on l'affiche
-   * - 204 = plus de films → on affiche le message "tout vu"
+   * Charge le premier film puis pré-charge le suivant.
    */
-  async function fetchNextFilm() {
+  async function initializeFilms() {
     setLoading(true);
     try {
-      // Appel GET vers /api/films/random/ (qui renvoie le film le + populaire non swipé)
       const response = await api.get("/api/films/random/");
 
       if (response.status === 204) {
-        // 204 No Content = il n'y a plus de films à proposer
-        setFilm(null);
         setNoMoreFilms(true);
       } else {
-        // On stocke le film reçu dans le state pour l'afficher
-        setFilm(response.data);
-        setNoMoreFilms(false);
+        const currentFilm = response.data;
+        setFilm(currentFilm);
+        prefetchNext(currentFilm.id);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement du film :", error);
+      console.error("Erreur lors du chargement initial :", error);
     } finally {
-      // Que ça réussisse ou échoue, on arrête le chargement
       setLoading(false);
     }
   }
 
   /**
-   * Enregistre le swipe de l'utilisateur et charge le film suivant.
+   * Pré-charge le prochain film en arrière-plan.
    *
-   * @param {string} swipeStatus - Le type de swipe : "like", "dislike" ou "seen"
-   *
-   * Cette fonction envoie un POST à /api/swipes/ avec :
-   * - film : l'ID du film swipé
-   * - status : le choix de l'utilisateur (like/dislike/seen)
-   *
-   * Ensuite, elle appelle fetchNextFilm() pour afficher le film suivant.
+   * @param {number} excludeId - L'ID du film à exclure (celui affiché)
    */
-  async function handleSwipe(swipeStatus) {
+  async function prefetchNext(excludeId) {
+    try {
+      const response = await api.get(`/api/films/random/?exclude=${excludeId}`);
+
+      if (response.status === 204) {
+        setNextFilm(null);
+      } else {
+        // Pré-charge l'image dans le cache du navigateur
+        const img = new Image();
+        img.src = response.data.img;
+
+        setNextFilm(response.data);
+      }
+    } catch (error) {
+      console.error("Erreur lors du pré-chargement :", error);
+      setNextFilm(null);
+    }
+  }
+
+  /**
+   * Enregistre le swipe et affiche immédiatement le film pré-chargé.
+   *
+   * @param {string} swipeStatus - "like", "dislike" ou "seen"
+   * @param {string|null} direction - Direction de l'animation : "left", "right", "up" ou null
+   */
+  async function handleSwipe(swipeStatus, direction = null) {
     if (!film) return;
 
+    const swipedFilmId = film.id;
+
+    // Lancer l'animation de sortie
+    if (direction) {
+      setExitDirection(direction);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+
     try {
-      // POST vers /api/swipes/ pour enregistrer le choix de l'utilisateur
       await api.post("/api/swipes/", {
-        film: film.id, // L'ID du film actuellement affiché
-        status: swipeStatus, // "like", "dislike" ou "seen"
+        film: swipedFilmId,
+        status: swipeStatus,
       });
 
-      // On charge le film suivant après le swipe
-      fetchNextFilm();
+      // Afficher immédiatement le film pré-chargé
+      if (nextFilm) {
+        setFilm(nextFilm);
+        setNextFilm(null);
+        setExitDirection(null);
+        setDeltaX(0);
+        setDeltaY(0);
+        prefetchNext(nextFilm.id);
+      } else {
+        setFilm(null);
+        setNoMoreFilms(true);
+        setExitDirection(null);
+        setDeltaX(0);
+        setDeltaY(0);
+      }
     } catch (error) {
       console.error("Erreur lors du swipe :", error);
+      setExitDirection(null);
+      setDeltaX(0);
+      setDeltaY(0);
     }
+  }
+
+  // =============================================
+  // Gestion du drag (souris + tactile)
+  // =============================================
+
+  /**
+   * Début du drag : on enregistre les positions X et Y de départ.
+   */
+  function handleDragStart(clientX, clientY) {
+    setIsDragging(true);
+    startXRef.current = clientX;
+    startYRef.current = clientY;
+  }
+
+  /**
+   * Pendant le drag : on calcule le décalage X et Y.
+   */
+  function handleDragMove(clientX, clientY) {
+    if (!isDragging) return;
+    setDeltaX(clientX - startXRef.current);
+    setDeltaY(clientY - startYRef.current);
+  }
+
+  /**
+   * Fin du drag : on détermine la direction dominante (horizontale ou verticale)
+   * et on valide le swipe si le seuil est dépassé.
+   *
+   * La direction dominante est celle où le décalage est le plus grand
+   * (en valeur absolue). Ça empêche de déclencher un swipe horizontal
+   * et vertical en même temps.
+   */
+  function handleDragEnd() {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    // On compare les valeurs absolues pour trouver la direction dominante
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (absY > absX && deltaY < -SWIPE_THRESHOLD) {
+      // Mouvement vertical dominant vers le haut → "déjà vu"
+      handleSwipe("seen", "up");
+    } else if (absX >= absY && deltaX < -SWIPE_THRESHOLD) {
+      // Mouvement horizontal dominant vers la gauche → like
+      handleSwipe("like", "left");
+    } else if (absX >= absY && deltaX > SWIPE_THRESHOLD) {
+      // Mouvement horizontal dominant vers la droite → dislike
+      handleSwipe("dislike", "right");
+    } else {
+      // Seuil pas atteint → la carte revient au centre
+      setDeltaX(0);
+      setDeltaY(0);
+    }
+  }
+
+  // --- Événements souris ---
+  function onMouseDown(e) {
+    e.preventDefault();
+    handleDragStart(e.clientX, e.clientY);
+  }
+  function onMouseMove(e) {
+    handleDragMove(e.clientX, e.clientY);
+  }
+  function onMouseUp() {
+    handleDragEnd();
+  }
+
+  // --- Événements tactiles (mobile) ---
+  function onTouchStart(e) {
+    handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+  }
+  function onTouchMove(e) {
+    handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  }
+  function onTouchEnd() {
+    handleDragEnd();
+  }
+
+  // =============================================
+  // Calcul du style de la carte pendant le drag
+  // =============================================
+
+  /**
+   * Détermine la direction dominante du drag en cours.
+   * Retourne "horizontal" ou "vertical" selon l'axe principal du mouvement.
+   */
+  function getDominantAxis() {
+    return Math.abs(deltaX) >= Math.abs(deltaY) ? "horizontal" : "vertical";
+  }
+
+  function getCardStyle() {
+    // --- Animations de sortie ---
+    if (exitDirection === "left") {
+      return {
+        transform: "translateX(-150vw) rotate(-30deg)",
+        opacity: 0,
+        transition: "transform 0.4s ease, opacity 0.4s ease",
+      };
+    }
+    if (exitDirection === "right") {
+      return {
+        transform: "translateX(150vw) rotate(30deg)",
+        opacity: 0,
+        transition: "transform 0.4s ease, opacity 0.4s ease",
+      };
+    }
+    if (exitDirection === "up") {
+      return {
+        transform: "translateY(-150vh)",
+        opacity: 0,
+        transition: "transform 0.4s ease, opacity 0.4s ease",
+      };
+    }
+
+    // --- Pendant le drag ---
+    if (isDragging || deltaX !== 0 || deltaY !== 0) {
+      const axis = getDominantAxis();
+
+      if (axis === "vertical" && deltaY < 0) {
+        // Drag vertical vers le haut : la carte monte sans rotation
+        return {
+          transform: `translateY(${deltaY}px)`,
+          transition: isDragging ? "none" : "transform 0.3s ease",
+          cursor: isDragging ? "grabbing" : "grab",
+        };
+      }
+
+      // Drag horizontal : la carte se déplace et tourne
+      const rotation = (deltaX / SWIPE_THRESHOLD) * 15;
+      return {
+        transform: `translateX(${deltaX}px) rotate(${rotation}deg)`,
+        transition: isDragging ? "none" : "transform 0.3s ease",
+        cursor: isDragging ? "grabbing" : "grab",
+      };
+    }
+
+    // État normal
+    return { cursor: "grab" };
+  }
+
+  /**
+   * Calcule l'opacité d'un indicateur en fonction d'un delta.
+   * Plus on glisse loin, plus l'indicateur est visible (de 0 à 1).
+   *
+   * @param {number} delta - Le décalage en pixels (deltaX ou deltaY)
+   * @returns {number} Opacité entre 0 et 1
+   */
+  function getIndicatorOpacity(delta) {
+    return Math.min(Math.abs(delta) / SWIPE_THRESHOLD, 1);
   }
 
   // --- Affichage pendant le chargement ---
@@ -117,11 +313,56 @@ function Home() {
     );
   }
 
+  // Calcul des opacités des indicateurs selon la direction dominante
+  const axis = getDominantAxis();
+  // L'indicateur like n'apparaît que si le mouvement est horizontal vers la gauche
+  const likeOpacity = axis === "horizontal" && deltaX < 0 ? getIndicatorOpacity(deltaX) : 0;
+  // L'indicateur dislike n'apparaît que si le mouvement est horizontal vers la droite
+  const dislikeOpacity = axis === "horizontal" && deltaX > 0 ? getIndicatorOpacity(deltaX) : 0;
+  // L'indicateur seen n'apparaît que si le mouvement est vertical vers le haut
+  const seenOpacity = axis === "vertical" && deltaY < 0 ? getIndicatorOpacity(deltaY) : 0;
+
   // --- Affichage principal : le film + les 3 boutons ---
   return (
-    <div className="home">
-      {/* La carte du film actuellement affiché */}
-      <div className="home__film-wrapper">
+    <div
+      className="home"
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+    >
+      {/* La carte du film avec le drag */}
+      <div
+        className="home__film-wrapper"
+        style={getCardStyle()}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Indicateur "À voir" — glissement vers la gauche */}
+        <div
+          className="home__swipe-indicator home__swipe-indicator--like"
+          style={{ opacity: likeOpacity }}
+        >
+          ♥ À voir
+        </div>
+
+        {/* Indicateur "Pas intéressé" — glissement vers la droite */}
+        <div
+          className="home__swipe-indicator home__swipe-indicator--dislike"
+          style={{ opacity: dislikeOpacity }}
+        >
+          ✕ Pas intéressé
+        </div>
+
+        {/* Indicateur "Déjà vu" — glissement vers le haut */}
+        <div
+          className="home__swipe-indicator home__swipe-indicator--seen"
+          style={{ opacity: seenOpacity }}
+        >
+          👁 Déjà vu
+        </div>
+
         <Film
           title={film.title}
           img={film.img}
@@ -137,28 +378,25 @@ function Home() {
 
       {/* Les 3 boutons d'action sous la carte */}
       <div className="home__actions">
-        {/* Bouton "À voir" (like) — à gauche */}
         <button
           className="home__action-btn home__action-btn--like"
-          onClick={() => handleSwipe("like")}
+          onClick={() => handleSwipe("like", "left")}
         >
           <span className="home__action-icon">♥</span>
           À voir
         </button>
 
-        {/* Bouton "Déjà vu" (seen) — au centre */}
         <button
           className="home__action-btn home__action-btn--seen"
-          onClick={() => handleSwipe("seen")}
+          onClick={() => handleSwipe("seen", "up")}
         >
           <span className="home__action-icon">👁</span>
           Déjà vu
         </button>
 
-        {/* Bouton "Pas intéressé" (dislike) — à droite */}
         <button
           className="home__action-btn home__action-btn--dislike"
-          onClick={() => handleSwipe("dislike")}
+          onClick={() => handleSwipe("dislike", "right")}
         >
           <span className="home__action-icon">✕</span>
           Pas intéressé

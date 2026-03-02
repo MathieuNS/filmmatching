@@ -64,7 +64,13 @@ class RandomFilmView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Renvoie un film aléatoire non encore swipé par l'utilisateur."""
+        """Renvoie un film non encore swipé par l'utilisateur, trié par popularité.
+
+        Paramètre optionnel :
+        - ?exclude=5,12 → exclut en plus les films avec ces IDs.
+          Utile pour pré-charger le film suivant sans recevoir celui
+          qui est déjà affiché à l'écran.
+        """
 
         # values_list('film_id', flat=True) renvoie une simple liste d'IDs
         # exemple : [3, 7, 12] (les IDs des films déjà swipés)
@@ -72,12 +78,25 @@ class RandomFilmView(APIView):
             user=request.user
         ).values_list('film_id', flat=True)
 
-        # exclude() retire les films dont l'ID est dans la liste ci-dessus
+        # On construit le queryset de base : tous les films non swipés
+        queryset = Films.objects.exclude(id__in=swiped_film_ids)
+
+        # Si le paramètre ?exclude= est présent, on exclut aussi ces IDs.
+        # Exemple : ?exclude=5,12 → on retire les films 5 et 12 du résultat.
+        # Le frontend utilise ça pour demander le "prochain" film
+        # sans recevoir celui qui est déjà affiché.
+        exclude_param = request.query_params.get('exclude')
+        if exclude_param:
+            # split(',') transforme "5,12" en ["5", "12"]
+            # int() convertit chaque string en nombre
+            exclude_ids = [int(id) for id in exclude_param.split(',') if id.isdigit()]
+            queryset = queryset.exclude(id__in=exclude_ids)
+
         # order_by('-popularity') trie par popularité décroissante :
         # le film le plus populaire non encore swipé apparaît en premier.
         # Le signe "-" devant "popularity" signifie "décroissant" (du plus grand au plus petit).
         # .first() prend le premier résultat (donc le plus populaire)
-        film = Films.objects.exclude(id__in=swiped_film_ids).order_by('-popularity').first()
+        film = queryset.order_by('-popularity').first()
 
         if film is None:
             # Plus aucun film à proposer : on renvoie 204 (No Content)
