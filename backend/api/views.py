@@ -73,9 +73,11 @@ class RandomFilmView(APIView):
         ).values_list('film_id', flat=True)
 
         # exclude() retire les films dont l'ID est dans la liste ci-dessus
-        # order_by('?') mélange les résultats aléatoirement (comme un shuffle)
-        # .first() prend le premier résultat (donc un film au hasard)
-        film = Films.objects.exclude(id__in=swiped_film_ids).order_by('?').first()
+        # order_by('-popularity') trie par popularité décroissante :
+        # le film le plus populaire non encore swipé apparaît en premier.
+        # Le signe "-" devant "popularity" signifie "décroissant" (du plus grand au plus petit).
+        # .first() prend le premier résultat (donc le plus populaire)
+        film = Films.objects.exclude(id__in=swiped_film_ids).order_by('-popularity').first()
 
         if film is None:
             # Plus aucun film à proposer : on renvoie 204 (No Content)

@@ -4,9 +4,6 @@ Todo:
 
 === BACKEND ===
 
-[ ] Remplir la database avec les genres (table Genres, via l'API TMDB genre/movie/list)
-[ ] Remplir la database avec les plateformes (table Plateform, via l'API TMDB watch/providers)
-[ ] Remplir la database avec les films et séries (table Films, via get_films.py)
 [ ] Créer une commande Django (manage.py) pour lancer l'import des films/séries automatiquement
 [ ] Récupérer les nouveautés TMDB qui ne sont pas déjà dans la database (mise à jour périodique)
 [ ] Endpoint pour supprimer un ami (DELETE /api/friends/<id>/)

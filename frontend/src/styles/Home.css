@@ -1,0 +1,205 @@
+/* ============================================
+   Home.css — Styles pour la page d'accueil (swipe)
+   La page affiche un film à la fois avec 3 boutons d'action.
+   ============================================ */
+
+/* --- Conteneur principal de la page --- */
+.home {
+  /* Centre tout le contenu horizontalement */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Hauteur fixe = exactement la fenêtre, pas de scroll sur la page */
+  height: 100vh;
+  /* Un peu d'espace autour */
+  padding: 16px 16px 16px;
+  /* Empêche le scroll sur la page elle-même */
+  overflow: hidden;
+  /* Fond sombre principal de l'app */
+  background-color: #0D0D0F;
+  /* box-sizing pour que le padding soit inclus dans le 100vh */
+  box-sizing: border-box;
+}
+
+/* --- Zone qui contient la carte du film --- */
+.home__film-wrapper {
+  /* Largeur max pour que la carte ne soit pas trop large sur grand écran */
+  max-width: 420px;
+  width: 100%;
+  /* flex: 1 = prend tout l'espace vertical restant (entre le haut et les boutons) */
+  flex: 1;
+  /* Permet de scroller à l'intérieur de la carte si le contenu dépasse */
+  overflow-y: auto;
+  /* Petit arrondi en bas pour que le scroll soit joli */
+  border-radius: 20px;
+  /* Cache la barre de scroll tout en gardant le scroll fonctionnel */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Cache la barre de scroll sur Chrome/Safari */
+.home__film-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* --- Barre de boutons d'action (like / déjà vu / dislike) --- */
+.home__actions {
+  display: flex;
+  /* Espace égal entre les boutons */
+  justify-content: center;
+  gap: 16px;
+  /* Espacement au-dessus des boutons */
+  margin-top: 12px;
+  /* Même largeur max que la carte film pour l'alignement */
+  max-width: 420px;
+  width: 100%;
+  /* flex-shrink: 0 empêche les boutons de rétrécir quand l'espace manque */
+  flex-shrink: 0;
+}
+
+/* --- Style commun à tous les boutons d'action --- */
+.home__action-btn {
+  /* Flexbox pour centrer l'icône et le texte verticalement */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  /* Taille et forme du bouton */
+  flex: 1;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  /* Pas de bordure par défaut */
+  cursor: pointer;
+  /* Police du design system */
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  /* Transition douce au survol */
+  transition: all 0.25s ease;
+  /* Fond transparent par défaut */
+  background-color: #16161A;
+}
+
+/* --- Icône dans le bouton (cercle avec symbole) --- */
+.home__action-icon {
+  /* Taille du cercle d'icône */
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  /* Centre l'icône/texte dans le cercle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  transition: all 0.25s ease;
+}
+
+/* === Bouton "À voir" (like) — Couleur corail/rose === */
+.home__action-btn--like {
+  color: #FF4D6A;
+}
+
+.home__action-btn--like .home__action-icon {
+  background-color: rgba(255, 77, 106, 0.12);
+}
+
+/* Effet au survol : glow (lueur) autour du bouton */
+.home__action-btn--like:hover {
+  background-color: rgba(255, 77, 106, 0.08);
+  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.2);
+}
+
+/* === Bouton "Déjà vu" — Couleur ambre/doré === */
+.home__action-btn--seen {
+  color: #FFAA2B;
+}
+
+.home__action-btn--seen .home__action-icon {
+  background-color: rgba(255, 170, 43, 0.12);
+}
+
+.home__action-btn--seen:hover {
+  background-color: rgba(255, 170, 43, 0.08);
+  box-shadow: 0 4px 24px rgba(255, 170, 43, 0.2);
+}
+
+/* === Bouton "Pas intéressé" (dislike) — Couleur grise === */
+.home__action-btn--dislike {
+  color: #8B8B9E;
+}
+
+.home__action-btn--dislike .home__action-icon {
+  background-color: rgba(139, 139, 158, 0.12);
+}
+
+.home__action-btn--dislike:hover {
+  background-color: rgba(139, 139, 158, 0.08);
+  box-shadow: 0 4px 24px rgba(139, 139, 158, 0.15);
+}
+
+/* --- Message quand il n'y a plus de films à voir --- */
+.home__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Centre le message verticalement dans la page */
+  min-height: 60vh;
+  text-align: center;
+}
+
+.home__empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.home__empty-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  margin: 0 0 8px 0;
+}
+
+.home__empty-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  color: #8B8B9E;
+  margin: 0;
+}
+
+/* --- Indicateur de chargement --- */
+.home__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+}
+
+/* ============================================
+   Responsive — Adaptation mobile
+   ============================================ */
+
+@media (max-width: 480px) {
+  .home {
+    padding: 8px 8px 10px;
+  }
+
+  .home__actions {
+    gap: 10px;
+  }
+
+  .home__action-btn {
+    padding: 12px 6px;
+    font-size: 0.78rem;
+  }
+
+  .home__action-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+}

@@ -71,6 +71,17 @@ function Film({
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
 
+        {/* Synopsis du film (juste sous le titre) */}
+        {synopsis && (
+          <div className="film-card__section">
+            <span className="film-card__label">Synopsis</span>
+            <p className="film-card__synopsis">{synopsis}</p>
+          </div>
+        )}
+
+        {/* Séparateur visuel */}
+        <hr className="film-card__divider" />
+
         {/* Réalisateur (affiché seulement s'il est fourni) */}
         {director && (
           <p className="film-card__director">
@@ -88,32 +99,32 @@ function Film({
         {/* Séparateur visuel */}
         <hr className="film-card__divider" />
 
-        {/* Synopsis du film */}
-        {synopsis && <p className="film-card__synopsis">{synopsis}</p>}
-
-        {/* Séparateur visuel */}
-        <hr className="film-card__divider" />
-
         {/* Liste des tags/genres affichés sous forme de badges */}
         {tags && tags.length > 0 && (
-          <div className="film-card__tags">
-            {tags.map((tag, index) => (
-              // Chaque tag est un petit badge cliquable visuellement
-              <span key={index} className="film-card__tag">
-                {tag}
-              </span>
-            ))}
+          <div className="film-card__section">
+            <span className="film-card__label">Genres</span>
+            <div className="film-card__tags">
+              {tags.map((tag, index) => (
+                // Chaque tag est un petit badge cliquable visuellement
+                <span key={index} className="film-card__tag">
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Liste des plateformes de streaming affichées sous forme de badges */}
         {plateform && plateform.length > 0 && (
-          <div className="film-card__platforms">
-            {plateform.map((plat, index) => (
-              <span key={index} className="film-card__platform">
-                {plat}
-              </span>
-            ))}
+          <div className="film-card__section">
+            <span className="film-card__label">Disponible sur :</span>
+            <div className="film-card__platforms">
+              {plateform.map((plat, index) => (
+                <span key={index} className="film-card__platform">
+                  {plat}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

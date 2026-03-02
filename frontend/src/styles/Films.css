@@ -141,6 +141,17 @@
   overflow: hidden;
 }
 
+/* --- Section avec intitulé (Genres, Disponible sur) --- */
+.film-card__section {
+  margin-bottom: 10px;
+}
+
+.film-card__section .film-card__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}
+
 /* --- Tags / Genres (badges) --- */
 .film-card__tags {
   display: flex;

@@ -29,8 +29,18 @@ class FilmsSerializer(serializers.ModelSerializer):
     """
     Serializer complet pour le modèle Films.
     Utilisé pour créer des films (admin) et les lister.
-    '__all__' signifie qu'on inclut tous les champs du modèle.
+
+    StringRelatedField renvoie le résultat de __str__() de chaque objet lié.
+    Par exemple, pour un genre, ça renvoie "Action" au lieu de l'ID 28.
+    many=True est nécessaire pour les champs ManyToMany (plusieurs valeurs).
     """
+
+    # Au lieu de renvoyer des IDs (ex: [1, 3]), on renvoie les noms (ex: ["Action", "Drame"])
+    genres = serializers.StringRelatedField(many=True, read_only=True)
+    plateforms = serializers.StringRelatedField(many=True, read_only=True)
+    main_actors = serializers.StringRelatedField(many=True, read_only=True)
+    # Pour le réalisateur (ForeignKey, pas ManyToMany), pas besoin de many=True
+    director = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = Films
