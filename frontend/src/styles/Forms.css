@@ -1,36 +1,157 @@
+/* ==============================================
+   Forms.css — Styles partagés pour les formulaires
+   (login + création de compte)
+   Suit le design system FilmMatching (thème sombre)
+   ============================================== */
+
+/* --- Variables CSS du design system --- */
+:root {
+  --noir-cinema: #0D0D0F;
+  --noir-carte: #16161A;
+  --gris-sombre: #1E1E24;
+  --gris-moyen: #2A2A32;
+  --gris-texte: #8B8B9E;
+  --blanc-doux: #F0EEF2;
+  --corail-vif: #FF4D6A;
+  --ambre-dore: #FFAA2B;
+  --violet-nuit: #7B5CFF;
+  --vert-match: #2EE0A1;
+}
+
+/* --- Page entière : fond sombre, centrage vertical --- */
+.form-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--noir-cinema);
+  padding: 20px;
+}
+
+/* --- Carte du formulaire --- */
 .form-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin: 50px auto;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 32px;
+  background-color: var(--noir-carte);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+/* --- Logo / nom de l'app au-dessus du formulaire --- */
+.form-logo {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  /* Dégradé "Passion" sur le texte */
+  background: linear-gradient(135deg, var(--corail-vif), var(--ambre-dore));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+/* --- Titre du formulaire (h1) --- */
+.form-container h1 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1.8rem;
+  color: var(--blanc-doux);
+  margin: 0 0 4px 0;
+}
+
+/* --- Sous-titre / description --- */
+.form-subtitle {
+  font-family: 'Sora', sans-serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: var(--gris-texte);
+  margin-bottom: 28px;
+}
+
+/* --- Champs de saisie --- */
 .form-input {
-  width: 90%;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background-color: var(--gris-sombre);
+  border: 1px solid var(--gris-moyen);
+  border-radius: 14px;
+  color: var(--blanc-doux);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
   box-sizing: border-box;
 }
 
+.form-input::placeholder {
+  color: var(--gris-texte);
+  font-family: 'Sora', sans-serif;
+}
+
+/* Au focus : bordure colorée + légère lueur */
+.form-input:focus {
+  border-color: var(--violet-nuit);
+  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.15);
+}
+
+/* --- Bouton principal (CTA) --- */
 .form-button {
-  width: 95%;
-  padding: 10px;
-  margin: 20px 0;
-  background-color: #007bff;
-  color: white;
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  /* Dégradé "Connexion" (violet → corail) */
+  background: linear-gradient(135deg, var(--violet-nuit), var(--corail-vif));
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.25s ease;
+  /* Lueur sous le bouton */
+  box-shadow: 0 4px 24px rgba(123, 92, 255, 0.3);
 }
 
 .form-button:hover {
-  background-color: #0056b3;
+  /* Légère montée + lueur plus forte au survol */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(123, 92, 255, 0.45);
+}
+
+.form-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 12px rgba(123, 92, 255, 0.2);
+}
+
+/* État désactivé pendant le chargement */
+.form-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Lien de navigation (vers login / create) --- */
+.form-link {
+  margin-top: 20px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gris-texte);
+}
+
+.form-link a {
+  color: var(--violet-nuit);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.25s ease;
+}
+
+.form-link a:hover {
+  color: var(--corail-vif);
 }
