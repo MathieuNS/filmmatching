@@ -4,6 +4,21 @@
    Suit le design system FilmMatching (thème sombre)
    ============================================== */
 
+/* --- Reset global : supprime les marges par défaut du navigateur ---
+   Sans ça, le body a un margin de 8px qui cause un mini scroll
+   sur les pages en plein écran (100vh + 8px = déborde) */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  /* Empêche le scroll sur le body */
+  overflow: hidden;
+  height: 100%;
+}
+
 /* --- Variables CSS du design system --- */
 :root {
   --noir-cinema: #0D0D0F;

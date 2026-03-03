@@ -21,14 +21,35 @@
   box-sizing: border-box;
 }
 
-/* --- Header avec le bouton Filtres --- */
+/* --- Header avec le logo à gauche et le bouton Filtres à droite --- */
 .home__header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
   max-width: 420px;
   margin-bottom: 8px;
   flex-shrink: 0;
+}
+
+/* Logo (icône + texte) dans le header */
+.home__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #FF4D6A, #FFAA2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.home__logo-icon {
+  width: 28px;
+  height: 28px;
+  -webkit-text-fill-color: initial;
 }
 
 /* Bouton filtre — style pill (pilule) violet */
@@ -112,17 +133,17 @@
   transition: opacity 0.1s ease;
 }
 
-/* Indicateur "À voir" (like) — en haut à droite quand on glisse à gauche */
+/* Indicateur "À voir" (like) — en haut à gauche quand on glisse à droite */
 .home__swipe-indicator--like {
-  right: 20px;
+  left: 20px;
   color: #FF4D6A;
   border-color: #FF4D6A;
   background-color: rgba(255, 77, 106, 0.15);
 }
 
-/* Indicateur "Pas intéressé" (dislike) — en haut à gauche quand on glisse à droite */
+/* Indicateur "Pas intéressé" (dislike) — en haut à droite quand on glisse à gauche */
 .home__swipe-indicator--dislike {
-  left: 20px;
+  right: 20px;
   color: #8B8B9E;
   border-color: #8B8B9E;
   background-color: rgba(139, 139, 158, 0.15);

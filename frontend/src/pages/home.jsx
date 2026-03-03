@@ -9,9 +9,9 @@ import "../styles/Home.css";
  *
  * Cette page est le cœur de l'application. Elle affiche les films
  * un par un (le plus populaire en premier) et propose 3 actions :
- * - "À voir" (like) : glisser vers la gauche ou cliquer le bouton
+ * - "À voir" (like) : glisser vers la droite ou cliquer le bouton
  * - "Déjà vu" (seen) : glisser vers le haut ou cliquer le bouton
- * - "Pas intéressé" (dislike) : glisser vers la droite ou cliquer le bouton
+ * - "Pas intéressé" (dislike) : glisser vers la gauche ou cliquer le bouton
  *
  * Pour éviter un temps de chargement entre chaque film, le prochain film
  * est toujours pré-chargé en avance (prefetch). Quand l'utilisateur swipe,
@@ -292,12 +292,12 @@ function Home() {
     if (absY > absX && deltaY < -SWIPE_THRESHOLD) {
       // Mouvement vertical dominant vers le haut → "déjà vu"
       handleSwipe("seen", "up");
-    } else if (absX >= absY && deltaX < -SWIPE_THRESHOLD) {
-      // Mouvement horizontal dominant vers la gauche → like
-      handleSwipe("like", "left");
     } else if (absX >= absY && deltaX > SWIPE_THRESHOLD) {
-      // Mouvement horizontal dominant vers la droite → dislike
-      handleSwipe("dislike", "right");
+      // Mouvement horizontal dominant vers la droite → like
+      handleSwipe("like", "right");
+    } else if (absX >= absY && deltaX < -SWIPE_THRESHOLD) {
+      // Mouvement horizontal dominant vers la gauche → dislike
+      handleSwipe("dislike", "left");
     } else {
       // Seuil pas atteint → la carte revient au centre
       setDeltaX(0);
@@ -405,6 +405,16 @@ function Home() {
   // On le définit ici pour ne pas le dupliquer dans chaque return
   const filterButton = (
     <div className="home__header">
+      {/* Logo de l'app */}
+      <div className="home__logo">
+        <img
+          className="home__logo-icon"
+          src="/filmmatching-icon.svg"
+          alt="Logo FilmMatching"
+        />
+        FilmMatching
+      </div>
+
       <button
         className="home__filter-btn"
         onClick={() => setIsFilterOpen(true)}
@@ -463,10 +473,10 @@ function Home() {
 
   // Calcul des opacités des indicateurs selon la direction dominante
   const axis = getDominantAxis();
-  // L'indicateur like n'apparaît que si le mouvement est horizontal vers la gauche
-  const likeOpacity = axis === "horizontal" && deltaX < 0 ? getIndicatorOpacity(deltaX) : 0;
-  // L'indicateur dislike n'apparaît que si le mouvement est horizontal vers la droite
-  const dislikeOpacity = axis === "horizontal" && deltaX > 0 ? getIndicatorOpacity(deltaX) : 0;
+  // L'indicateur like n'apparaît que si le mouvement est horizontal vers la droite
+  const likeOpacity = axis === "horizontal" && deltaX > 0 ? getIndicatorOpacity(deltaX) : 0;
+  // L'indicateur dislike n'apparaît que si le mouvement est horizontal vers la gauche
+  const dislikeOpacity = axis === "horizontal" && deltaX < 0 ? getIndicatorOpacity(deltaX) : 0;
   // L'indicateur seen n'apparaît que si le mouvement est vertical vers le haut
   const seenOpacity = axis === "vertical" && deltaY < 0 ? getIndicatorOpacity(deltaY) : 0;
 
@@ -490,20 +500,20 @@ function Home() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Indicateur "À voir" — glissement vers la gauche */}
-        <div
-          className="home__swipe-indicator home__swipe-indicator--like"
-          style={{ opacity: likeOpacity }}
-        >
-          ♥ À voir
-        </div>
-
-        {/* Indicateur "Pas intéressé" — glissement vers la droite */}
+        {/* Indicateur "Pas intéressé" — glissement vers la gauche */}
         <div
           className="home__swipe-indicator home__swipe-indicator--dislike"
           style={{ opacity: dislikeOpacity }}
         >
           ✕ Pas intéressé
+        </div>
+
+        {/* Indicateur "À voir" — glissement vers la droite */}
+        <div
+          className="home__swipe-indicator home__swipe-indicator--like"
+          style={{ opacity: likeOpacity }}
+        >
+          ♥ À voir
         </div>
 
         {/* Indicateur "Déjà vu" — glissement vers le haut */}
@@ -531,10 +541,10 @@ function Home() {
       <div className="home__actions">
         <button
           className="home__action-btn home__action-btn--like"
-          onClick={() => handleSwipe("like", "left")}
+          onClick={() => handleSwipe("dislike", "left")}
         >
-          <span className="home__action-icon">♥</span>
-          À voir
+          <span className="home__action-icon">✕</span>
+          Pas intéressé
         </button>
 
         <button
@@ -546,11 +556,11 @@ function Home() {
         </button>
 
         <button
-          className="home__action-btn home__action-btn--dislike"
-          onClick={() => handleSwipe("dislike", "right")}
+          className="home__action-btn home__action-btn--like"
+          onClick={() => handleSwipe("like", "right")}
         >
-          <span className="home__action-icon">✕</span>
-          Pas intéressé
+          <span className="home__action-icon">♥</span>
+          À voir
         </button>
       </div>
 

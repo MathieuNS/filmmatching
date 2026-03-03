@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF4D6A"/>
+      <stop offset="1" stop-color="#FFAA2B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="32" fill="url(#grad)"/>
+
+  <!-- Film perforations LEFT -->
+  <rect x="6" y="14" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="25" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="36" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="47" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="58" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="69" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="80" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="91" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="6" y="102" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+
+  <!-- Film perforations RIGHT -->
+  <rect x="114" y="14" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="25" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="36" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="47" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="58" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="69" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="80" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="91" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+  <rect x="114" y="102" width="8" height="6" rx="1.5" fill="white" opacity="0.35"/>
+
+  <!-- Frame lines top & bottom -->
+  <rect x="17" y="10" width="94" height="1.5" rx="0.75" fill="white" opacity="0.15"/>
+  <rect x="17" y="116.5" width="94" height="1.5" rx="0.75" fill="white" opacity="0.15"/>
+
+  <!-- Heart (clean, no frames inside) -->
+  <path d="M64 42C58.2 33 49.8 31 43.5 36.5C37.2 42 36.5 52 42 58L64 82L86 58C91.5 52 91 42 84.5 36.5C78.2 31 69.8 33 64 42Z" fill="white"/>
+
+  <!-- Play button -->
+  <path d="M57 46L57 66L73 56Z" fill="url(#grad)" opacity="0.7"/>
+</svg>
