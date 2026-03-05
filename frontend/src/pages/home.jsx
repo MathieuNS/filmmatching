@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+// useNavigate permet de naviguer vers une autre page sans recharger l'app
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
@@ -20,6 +22,9 @@ import "../styles/Home.css";
  * @returns {JSX.Element} La page d'accueil avec le système de swipe
  */
 function Home() {
+  // Hook pour naviguer vers d'autres pages (ex: /compte, /amis, /liste)
+  const navigate = useNavigate();
+
   // Le film actuellement affiché
   const [film, setFilm] = useState(null);
   // Le prochain film, pré-chargé en avance pour un affichage instantané
@@ -28,6 +33,10 @@ function Home() {
   const [loading, setLoading] = useState(true);
   // true quand il n'y a plus de films à proposer
   const [noMoreFilms, setNoMoreFilms] = useState(false);
+
+  // --- State pour le menu de navigation ---
+  // true = le menu hamburger est ouvert, false = fermé
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
@@ -415,17 +424,77 @@ function Home() {
         FilmMatching
       </div>
 
-      <button
-        className="home__filter-btn"
-        onClick={() => setIsFilterOpen(true)}
-      >
-        <span className="home__filter-icon">⚙</span>
-        Filtres
-        {/* Badge avec le nombre de filtres actifs */}
-        {filterCount > 0 && (
-          <span className="home__filter-badge">{filterCount}</span>
-        )}
-      </button>
+      {/* Groupe de boutons à droite : filtres + menu hamburger */}
+      <div className="home__header-actions">
+        <button
+          className="home__filter-btn"
+          onClick={() => setIsFilterOpen(true)}
+        >
+          <span className="home__filter-icon">⚙</span>
+          Filtres
+          {/* Badge avec le nombre de filtres actifs */}
+          {filterCount > 0 && (
+            <span className="home__filter-badge">{filterCount}</span>
+          )}
+        </button>
+
+        {/* Bouton hamburger — ouvre/ferme le menu de navigation */}
+        <div className="home__menu-container">
+          <button
+            className="home__menu-btn"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Menu de navigation"
+          >
+            {/* 3 barres horizontales = icône hamburger classique */}
+            <span className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+
+          {/* Menu déroulant — visible uniquement quand isMenuOpen est true */}
+          {isMenuOpen && (
+            <>
+              {/* Fond transparent cliquable pour fermer le menu */}
+              <div
+                className="home__menu-backdrop"
+                onClick={() => setIsMenuOpen(false)}
+              />
+              <nav className="home__menu-dropdown">
+                <button
+                  className="home__menu-item"
+                  onClick={() => { navigate("/liste"); setIsMenuOpen(false); }}
+                >
+                  <span className="home__menu-item-icon">🎬</span>
+                  Ma liste
+                </button>
+                <button
+                  className="home__menu-item"
+                  onClick={() => { navigate("/amis"); setIsMenuOpen(false); }}
+                >
+                  <span className="home__menu-item-icon">👥</span>
+                  Mes Amis
+                </button>
+                <button
+                  className="home__menu-item"
+                  onClick={() => { navigate("/compte"); setIsMenuOpen(false); }}
+                >
+                  <span className="home__menu-item-icon">👤</span>
+                  Mon compte
+                </button>
+                <button
+                  className="home__menu-item"
+                  onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
+                >
+                  <span className="home__menu-item-icon">⏻</span>
+                  Déconnexion
+                </button>
+              </nav>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 

@@ -14,8 +14,6 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* Empêche le scroll sur le body */
-  overflow: hidden;
   height: 100%;
 }
 

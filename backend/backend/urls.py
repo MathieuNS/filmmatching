@@ -7,6 +7,7 @@ from api.views import (
     GenreListView,
     PlateformListView,
     SwipeCreateView,
+    SwipeUpdateView,
     UserSwipeListView,
     FriendshipView,
     FriendshipAcceptView,
@@ -35,6 +36,8 @@ urlpatterns = [
     # --- Swipes (like/dislike/déjà vu) ---
     path('api/swipes/', SwipeCreateView.as_view(), name='swipe-create'),
     path('api/swipes/list/', UserSwipeListView.as_view(), name='swipe-list'),
+    # PATCH pour modifier le statut d'un swipe (ex: like → seen)
+    path('api/swipes/<int:pk>/', SwipeUpdateView.as_view(), name='swipe-update'),
 
     # --- Amitiés ---
     path('api/friends/', FriendshipView.as_view(), name='friendship-list-create'),

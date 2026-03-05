@@ -5,6 +5,9 @@ import Login from './pages/login'
 import CreateLogin from './pages/create_login'
 import LandingPage from './pages/landing_page'
 import NotFound from './pages/notfound'
+import Friends from './pages/Friends'
+import UserAccount from './pages/user_account'
+import FilmList from './pages/films_list'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Lougout() {
@@ -24,6 +27,15 @@ function App() {
       <Routes>
         <Route path="/home" element={<ProtectedRoute>
           <Home />
+          </ProtectedRoute>} />
+        <Route path="/liste" element={<ProtectedRoute>
+          <FilmList />
+          </ProtectedRoute>} />
+        <Route path="/amis" element={<ProtectedRoute>
+          <Friends />
+          </ProtectedRoute>} />
+        <Route path="/compte" element={<ProtectedRoute>
+          <UserAccount />
           </ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Lougout />} />

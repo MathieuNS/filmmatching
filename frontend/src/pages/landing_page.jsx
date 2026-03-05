@@ -182,7 +182,7 @@ function LandingPage() {
       {/* --- Titre + sous-titre accrocheur --- */}
       <div className="landing__header">
         <h1 className="landing__title">
-          Arrête de scroller, mange chaud
+          Marre de manger froid?<br />Arrête de scroller!
         </h1>
         <p className="landing__subtitle">
           Swipe et trouve un film ou une série qui plaît à tout le monde en 2 minutes

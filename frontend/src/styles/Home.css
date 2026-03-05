@@ -94,6 +94,144 @@
   font-weight: 700;
 }
 
+/* --- Groupe de boutons à droite du header (filtres + menu) --- */
+.home__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --- Bouton menu hamburger --- */
+.home__menu-container {
+  /* position: relative pour que le dropdown se positionne par rapport à ce conteneur */
+  position: relative;
+}
+
+.home__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #16161A;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.home__menu-btn:hover {
+  background-color: #1E1E24;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Icône hamburger — 3 barres horizontales animées */
+.home__menu-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 18px;
+  height: 18px;
+}
+
+.home__menu-icon span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: #F0EEF2;
+  border-radius: 2px;
+  transition: all 0.25s ease;
+  /* transform-origin au centre pour la rotation */
+  transform-origin: center;
+}
+
+/* Animation : quand le menu est ouvert, les 3 barres deviennent un X */
+.home__menu-icon--open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.home__menu-icon--open span:nth-child(2) {
+  opacity: 0;
+}
+
+.home__menu-icon--open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* --- Fond transparent derrière le menu (pour fermer en cliquant ailleurs) --- */
+.home__menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 90;
+}
+
+/* --- Menu déroulant (dropdown) --- */
+.home__menu-dropdown {
+  position: absolute;
+  /* Positionné juste en dessous du bouton, aligné à droite */
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  /* Ombre portée pour donner un effet de profondeur */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* z-index au-dessus du backdrop */
+  z-index: 100;
+  overflow: hidden;
+  /* Animation d'apparition */
+  animation: menuSlideDown 0.2s ease;
+}
+
+/* Animation du menu qui descend */
+@keyframes menuSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Chaque élément du menu --- */
+.home__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  background: none;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.home__menu-item:hover {
+  background-color: rgba(123, 92, 255, 0.1);
+  color: #7B5CFF;
+}
+
+/* Séparateur entre les éléments du menu */
+.home__menu-item + .home__menu-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.home__menu-item-icon {
+  font-size: 1.1rem;
+}
+
 /* --- Zone qui contient la carte du film (draggable) --- */
 .home__film-wrapper {
   /* Largeur max pour que la carte ne soit pas trop large sur grand écran */

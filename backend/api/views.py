@@ -11,6 +11,7 @@ from .serializers import (
     GenreSerializer,
     PlateformSerializer,
     SwipeSerializer,
+    SwipeDetailSerializer,
     FriendshipSerializer,
 )
 
@@ -207,10 +208,60 @@ class UserSwipeListView(generics.ListAPIView):
     Liste les films swipés par l'utilisateur connecté,
     filtrés par statut (like, dislike ou seen).
 
-    - GET /api/swipes/              → tous les swipes de l'utilisateur
-    - GET /api/swipes/?status=like  → seulement les films likés
+    - GET /api/swipes/list/              → tous les swipes de l'utilisateur
+    - GET /api/swipes/list/?status=like  → seulement les films likés
 
     Le paramètre 'status' est passé dans l'URL (query parameter).
+
+    Utilise SwipeDetailSerializer pour inclure les données complètes du film
+    (titre, image, genres, etc.) au lieu de juste l'ID.
+    """
+
+    serializer_class = SwipeDetailSerializer
+    permission_classes = [IsAuthenticated]
+    # Désactive la pagination pour renvoyer TOUS les swipes d'un coup.
+    # Sans ça, DRF pourrait limiter le nombre de résultats si une pagination
+    # par défaut est configurée dans settings.py.
+    pagination_class = None
+
+    def get_queryset(self):
+        """
+        get_queryset() est la méthode que Django appelle pour savoir
+        quels objets renvoyer. On la personnalise pour filtrer
+        par utilisateur et éventuellement par statut.
+
+        select_related('film') charge le film en 1 requête (JOIN SQL).
+        prefetch_related charge les relations ManyToMany (genres, plateformes,
+        acteurs) en requêtes séparées mais optimisées (pas 1 requête par film).
+        """
+        # On ne renvoie que les swipes de l'utilisateur connecté
+        queryset = Swipe.objects.filter(
+            user=self.request.user
+        ).select_related('film', 'film__director').prefetch_related(
+            'film__genres', 'film__plateforms', 'film__main_actors'
+        )
+
+        # self.request.query_params contient les paramètres de l'URL
+        # Exemple : pour /api/swipes/list/?status=like, query_params = {'status': 'like'}
+        swipe_status = self.request.query_params.get('status')
+        if swipe_status:
+            queryset = queryset.filter(status=swipe_status)
+
+        return queryset
+
+
+class SwipeUpdateView(generics.UpdateAPIView):
+    """
+    Met à jour le statut d'un swipe existant.
+
+    - PATCH /api/swipes/<id>/
+    - Body : { "status": "seen" }
+
+    Permet à l'utilisateur de changer le statut d'un film.
+    Par exemple : un film liké qu'il vient de voir → passer en "seen".
+
+    Sécurité : on filtre le queryset pour que l'utilisateur ne puisse
+    modifier que SES propres swipes (pas ceux des autres).
     """
 
     serializer_class = SwipeSerializer
@@ -218,20 +269,11 @@ class UserSwipeListView(generics.ListAPIView):
 
     def get_queryset(self):
         """
-        get_queryset() est la méthode que Django appelle pour savoir
-        quels objets renvoyer. On la personnalise pour filtrer
-        par utilisateur et éventuellement par statut.
+        Ne renvoie que les swipes de l'utilisateur connecté.
+        Comme ça, si quelqu'un essaie de modifier le swipe d'un autre
+        utilisateur, Django renverra 404 (introuvable).
         """
-        # On ne renvoie que les swipes de l'utilisateur connecté
-        queryset = Swipe.objects.filter(user=self.request.user)
-
-        # self.request.query_params contient les paramètres de l'URL
-        # Exemple : pour /api/swipes/?status=like, query_params = {'status': 'like'}
-        swipe_status = self.request.query_params.get('status')
-        if swipe_status:
-            queryset = queryset.filter(status=swipe_status)
-
-        return queryset
+        return Swipe.objects.filter(user=self.request.user)
 
 
 class FriendshipView(generics.ListCreateAPIView):

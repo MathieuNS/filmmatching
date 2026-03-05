@@ -1,0 +1,400 @@
+/* ============================================
+   FilmList.css — Styles pour la page "Ma liste"
+   Affiche les films swipés en 3 onglets (likés, vus, dislikés)
+   avec une grille de cartes et un menu de changement de statut.
+   ============================================ */
+
+/* --- Conteneur principal --- */
+.film-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  background-color: #0D0D0F;
+  box-sizing: border-box;
+}
+
+/* --- Header avec titre + boutons --- */
+.film-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 16px;
+}
+
+.film-list__title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #FF4D6A, #FFAA2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.film-list__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --- Barre d'onglets --- */
+.film-list__tabs {
+  display: flex;
+  gap: 8px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 20px;
+}
+
+.film-list__tab {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background-color: #16161A;
+  color: #8B8B9E;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+.film-list__tab:hover {
+  background-color: #1E1E24;
+}
+
+/* Onglet actif "À voir" (like) — corail */
+.film-list__tab--active.film-list__tab--like {
+  color: #FF4D6A;
+  background-color: rgba(255, 77, 106, 0.1);
+  border-color: rgba(255, 77, 106, 0.3);
+}
+
+/* Onglet actif "Déjà vu" (seen) — ambre */
+.film-list__tab--active.film-list__tab--seen {
+  color: #FFAA2B;
+  background-color: rgba(255, 170, 43, 0.1);
+  border-color: rgba(255, 170, 43, 0.3);
+}
+
+/* Onglet actif "Pas intéressé" (dislike) — gris */
+.film-list__tab--active.film-list__tab--dislike {
+  color: #8B8B9E;
+  background-color: rgba(139, 139, 158, 0.1);
+  border-color: rgba(139, 139, 158, 0.3);
+}
+
+/* Compteur dans l'onglet */
+.film-list__tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 100px;
+  background-color: rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* --- Grille de cartes --- */
+.film-list__grid {
+  display: grid;
+  /* Colonnes responsives : min 140px, max 1fr */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+/* --- Carte individuelle --- */
+.film-list__card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  /* Ratio 2:3 pour les affiches de films */
+  aspect-ratio: 2 / 3;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.film-list__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.film-list__card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Dégradé sombre en bas de la carte pour la lisibilité du texte */
+.film-list__card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 10px 10px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+}
+
+.film-list__card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #F0EEF2;
+  margin: 0 0 2px;
+  /* Limite à 2 lignes */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.film-list__card-year {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.65rem;
+  color: #8B8B9E;
+}
+
+/* --- Bouton ⋯ (menu contextuel) sur chaque carte --- */
+.film-list__card-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #F0EEF2;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  /* Caché par défaut, visible au hover de la carte */
+  opacity: 0;
+  z-index: 5;
+}
+
+.film-list__card:hover .film-list__card-menu-btn {
+  opacity: 1;
+}
+
+.film-list__card-menu-btn:hover {
+  background-color: rgba(0, 0, 0, 0.85);
+}
+
+/* --- Menu contextuel (dropdown) sur une carte --- */
+.film-list__card-dropdown {
+  position: absolute;
+  top: 42px;
+  right: 8px;
+  min-width: 160px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+  overflow: hidden;
+  animation: cardMenuFadeIn 0.15s ease;
+}
+
+@keyframes cardMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.film-list__card-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.film-list__card-dropdown-item:hover {
+  background-color: rgba(123, 92, 255, 0.1);
+}
+
+.film-list__card-dropdown-item + .film-list__card-dropdown-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Couleurs des options du menu selon le statut cible */
+.film-list__card-dropdown-item--like {
+  color: #FF4D6A;
+}
+
+.film-list__card-dropdown-item--seen {
+  color: #FFAA2B;
+}
+
+.film-list__card-dropdown-item--dislike {
+  color: #8B8B9E;
+}
+
+/* Fond transparent pour fermer le menu en cliquant ailleurs */
+.film-list__card-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 15;
+}
+
+/* --- États vide et chargement --- */
+.film-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  text-align: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.film-list__empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.film-list__empty-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  margin: 0 0 8px;
+}
+
+.film-list__empty-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  color: #8B8B9E;
+  margin: 0;
+}
+
+.film-list__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+}
+
+/* --- Bouton filtre (même style que Home) --- */
+.film-list__filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(123, 92, 255, 0.3);
+  background-color: rgba(123, 92, 255, 0.1);
+  color: #7B5CFF;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.film-list__filter-btn:hover {
+  background-color: rgba(123, 92, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(123, 92, 255, 0.2);
+}
+
+.film-list__filter-icon {
+  font-size: 1rem;
+}
+
+.film-list__filter-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  color: #F0EEF2;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* --- Bouton retour --- */
+.film-list__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #16161A;
+  color: #F0EEF2;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.film-list__back-btn:hover {
+  background-color: #1E1E24;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .film-list {
+    padding: 8px;
+  }
+
+  .film-list__grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+
+  .film-list__tab {
+    padding: 10px 6px;
+    font-size: 0.75rem;
+  }
+
+  .film-list__card-menu-btn {
+    opacity: 1;
+  }
+}

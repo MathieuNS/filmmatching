@@ -91,6 +91,29 @@ class SwipeSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
 
 
+class SwipeDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer enrichi pour afficher les swipes avec les données complètes du film.
+
+    Contrairement à SwipeSerializer qui renvoie juste l'ID du film (ex: "film": 5),
+    celui-ci renvoie toutes les infos du film (titre, image, genres, etc.).
+    C'est utilisé par la page "Ma liste" pour afficher les cartes de films.
+
+    Le mot-clé 'source' n'est pas nécessaire ici car le champ s'appelle déjà 'film'
+    dans le modèle Swipe, et FilmsSerializer sait quoi faire avec l'objet Film.
+    """
+
+    # On imbrique le FilmsSerializer dans le champ 'film' :
+    # au lieu de renvoyer film: 5, on renvoie film: { id: 5, title: "...", img: "...", ... }
+    film = FilmsSerializer(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Swipe
+        fields = ['id', 'user', 'film', 'status', 'created_at']
+        read_only_fields = ['created_at']
+
+
 class FriendshipSerializer(serializers.ModelSerializer):
     """
     Serializer pour les demandes d'amis.
