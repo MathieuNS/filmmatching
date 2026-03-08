@@ -1,19 +1,22 @@
 import Film from "./Film";
 import "../styles/FilmDetailModal.css";
+import "../styles/FriendAvatars.css";
 
 /**
  * Modale qui affiche la fiche complète d'un film.
  *
  * Réutilise le composant Film (celui de la page Home) pour afficher
  * l'affiche, le synopsis, les genres, les plateformes, etc.
- * La modale s'ouvre par-dessus la page en cours (grille de films).
+ * Si des noms d'amis sont fournis (friendNames), une section
+ * "Aussi aimé par" s'affiche en bas de la modale.
  *
  * @param {Object} props
  * @param {Object|null} props.film - Le film à afficher (null = modale fermée)
  * @param {Function} props.onClose - Appelée quand l'utilisateur ferme la modale
+ * @param {string[]} [props.friendNames] - Liste des pseudos d'amis qui ont aussi liké ce film
  * @returns {JSX.Element|null} La modale ou null si pas de film
  */
-function FilmDetailModal({ film, onClose }) {
+function FilmDetailModal({ film, onClose, friendNames = [] }) {
   // Si aucun film n'est sélectionné, on n'affiche rien
   if (!film) return null;
 
@@ -47,6 +50,31 @@ function FilmDetailModal({ film, onClose }) {
             director={film.director}
           />
         </div>
+
+        {/* Section "Aussi aimé par" — visible seulement si des amis ont liké */}
+        {friendNames.length > 0 && (
+          <div className="film-detail-modal__friends">
+            <div className="friend-likes-section">
+              <span className="friend-likes-section__title">
+                Aussi aimé par
+              </span>
+              <div className="friend-likes-section__list">
+                {friendNames.map((name, index) => (
+                  <div key={index} className="friend-likes-section__chip">
+                    <div className="friend-likes-section__chip-avatar">
+                      <span className="friend-likes-section__chip-letter">
+                        {name.charAt(0)}
+                      </span>
+                    </div>
+                    <span className="friend-likes-section__chip-name">
+                      {name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

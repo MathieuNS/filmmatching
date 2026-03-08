@@ -36,6 +36,9 @@
   overflow: hidden;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
   animation: filmDetailSlideUp 0.3s ease;
+  /* Flexbox column pour empiler la carte Film + la section amis */
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes filmDetailSlideUp {
@@ -79,8 +82,19 @@
    s'affiche correctement (il utilise height: 100%) */
 .film-detail-modal__card {
   width: 100%;
-  height: 85vh;
+  /* flex: 1 permet à la carte de prendre tout l'espace restant
+     quand la section amis est présente en dessous */
+  flex: 1;
+  min-height: 0;
   max-height: 680px;
+}
+
+/* --- Section "Aussi aimé par" sous la carte --- */
+.film-detail-modal__friends {
+  padding: 14px 20px 18px;
+  background-color: #16161A;
+  /* Bordure subtile en haut pour séparer de la carte */
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 /* ============================================
@@ -97,7 +111,7 @@
   }
 
   .film-detail-modal__card {
-    height: 90vh;
+    height: calc(90vh - 70px);
     max-height: none;
   }
 }

@@ -521,3 +521,78 @@ class MatchListView(APIView):
 
         serializer = FilmsSerializer(matched_films, many=True)
         return Response(serializer.data)
+
+
+class FriendsLikesView(APIView):
+    """
+    Pour chaque film liké par l'utilisateur, renvoie la liste des amis
+    qui ont aussi liké ce film.
+
+    - GET /api/friends/common-likes/
+
+    Le résultat est un objet où chaque clé est un ID de film,
+    et la valeur est la liste des pseudos d'amis qui l'ont aussi liké.
+
+    Exemple de réponse :
+    {
+      "42": ["Alice", "Bob"],
+      "87": ["Alice"],
+      "123": []
+    }
+
+    Seuls les films qui ont au moins 1 ami en commun sont inclus
+    dans la réponse (pour ne pas renvoyer des centaines de clés vides).
+
+    Logique :
+    1. Récupérer tous les amis confirmés de l'utilisateur
+    2. Récupérer les films likés par l'utilisateur
+    3. Pour chaque film, vérifier quels amis l'ont aussi liké
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Renvoie un dictionnaire { film_id: [pseudo1, pseudo2, ...] }."""
+        user = request.user
+
+        # Étape 1 : récupérer tous les amis confirmés
+        # Q(sender=user) | Q(receiver=user) = toutes les amitiés de l'utilisateur
+        # accepted=True = seulement les amitiés confirmées
+        friendships = Friendship.objects.filter(
+            Q(sender=user) | Q(receiver=user),
+            accepted=True,
+        )
+
+        # Construire la liste des User amis (l'autre personne dans chaque relation)
+        friends = []
+        for f in friendships:
+            friends.append(f.receiver if f.sender == user else f.sender)
+
+        # Si l'utilisateur n'a pas d'amis, on renvoie un objet vide
+        if not friends:
+            return Response({})
+
+        # Étape 2 : récupérer les IDs des films likés par l'utilisateur
+        my_liked_film_ids = set(
+            Swipe.objects.filter(user=user, status='like')
+            .values_list('film_id', flat=True)
+        )
+
+        # Étape 3 : récupérer tous les likes de tous les amis
+        # en une seule requête pour être performant.
+        # On ne garde que les films que l'utilisateur a aussi likés (film_id__in=...)
+        friend_likes = Swipe.objects.filter(
+            user__in=friends,
+            status='like',
+            film_id__in=my_liked_film_ids,
+        ).select_related('user').values_list('film_id', 'user__username')
+
+        # Étape 4 : construire le dictionnaire { film_id: [pseudo1, pseudo2] }
+        result = {}
+        for film_id, username in friend_likes:
+            film_id_str = str(film_id)
+            if film_id_str not in result:
+                result[film_id_str] = []
+            result[film_id_str].append(username)
+
+        return Response(result)

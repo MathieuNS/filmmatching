@@ -5,6 +5,7 @@ import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import "../styles/FilmList.css";
+import "../styles/FriendAvatars.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
 import "../styles/Home.css";
 
@@ -41,6 +42,9 @@ function FilmList() {
 
   // Film sélectionné pour afficher sa fiche complète dans la modale
   const [selectedFilm, setSelectedFilm] = useState(null);
+
+  // Dictionnaire { filmId: ["Alice", "Bob"] } — quels amis ont aussi liké chaque film
+  const [friendsLikes, setFriendsLikes] = useState({});
 
   // --- State pour le menu de navigation (hamburger) ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -115,10 +119,24 @@ function FilmList() {
     }
   }
 
+  /**
+   * Charge les likes des amis pour savoir qui a aussi aimé chaque film.
+   * L'API renvoie { "42": ["Alice", "Bob"], "87": ["Alice"] }
+   */
+  async function fetchFriendsLikes() {
+    try {
+      const res = await api.get("/api/friends/common-likes/");
+      setFriendsLikes(res.data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des likes amis :", error);
+    }
+  }
+
   // Au montage du composant, on charge tout
   useEffect(() => {
     fetchAllSwipes();
     fetchFilterOptions();
+    fetchFriendsLikes();
   }, []);
 
   /**
@@ -393,6 +411,28 @@ function FilmList() {
                 alt={swipe.film.title}
               />
 
+              {/* Avatars empilés des amis qui ont aussi liké ce film */}
+              {/* Visible seulement dans l'onglet "like" et si au moins 1 ami a liké */}
+              {activeTab === "like" && friendsLikes[String(swipe.film.id)] && (
+                <div className="friend-avatars">
+                  {friendsLikes[String(swipe.film.id)]
+                    .slice(0, 3) // On affiche max 3 avatars sur la carte
+                    .map((name, index) => (
+                      <div key={index} className="friend-avatars__circle">
+                        <span className="friend-avatars__letter">
+                          {name.charAt(0)}
+                        </span>
+                      </div>
+                    ))}
+                  {/* Badge "+N" s'il y a plus de 3 amis */}
+                  {friendsLikes[String(swipe.film.id)].length > 3 && (
+                    <div className="friend-avatars__more">
+                      +{friendsLikes[String(swipe.film.id)].length - 3}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Dégradé + titre en bas */}
               <div className="film-list__card-overlay">
                 <p className="film-list__card-title">{swipe.film.title}</p>
@@ -442,6 +482,9 @@ function FilmList() {
       <FilmDetailModal
         film={selectedFilm}
         onClose={() => setSelectedFilm(null)}
+        friendNames={
+          selectedFilm ? friendsLikes[String(selectedFilm.id)] || [] : []
+        }
       />
 
       {/* Bottom sheet de filtres (même composant que sur la page Home) */}

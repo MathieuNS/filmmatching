@@ -16,6 +16,7 @@ from api.views import (
     FriendshipAcceptView,
     FriendshipDeleteView,
     MatchListView,
+    FriendsLikesView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -51,6 +52,10 @@ urlpatterns = [
 
     # --- Amitiés ---
     path('api/friends/', FriendshipView.as_view(), name='friendship-list-create'),
+    # Pour chaque film liké, quels amis l'ont aussi liké
+    # IMPORTANT : cette route doit être AVANT les routes avec <int:pk>
+    # sinon Django essaierait d'interpréter "common-likes" comme un nombre
+    path('api/friends/common-likes/', FriendsLikesView.as_view(), name='friends-common-likes'),
     path('api/friends/<int:pk>/accept/', FriendshipAcceptView.as_view(), name='friendship-accept'),
     # Supprimer une amitié ou annuler une demande en attente
     path('api/friends/<int:pk>/delete/', FriendshipDeleteView.as_view(), name='friendship-delete'),

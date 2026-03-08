@@ -1,0 +1,117 @@
+/* ==============================================
+   FriendAvatars.css — Avatars empilés d'amis
+   Affichés sur les cartes de films (grille)
+   et dans la modale de détail.
+   ============================================== */
+
+/* --- Avatars empilés sur la carte (coin bas gauche) --- */
+.friend-avatars {
+  position: absolute;
+  bottom: 42px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  z-index: 5;
+}
+
+/* Chaque avatar est un petit cercle avec une initiale */
+.friend-avatars__circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bordure sombre pour séparer visuellement les cercles empilés */
+  border: 2px solid #0D0D0F;
+  /* Les cercles se chevauchent de 8px grâce au margin négatif */
+  margin-left: -8px;
+}
+
+/* Le premier cercle n'a pas de margin négatif */
+.friend-avatars__circle:first-child {
+  margin-left: 0;
+}
+
+.friend-avatars__letter {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.6rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+/* Badge "+N" quand il y a trop d'amis pour les afficher tous */
+.friend-avatars__more {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: rgba(46, 224, 161, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0D0D0F;
+  margin-left: -8px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.55rem;
+  color: #2EE0A1;
+}
+
+/* --- Section "Amis qui ont aimé" dans la modale --- */
+.friend-likes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.friend-likes-section__title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: rgba(240, 238, 242, 0.5);
+}
+
+.friend-likes-section__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Chaque ami est affiché comme un chip (pilule) */
+.friend-likes-section__chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 4px;
+  background-color: rgba(46, 224, 161, 0.1);
+  border: 1px solid rgba(46, 224, 161, 0.2);
+  border-radius: 100px;
+}
+
+.friend-likes-section__chip-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-likes-section__chip-letter {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.55rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.friend-likes-section__chip-name {
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #2EE0A1;
+}
