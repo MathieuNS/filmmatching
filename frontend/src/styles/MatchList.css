@@ -1,0 +1,172 @@
+/* ==============================================
+   MatchList.css — Page "Matchs avec un ami"
+   Affiche les films likés en commun, avec filtres
+   et bouton de choix aléatoire.
+   Réutilise les styles de FilmList pour la grille.
+   ============================================== */
+
+/* --- Bouton choix aléatoire --- */
+.match-list__random-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 20px;
+  padding: 14px;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.3);
+}
+
+.match-list__random-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(46, 224, 161, 0.45);
+}
+
+.match-list__random-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.match-list__random-icon {
+  font-size: 1.2rem;
+}
+
+/* --- Modale du film choisi aléatoirement --- */
+.match-list__modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.match-list__modal {
+  width: 90%;
+  max-width: 340px;
+  background-color: #16161A;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-align: center;
+  animation: matchModalPop 0.3s ease;
+}
+
+@keyframes matchModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.match-list__modal-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+}
+
+.match-list__modal-info {
+  padding: 20px;
+}
+
+.match-list__modal-label {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #2EE0A1;
+  margin-bottom: 8px;
+}
+
+.match-list__modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #F0EEF2;
+  margin: 0 0 4px 0;
+}
+
+.match-list__modal-year {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: #8B8B9E;
+  margin-bottom: 20px;
+}
+
+.match-list__modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.match-list__modal-close {
+  flex: 1;
+  padding: 12px;
+  background: #1E1E24;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid #2A2A32;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.match-list__modal-close:hover {
+  background: #2A2A32;
+}
+
+.match-list__modal-retry {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.match-list__modal-retry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(46, 224, 161, 0.3);
+}
+
+/* --- Compteur de matchs dans le header --- */
+.match-list__count {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: #8B8B9E;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 16px;
+}
+
+.match-list__count strong {
+  color: #2EE0A1;
+}

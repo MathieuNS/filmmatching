@@ -158,7 +158,7 @@ function FilterBottomSheet({
           <div className="filter-section">
             <div className="filter-section__label">Type</div>
             <div className="filter-chips">
-              {["Film", "Serie"].map((type) => (
+              {["Film", "Série"].map((type) => (
                 <button
                   key={type}
                   className={`filter-chip ${
@@ -166,8 +166,7 @@ function FilterBottomSheet({
                   }`}
                   onClick={() => handleTypeToggle(type)}
                 >
-                  {/* Affiche "Série" avec accent pour l'utilisateur */}
-                  {type === "Serie" ? "Série" : type}
+                  {type}
                 </button>
               ))}
             </div>

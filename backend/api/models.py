@@ -42,7 +42,7 @@ class Films(models.Model):
 
     TYPE_CHOICES = [
         ('Film', 'Film'),
-        ('Serie', 'Serie'),
+        ('Série', 'Série'),
     ]
 
     tmdb_id = models.IntegerField(null=True, blank=True)

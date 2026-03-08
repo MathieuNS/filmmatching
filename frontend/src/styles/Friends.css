@@ -1,0 +1,381 @@
+/* ==============================================
+   Friends.css — Page "Mes Amis"
+   3 sections : demandes reçues, liste d'amis,
+   formulaire d'envoi de demande.
+   ============================================== */
+
+/* --- Conteneur principal (même layout que FilmList) --- */
+.friends {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  background-color: #0D0D0F;
+  box-sizing: border-box;
+}
+
+/* --- Header --- */
+.friends__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 24px;
+}
+
+.friends__title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #FF4D6A, #FFAA2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.friends__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #16161A;
+  color: #F0EEF2;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.friends__back-btn:hover {
+  background-color: #1E1E24;
+}
+
+/* --- Contenu principal --- */
+.friends__content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* --- Section (demandes reçues, amis, ajouter) --- */
+.friends__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friends__section-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #F0EEF2;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badge compteur à côté du titre de section */
+.friends__section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+.friends__section-badge--pending {
+  background-color: rgba(255, 170, 43, 0.15);
+  color: #FFAA2B;
+}
+
+.friends__section-badge--friends {
+  background-color: rgba(46, 224, 161, 0.15);
+  color: #2EE0A1;
+}
+
+/* --- Carte d'un ami ou d'une demande --- */
+.friends__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  transition: all 0.25s ease;
+}
+
+.friends__card:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Partie gauche de la carte : avatar + nom */
+.friends__card-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Version cliquable pour les amis confirmés */
+.friends__card-info--clickable {
+  cursor: pointer;
+  padding: 4px 8px 4px 0;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.friends__card-info--clickable:hover {
+  background-color: rgba(123, 92, 255, 0.08);
+}
+
+.friends__card-info--clickable .friends__card-status {
+  color: #7B5CFF;
+  font-size: 0.78rem;
+}
+
+/* Mini avatar circulaire avec l'initiale */
+.friends__card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.friends__card-avatar-letter {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.friends__card-name {
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #F0EEF2;
+}
+
+/* Label sous le nom (ex: "En attente") */
+.friends__card-status {
+  font-family: 'Sora', sans-serif;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #8B8B9E;
+  margin-top: 2px;
+}
+
+/* --- Bouton "Accepter" sur une demande reçue --- */
+.friends__accept-btn {
+  padding: 8px 18px;
+  background-color: rgba(46, 224, 161, 0.12);
+  color: #2EE0A1;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid rgba(46, 224, 161, 0.3);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.friends__accept-btn:hover {
+  background-color: rgba(46, 224, 161, 0.2);
+  box-shadow: 0 4px 16px rgba(46, 224, 161, 0.2);
+}
+
+/* --- Groupe de boutons sur une carte (accepter + refuser) --- */
+.friends__card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- Bouton "Refuser" (croix) sur une demande reçue --- */
+.friends__decline-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 77, 106, 0.3);
+  background-color: rgba(255, 77, 106, 0.1);
+  color: #FF4D6A;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.friends__decline-btn:hover {
+  background-color: rgba(255, 77, 106, 0.2);
+  box-shadow: 0 4px 16px rgba(255, 77, 106, 0.2);
+}
+
+/* --- Bouton "Retirer" un ami confirmé --- */
+.friends__remove-btn {
+  padding: 8px 16px;
+  background-color: transparent;
+  color: #FF4D6A;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 77, 106, 0.3);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.friends__remove-btn:hover {
+  background-color: rgba(255, 77, 106, 0.1);
+  box-shadow: 0 4px 16px rgba(255, 77, 106, 0.2);
+}
+
+/* --- Bouton "Annuler" une demande envoyée --- */
+.friends__cancel-btn {
+  padding: 8px 16px;
+  background-color: transparent;
+  color: #8B8B9E;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border: 1px solid rgba(139, 139, 158, 0.3);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.friends__cancel-btn:hover {
+  background-color: rgba(139, 139, 158, 0.1);
+  color: #FF4D6A;
+  border-color: rgba(255, 77, 106, 0.3);
+}
+
+/* --- Formulaire d'envoi de demande d'ami --- */
+.friends__add-form {
+  display: flex;
+  gap: 10px;
+}
+
+.friends__add-input {
+  flex: 1;
+  padding: 12px 16px;
+  background-color: #1E1E24;
+  border: 1px solid #2A2A32;
+  border-radius: 14px;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.friends__add-input::placeholder {
+  color: #8B8B9E;
+}
+
+.friends__add-input:focus {
+  border-color: #7B5CFF;
+  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.15);
+}
+
+.friends__add-btn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(123, 92, 255, 0.3);
+  white-space: nowrap;
+}
+
+.friends__add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(123, 92, 255, 0.45);
+}
+
+.friends__add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Messages de feedback (succès, erreur) --- */
+.friends__message {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.friends__message--success {
+  color: #2EE0A1;
+  background-color: rgba(46, 224, 161, 0.1);
+  border: 1px solid rgba(46, 224, 161, 0.2);
+}
+
+.friends__message--error {
+  color: #FF4D6A;
+  background-color: rgba(255, 77, 106, 0.1);
+  border: 1px solid rgba(255, 77, 106, 0.2);
+}
+
+/* --- État vide --- */
+.friends__empty {
+  text-align: center;
+  padding: 20px;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+}
+
+/* --- État chargement --- */
+.friends__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .friends {
+    padding: 8px;
+  }
+
+  .friends__add-form {
+    flex-direction: column;
+  }
+
+  .friends__add-btn {
+    width: 100%;
+  }
+}

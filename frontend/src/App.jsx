@@ -8,6 +8,7 @@ import NotFound from './pages/notfound'
 import Friends from './pages/Friends'
 import UserAccount from './pages/user_account'
 import FilmList from './pages/films_list'
+import MatchList from './pages/match_list'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Lougout() {
@@ -33,6 +34,9 @@ function App() {
           </ProtectedRoute>} />
         <Route path="/amis" element={<ProtectedRoute>
           <Friends />
+          </ProtectedRoute>} />
+        <Route path="/amis/:friendshipId/matchs" element={<ProtectedRoute>
+          <MatchList />
           </ProtectedRoute>} />
         <Route path="/compte" element={<ProtectedRoute>
           <UserAccount />

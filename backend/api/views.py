@@ -30,6 +30,94 @@ class CreateUserView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
 
+class CurrentUserView(APIView):
+    """
+    Renvoie les informations de l'utilisateur connecté.
+
+    - GET /api/users/me/
+    - Accessible uniquement aux utilisateurs connectés (IsAuthenticated).
+
+    request.user est automatiquement rempli par Django grâce au token JWT
+    envoyé dans le header Authorization. On n'a pas besoin de passer l'ID
+    de l'utilisateur dans l'URL : le token suffit pour savoir qui il est.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Renvoie le pseudo et l'email de l'utilisateur connecté."""
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+
+class DeleteAccountView(APIView):
+    """
+    Supprime le compte de l'utilisateur connecté.
+
+    - DELETE /api/users/me/delete/
+    - Accessible uniquement aux utilisateurs connectés.
+
+    Attention : cette action est irréversible !
+    Toutes les données liées à l'utilisateur (swipes, amitiés, etc.)
+    seront aussi supprimées grâce au CASCADE de Django.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        """Supprime définitivement le compte de l'utilisateur connecté."""
+        user = request.user
+        # .delete() supprime l'utilisateur et toutes ses données liées
+        # (swipes, amitiés, etc.) grâce aux relations CASCADE en BDD.
+        user.delete()
+        return Response(
+            {"message": "Compte supprimé avec succès."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+class UserSearchView(APIView):
+    """
+    Recherche un utilisateur par son pseudo exact.
+
+    - GET /api/users/search/?q=alice
+    - Accessible uniquement aux utilisateurs connectés.
+
+    Utilisé par la page "Amis" pour trouver un utilisateur
+    avant de lui envoyer une demande d'ami.
+
+    On cherche le pseudo exact (iexact = insensible à la casse)
+    pour éviter de renvoyer une liste de résultats trop large.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Cherche un utilisateur par pseudo et renvoie son ID + username."""
+        # request.query_params.get('q') récupère la valeur du paramètre ?q= dans l'URL
+        query = request.query_params.get('q', '').strip()
+        if not query:
+            return Response(
+                {"error": "Le paramètre 'q' est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # On exclut l'utilisateur connecté (on ne peut pas s'ajouter soi-même)
+        # iexact = "case-insensitive exact match" → "alice" trouve "Alice"
+        users = User.objects.filter(
+            username__iexact=query
+        ).exclude(id=request.user.id)
+
+        if not users.exists():
+            return Response(
+                {"error": "Aucun utilisateur trouvé avec ce pseudo."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = users.first()
+        return Response({"id": user.id, "username": user.username})
+
+
 class GenreListView(generics.ListAPIView):
     """
     Liste tous les genres disponibles, triés par ordre alphabétique.
@@ -344,6 +432,41 @@ class FriendshipAcceptView(APIView):
         friendship.save()
         serializer = FriendshipSerializer(friendship)
         return Response(serializer.data)
+
+
+class FriendshipDeleteView(APIView):
+    """
+    Supprime une amitié ou annule une demande d'ami.
+
+    - DELETE /api/friends/<id>/delete/
+
+    Les deux utilisateurs concernés (sender et receiver) peuvent
+    supprimer la relation. Que ce soit une demande en attente ou
+    une amitié confirmée, la ligne est supprimée de la BDD.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        """Supprime la relation d'amitié si l'utilisateur en fait partie."""
+        try:
+            friendship = Friendship.objects.get(pk=pk)
+        except Friendship.DoesNotExist:
+            return Response(
+                {"error": "Amitié introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Vérifier que l'utilisateur fait partie de cette amitié
+        # (on ne peut pas supprimer l'amitié de quelqu'un d'autre)
+        if request.user != friendship.sender and request.user != friendship.receiver:
+            return Response(
+                {"error": "Vous ne faites pas partie de cette amitié."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        friendship.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MatchListView(APIView):

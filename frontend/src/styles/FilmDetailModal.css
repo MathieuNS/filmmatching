@@ -1,0 +1,103 @@
+/* ==============================================
+   FilmDetailModal.css — Modale fiche complète d'un film
+   Réutilise le composant Film dans un overlay plein écran.
+   ============================================== */
+
+/* --- Fond sombre derrière la modale --- */
+.film-detail-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  /* Animation d'apparition */
+  animation: filmDetailFadeIn 0.2s ease;
+}
+
+@keyframes filmDetailFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Conteneur de la modale --- */
+.film-detail-modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  /* Hauteur max pour que la carte ne dépasse pas l'écran */
+  max-height: 85vh;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: filmDetailSlideUp 0.3s ease;
+}
+
+@keyframes filmDetailSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Bouton fermer --- */
+.film-detail-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #F0EEF2;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.25s ease;
+}
+
+.film-detail-modal__close:hover {
+  background-color: rgba(0, 0, 0, 0.85);
+  transform: scale(1.1);
+}
+
+/* --- Conteneur de la carte Film ---
+   On lui donne une hauteur fixe pour que le composant Film
+   s'affiche correctement (il utilise height: 100%) */
+.film-detail-modal__card {
+  width: 100%;
+  height: 85vh;
+  max-height: 680px;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .film-detail-backdrop {
+    padding: 12px;
+  }
+
+  .film-detail-modal {
+    max-width: 100%;
+    max-height: 90vh;
+  }
+
+  .film-detail-modal__card {
+    height: 90vh;
+    max-height: none;
+  }
+}

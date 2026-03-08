@@ -2,6 +2,9 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import (
     CreateUserView,
+    CurrentUserView,
+    DeleteAccountView,
+    UserSearchView,
     FilmListCreateView,
     RandomFilmView,
     GenreListView,
@@ -11,6 +14,7 @@ from api.views import (
     UserSwipeListView,
     FriendshipView,
     FriendshipAcceptView,
+    FriendshipDeleteView,
     MatchListView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -21,6 +25,12 @@ urlpatterns = [
 
     # --- Authentification ---
     path('api/users/create/', CreateUserView.as_view(), name='create-user'),
+    # Infos de l'utilisateur connecté (pseudo, email)
+    path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
+    # Suppression du compte (irréversible)
+    path('api/users/me/delete/', DeleteAccountView.as_view(), name='delete-account'),
+    # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
+    path('api/users/search/', UserSearchView.as_view(), name='user-search'),
     path('api/token/', TokenObtainPairView.as_view(), name='get_token'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("api-auth/", include("rest_framework.urls")),
@@ -42,5 +52,7 @@ urlpatterns = [
     # --- Amitiés ---
     path('api/friends/', FriendshipView.as_view(), name='friendship-list-create'),
     path('api/friends/<int:pk>/accept/', FriendshipAcceptView.as_view(), name='friendship-accept'),
+    # Supprimer une amitié ou annuler une demande en attente
+    path('api/friends/<int:pk>/delete/', FriendshipDeleteView.as_view(), name='friendship-delete'),
     path('api/friends/<int:pk>/matches/', MatchListView.as_view(), name='match-list'),
 ]

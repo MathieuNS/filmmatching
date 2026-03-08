@@ -124,10 +124,12 @@ class FriendshipSerializer(serializers.ModelSerializer):
     """
 
     sender = serializers.PrimaryKeyRelatedField(read_only=True)
-    # On affiche le username du receiver dans les réponses pour plus de lisibilité
+    # On affiche les usernames pour que le frontend puisse afficher des noms
+    # au lieu de simples IDs numériques (ex: "Alice" au lieu de "3")
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
     receiver_username = serializers.CharField(source='receiver.username', read_only=True)
 
     class Meta:
         model = Friendship
-        fields = ['id', 'sender', 'receiver', 'receiver_username', 'accepted', 'created_at']
+        fields = ['id', 'sender', 'sender_username', 'receiver', 'receiver_username', 'accepted', 'created_at']
         read_only_fields = ['accepted', 'created_at']

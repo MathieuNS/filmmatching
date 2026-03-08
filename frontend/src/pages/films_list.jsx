@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
+import FilmDetailModal from "../components/FilmDetailModal";
 import "../styles/FilmList.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
 import "../styles/Home.css";
@@ -37,6 +38,9 @@ function FilmList() {
 
   // ID du swipe dont le menu contextuel est ouvert (null = aucun menu ouvert)
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Film sélectionné pour afficher sa fiche complète dans la modale
+  const [selectedFilm, setSelectedFilm] = useState(null);
 
   // --- State pour le menu de navigation (hamburger) ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -377,7 +381,11 @@ function FilmList() {
       ) : (
         <div className="film-list__grid">
           {filteredSwipes.map((swipe) => (
-            <div key={swipe.id} className="film-list__card">
+            <div
+              key={swipe.id}
+              className="film-list__card"
+              onClick={() => setSelectedFilm(swipe.film)}
+            >
               {/* Affiche du film */}
               <img
                 className="film-list__card-img"
@@ -429,6 +437,12 @@ function FilmList() {
           ))}
         </div>
       )}
+
+      {/* Modale fiche complète du film */}
+      <FilmDetailModal
+        film={selectedFilm}
+        onClose={() => setSelectedFilm(null)}
+      />
 
       {/* Bottom sheet de filtres (même composant que sur la page Home) */}
       <FilterBottomSheet

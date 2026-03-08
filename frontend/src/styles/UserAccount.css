@@ -1,0 +1,256 @@
+/* ==============================================
+   UserAccount.css — Page "Mon compte"
+   Layout identique à FilmList : header avec flèche
+   retour, titre, et hamburger menu.
+   ============================================== */
+
+/* --- Conteneur principal (même structure que film-list) --- */
+.account {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 16px;
+  background-color: #0D0D0F;
+  box-sizing: border-box;
+}
+
+/* --- Header (même layout que film-list__header) --- */
+.account__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 32px;
+}
+
+.account__title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, #FF4D6A, #FFAA2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+/* --- Bouton retour (même style que film-list__back-btn) --- */
+.account__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #16161A;
+  color: #F0EEF2;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.account__back-btn:hover {
+  background-color: #1E1E24;
+}
+
+/* --- Contenu principal --- */
+.account__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* --- Avatar circulaire avec l'initiale du pseudo --- */
+.account__avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  /* Dégradé "Connexion" (violet → corail) */
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.account__avatar-letter {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 2.2rem;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+/* --- Bloc d'informations (pseudo, email) --- */
+.account__info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.account__info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+}
+
+/* Label au-dessus de la valeur (ex: "Pseudo") */
+.account__info-label {
+  font-family: 'Sora', sans-serif;
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #8B8B9E;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Valeur (ex: "mathi") */
+.account__info-value {
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  color: #F0EEF2;
+}
+
+/* --- Bouton de suppression du compte --- */
+.account__delete-btn {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: #FF4D6A;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255, 77, 106, 0.3);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.account__delete-btn:hover {
+  background: rgba(255, 77, 106, 0.1);
+  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.2);
+}
+
+/* --- Message de chargement --- */
+.account__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+}
+
+/* --- Modale de confirmation de suppression --- */
+.account__modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.account__modal {
+  width: 90%;
+  max-width: 360px;
+  padding: 32px 24px;
+  background-color: #16161A;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.account__modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: #F0EEF2;
+  margin: 0 0 12px 0;
+}
+
+.account__modal-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  color: #8B8B9E;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.account__modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Bouton "Annuler" dans la modale */
+.account__modal-cancel {
+  flex: 1;
+  padding: 12px;
+  background: #1E1E24;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid #2A2A32;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.account__modal-cancel:hover {
+  background: #2A2A32;
+}
+
+/* Bouton "Supprimer" dans la modale (rouge, dangereux) */
+.account__modal-confirm {
+  flex: 1;
+  padding: 12px;
+  background: #FF4D6A;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.3);
+}
+
+.account__modal-confirm:hover {
+  box-shadow: 0 6px 28px rgba(255, 77, 106, 0.5);
+  transform: translateY(-2px);
+}
+
+.account__modal-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .account {
+    padding: 8px;
+  }
+}
