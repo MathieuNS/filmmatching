@@ -40,6 +40,27 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.profile.avatar
         return None
 
+    def validate_email(self, value):
+        """
+        Vérifie que l'email n'est pas déjà utilisé par un autre compte.
+
+        Par défaut, Django n'impose pas l'unicité sur le champ email.
+        On ajoute cette vérification ici pour éviter les doublons.
+
+        Args:
+            value: L'adresse email saisie par l'utilisateur
+
+        Returns:
+            L'email validé (en minuscules pour éviter les doublons de casse)
+
+        Raises:
+            ValidationError: Si un compte avec cet email existe déjà
+        """
+        # iexact = comparaison insensible à la casse
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Cet email est déjà utilisé.")
+        return value.lower()
+
     def create(self, validated_data):
         """
         Utilise create_user() au lieu de create() pour que

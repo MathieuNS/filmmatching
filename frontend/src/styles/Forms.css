@@ -114,6 +114,83 @@ html, body {
   box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.15);
 }
 
+/* --- Case à cocher de consentement --- */
+.form-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+/* Checkbox personnalisée */
+.form-checkbox input[type="checkbox"] {
+  /* On garde la checkbox native mais on la stylise */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 1px solid var(--gris-moyen);
+  border-radius: 6px;
+  background-color: var(--gris-sombre);
+  cursor: pointer;
+  margin-top: 2px;
+  transition: all 0.25s ease;
+}
+
+/* État coché : fond violet avec une coche */
+.form-checkbox input[type="checkbox"]:checked {
+  background-color: var(--violet-nuit);
+  border-color: var(--violet-nuit);
+  /* Coche blanche en SVG encodé en data URI */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  background-size: 14px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.form-checkbox input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.15);
+}
+
+/* Texte à côté de la checkbox */
+.form-checkbox__text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: var(--gris-texte);
+  line-height: 1.5;
+}
+
+/* Liens dans le texte de consentement */
+.form-checkbox__link {
+  color: var(--violet-nuit);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.25s ease;
+}
+
+.form-checkbox__link:hover {
+  color: var(--corail-vif);
+  text-decoration: underline;
+}
+
+/* --- Message d'erreur sous les champs --- */
+.form-error {
+  width: 100%;
+  text-align: center;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--corail-vif);
+  background-color: rgba(255, 77, 106, 0.1);
+  border: 1px solid rgba(255, 77, 106, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 4px 0;
+  box-sizing: border-box;
+}
+
 /* --- Bouton principal (CTA) --- */
 .form-button {
   width: 100%;

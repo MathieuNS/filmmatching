@@ -5,7 +5,9 @@ import api from "../api";
 import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import TmdbAttribution from "../components/TmdbAttribution";
+import { getAvatarUrl } from "../utils/avatars";
 import "../styles/Home.css";
+import "../styles/MatchAnimation.css";
 
 /**
  * Page d'accueil — Swipe de films.
@@ -38,6 +40,10 @@ function Home() {
   // --- State pour le menu de navigation ---
   // true = le menu hamburger est ouvert, false = fermé
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- State pour l'animation de match ---
+  // Contient les données du match à afficher (film + amis), ou null si pas de match
+  const [matchData, setMatchData] = useState(null);
 
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
@@ -196,7 +202,7 @@ function Home() {
   async function handleSwipe(swipeStatus, direction = null) {
     if (!film) return;
 
-    const swipedFilmId = film.id;
+    const swipedFilm = film;
 
     // Lancer l'animation de sortie
     if (direction) {
@@ -205,10 +211,19 @@ function Home() {
     }
 
     try {
-      await api.post("/api/swipes/", {
-        film: swipedFilmId,
+      const response = await api.post("/api/swipes/", {
+        film: swipedFilm.id,
         status: swipeStatus,
       });
+
+      // Si c'est un like et que des amis ont aussi liké → animation de match !
+      const matchedFriends = response.data.matched_friends || [];
+      if (swipeStatus === "like" && matchedFriends.length > 0) {
+        setMatchData({
+          film: swipedFilm,
+          friends: matchedFriends,
+        });
+      }
 
       // Afficher immédiatement le film pré-chargé
       if (nextFilm) {
@@ -647,6 +662,55 @@ function Home() {
       />
 
       <TmdbAttribution />
+
+      {/* === Overlay d'animation de match === */}
+      {/* S'affiche quand on like un film qu'un ami a aussi liké */}
+      {matchData && (
+        <div className="match-overlay" onClick={() => setMatchData(null)}>
+          <div className="match-overlay__content" onClick={(e) => e.stopPropagation()}>
+            {/* Titre animé "It's a Match !" */}
+            <h2 className="match-overlay__title">It's a Match !</h2>
+            <p className="match-overlay__subtitle">
+              Vous aimez le même film
+            </p>
+
+            {/* Affiche du film matché */}
+            <div className="match-overlay__film">
+              <img
+                className="match-overlay__film-img"
+                src={matchData.film.img}
+                alt={matchData.film.title}
+              />
+              <p className="match-overlay__film-title">{matchData.film.title}</p>
+            </div>
+
+            {/* Avatars des amis qui ont aussi liké */}
+            <div className="match-overlay__friends">
+              {matchData.friends.map((friend, index) => (
+                <div key={index} className="match-overlay__friend">
+                  <div className="match-overlay__friend-avatar">
+                    <img
+                      src={getAvatarUrl(friend.avatar)}
+                      alt={friend.username}
+                    />
+                  </div>
+                  <span className="match-overlay__friend-name">
+                    {friend.username}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Bouton pour fermer */}
+            <button
+              className="match-overlay__close-btn"
+              onClick={() => setMatchData(null)}
+            >
+              Continuer à swiper
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

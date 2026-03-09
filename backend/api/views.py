@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
-from rest_framework import generics, status
+from rest_framework import generics, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -122,22 +122,27 @@ class UpdateAvatarView(APIView):
 
 class UserSearchView(APIView):
     """
-    Recherche un utilisateur par son pseudo exact.
+    Recherche des utilisateurs par pseudo (partiel ou exact).
 
-    - GET /api/users/search/?q=alice
+    - GET /api/users/search/?q=ali  → liste jusqu'à 8 utilisateurs dont le pseudo contient "ali"
     - Accessible uniquement aux utilisateurs connectés.
 
-    Utilisé par la page "Amis" pour trouver un utilisateur
-    avant de lui envoyer une demande d'ami.
+    Utilisé par la page "Amis" pour l'autocomplétion :
+    l'utilisateur tape quelques lettres et voit une liste de suggestions.
 
-    On cherche le pseudo exact (iexact = insensible à la casse)
-    pour éviter de renvoyer une liste de résultats trop large.
+    icontains = "case-insensitive contains" → "ali" trouve "Alice", "Alicia", "Malik"...
+    On limite à 8 résultats pour garder la liste courte et rapide.
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Cherche un utilisateur par pseudo et renvoie son ID + username."""
+        """
+        Cherche des utilisateurs dont le pseudo contient la query.
+
+        Renvoie une liste d'objets { id, username, avatar } pour
+        afficher les suggestions avec l'avatar dans le frontend.
+        """
         # request.query_params.get('q') récupère la valeur du paramètre ?q= dans l'URL
         query = request.query_params.get('q', '').strip()
         if not query:
@@ -147,19 +152,27 @@ class UserSearchView(APIView):
             )
 
         # On exclut l'utilisateur connecté (on ne peut pas s'ajouter soi-même)
-        # iexact = "case-insensitive exact match" → "alice" trouve "Alice"
+        # icontains = "case-insensitive contains" → recherche partielle
+        # select_related('profile') charge le profil en une seule requête SQL
+        # [:8] limite les résultats à 8 (équivalent de LIMIT 8 en SQL)
         users = User.objects.filter(
-            username__iexact=query
-        ).exclude(id=request.user.id)
+            username__icontains=query
+        ).exclude(
+            id=request.user.id
+        ).select_related('profile')[:8]
 
-        if not users.exists():
-            return Response(
-                {"error": "Aucun utilisateur trouvé avec ce pseudo."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        # On construit la liste de résultats avec l'avatar de chaque utilisateur
+        results = []
+        for user in users:
+            profile = getattr(user, 'profile', None)
+            avatar_name = profile.avatar if profile else 'avatar-popcorn.svg'
+            results.append({
+                "id": user.id,
+                "username": user.username,
+                "avatar": avatar_name,
+            })
 
-        user = users.first()
-        return Response({"id": user.id, "username": user.username})
+        return Response(results)
 
 
 class GenreListView(generics.ListAPIView):
@@ -321,6 +334,13 @@ class SwipeCreateView(generics.CreateAPIView):
 
     Le champ 'user' n'est pas dans le body : il est rempli automatiquement
     avec l'utilisateur connecté grâce à perform_create().
+
+    Si le swipe est un "like", la réponse inclut la liste des amis
+    qui ont aussi liké ce film (pour déclencher une animation de match).
+    Exemple de réponse pour un like avec matchs :
+    { "id": 1, "film": 5, "status": "like", "matched_friends": [
+        {"username": "Alice", "avatar": "avatar-camera.svg"}
+    ]}
     """
 
     serializer_class = SwipeSerializer
@@ -333,6 +353,53 @@ class SwipeCreateView(generics.CreateAPIView):
         On en profite pour injecter l'utilisateur connecté.
         """
         serializer.save(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Surcharge de create() pour ajouter les matchs d'amis dans la réponse
+        quand le swipe est un "like".
+
+        On vérifie quels amis confirmés ont aussi liké ce film,
+        et on retourne leurs noms + avatars dans matched_friends.
+        """
+        # Appel de la méthode create() de base pour enregistrer le swipe
+        response = super().create(request, *args, **kwargs)
+
+        # Si c'est un "like", on cherche les amis qui ont aussi liké ce film
+        if request.data.get('status') == 'like':
+            user = request.user
+            film_id = request.data.get('film')
+
+            # Récupérer tous les amis confirmés
+            friendships = Friendship.objects.filter(
+                Q(sender=user) | Q(receiver=user),
+                accepted=True,
+            )
+            friends = [
+                f.receiver if f.sender == user else f.sender
+                for f in friendships
+            ]
+
+            # Chercher lesquels ont aussi liké ce film
+            matched_swipes = Swipe.objects.filter(
+                user__in=friends,
+                film_id=film_id,
+                status='like',
+            ).select_related('user', 'user__profile')
+
+            matched_friends = []
+            for swipe in matched_swipes:
+                profile = getattr(swipe.user, 'profile', None)
+                avatar_name = profile.avatar if profile else 'avatar-popcorn.svg'
+                matched_friends.append({
+                    'username': swipe.user.username,
+                    'avatar': avatar_name,
+                })
+
+            # Ajouter la liste dans la réponse
+            response.data['matched_friends'] = matched_friends
+
+        return response
 
 
 class UserSwipeListView(generics.ListAPIView):
@@ -434,8 +501,43 @@ class FriendshipView(generics.ListCreateAPIView):
         return Friendship.objects.filter(Q(sender=user) | Q(receiver=user))
 
     def perform_create(self, serializer):
-        """L'envoyeur est toujours l'utilisateur connecté."""
-        serializer.save(sender=self.request.user)
+        """
+        Enregistre la demande d'ami avec l'utilisateur connecté comme sender.
+
+        Avant de créer, on vérifie que :
+        1. L'utilisateur ne s'envoie pas une demande à lui-même
+        2. Il n'existe pas déjà une relation entre ces deux utilisateurs
+           (dans un sens ou dans l'autre, qu'elle soit acceptée ou en attente)
+        """
+        user = self.request.user
+        receiver = serializer.validated_data.get('receiver')
+
+        # Empêcher de s'ajouter soi-même
+        if receiver == user:
+            raise serializers.ValidationError(
+                {"error": "Tu ne peux pas t'ajouter toi-même en ami."}
+            )
+
+        # Vérifier si une relation existe déjà (dans les deux sens)
+        # Q(sender=user, receiver=receiver) → j'ai déjà envoyé une demande
+        # Q(sender=receiver, receiver=user) → il m'a déjà envoyé une demande
+        existing = Friendship.objects.filter(
+            Q(sender=user, receiver=receiver) | Q(sender=receiver, receiver=user)
+        ).first()
+
+        if existing:
+            if existing.accepted:
+                # Déjà amis confirmés
+                raise serializers.ValidationError(
+                    {"error": "Vous êtes déjà amis !"}
+                )
+            else:
+                # Demande en attente
+                raise serializers.ValidationError(
+                    {"error": "Une demande d'ami est déjà en cours avec cet utilisateur."}
+                )
+
+        serializer.save(sender=user)
 
 
 class FriendshipAcceptView(APIView):
@@ -575,13 +677,12 @@ class FriendsLikesView(APIView):
     - GET /api/friends/common-likes/
 
     Le résultat est un objet où chaque clé est un ID de film,
-    et la valeur est la liste des pseudos d'amis qui l'ont aussi liké.
+    et la valeur est la liste des amis (username + avatar) qui l'ont aussi liké.
 
     Exemple de réponse :
     {
-      "42": ["Alice", "Bob"],
-      "87": ["Alice"],
-      "123": []
+      "42": [{"username": "Alice", "avatar": "avatar-camera.svg"}, ...],
+      "87": [{"username": "Alice", "avatar": "avatar-camera.svg"}],
     }
 
     Seuls les films qui ont au moins 1 ami en commun sont inclus
@@ -596,7 +697,7 @@ class FriendsLikesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Renvoie un dictionnaire { film_id: [pseudo1, pseudo2, ...] }."""
+        """Renvoie un dictionnaire { film_id: [{username, avatar}, ...] }."""
         user = request.user
 
         # Étape 1 : récupérer tous les amis confirmés
@@ -625,18 +726,26 @@ class FriendsLikesView(APIView):
         # Étape 3 : récupérer tous les likes de tous les amis
         # en une seule requête pour être performant.
         # On ne garde que les films que l'utilisateur a aussi likés (film_id__in=...)
+        # select_related('user__profile') charge le profil en même temps
+        # pour éviter une requête SQL supplémentaire par ami (N+1)
         friend_likes = Swipe.objects.filter(
             user__in=friends,
             status='like',
             film_id__in=my_liked_film_ids,
-        ).select_related('user').values_list('film_id', 'user__username')
+        ).select_related('user', 'user__profile')
 
-        # Étape 4 : construire le dictionnaire { film_id: [pseudo1, pseudo2] }
+        # Étape 4 : construire le dictionnaire { film_id: [{username, avatar}, ...] }
         result = {}
-        for film_id, username in friend_likes:
-            film_id_str = str(film_id)
+        for swipe in friend_likes:
+            film_id_str = str(swipe.film_id)
             if film_id_str not in result:
                 result[film_id_str] = []
-            result[film_id_str].append(username)
+            # On récupère l'avatar depuis le profil de l'ami
+            avatar = getattr(swipe.user, 'profile', None)
+            avatar_name = avatar.avatar if avatar else 'avatar-popcorn.svg'
+            result[film_id_str].append({
+                'username': swipe.user.username,
+                'avatar': avatar_name,
+            })
 
         return Response(result)

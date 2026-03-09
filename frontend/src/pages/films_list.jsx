@@ -5,6 +5,7 @@ import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
+import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FilmList.css";
 import "../styles/FriendAvatars.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
@@ -44,7 +45,7 @@ function FilmList() {
   // Film sélectionné pour afficher sa fiche complète dans la modale
   const [selectedFilm, setSelectedFilm] = useState(null);
 
-  // Dictionnaire { filmId: ["Alice", "Bob"] } — quels amis ont aussi liké chaque film
+  // Dictionnaire { filmId: [{username, avatar}, ...] } — quels amis ont aussi liké chaque film
   const [friendsLikes, setFriendsLikes] = useState({});
 
   // --- State pour le menu de navigation (hamburger) ---
@@ -122,7 +123,7 @@ function FilmList() {
 
   /**
    * Charge les likes des amis pour savoir qui a aussi aimé chaque film.
-   * L'API renvoie { "42": ["Alice", "Bob"], "87": ["Alice"] }
+   * L'API renvoie { "42": [{username, avatar}, ...], "87": [{username, avatar}] }
    */
   async function fetchFriendsLikes() {
     try {
@@ -412,30 +413,30 @@ function FilmList() {
                 alt={swipe.film.title}
               />
 
-              {/* Avatars empilés des amis qui ont aussi liké ce film */}
-              {/* Visible seulement dans l'onglet "like" et si au moins 1 ami a liké */}
-              {activeTab === "like" && friendsLikes[String(swipe.film.id)] && (
-                <div className="friend-avatars">
-                  {friendsLikes[String(swipe.film.id)]
-                    .slice(0, 3) // On affiche max 3 avatars sur la carte
-                    .map((name, index) => (
-                      <div key={index} className="friend-avatars__circle">
-                        <span className="friend-avatars__letter">
-                          {name.charAt(0)}
-                        </span>
-                      </div>
-                    ))}
-                  {/* Badge "+N" s'il y a plus de 3 amis */}
-                  {friendsLikes[String(swipe.film.id)].length > 3 && (
-                    <div className="friend-avatars__more">
-                      +{friendsLikes[String(swipe.film.id)].length - 3}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Dégradé + titre en bas */}
+              {/* Dégradé + avatars amis + titre en bas */}
               <div className="film-list__card-overlay">
+                {/* Avatars empilés des amis qui ont aussi liké ce film */}
+                {activeTab === "like" && friendsLikes[String(swipe.film.id)] && (
+                  <div className="friend-avatars">
+                    {friendsLikes[String(swipe.film.id)]
+                      .slice(0, 3) // On affiche max 3 avatars sur la carte
+                      .map((friend, index) => (
+                        <div key={index} className="friend-avatars__circle">
+                          <img
+                            className="friend-avatars__img"
+                            src={getAvatarUrl(friend.avatar)}
+                            alt={friend.username}
+                          />
+                        </div>
+                      ))}
+                    {/* Badge "+N" s'il y a plus de 3 amis */}
+                    {friendsLikes[String(swipe.film.id)].length > 3 && (
+                      <div className="friend-avatars__more">
+                        +{friendsLikes[String(swipe.film.id)].length - 3}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <p className="film-list__card-title">{swipe.film.title}</p>
                 <span className="film-list__card-year">
                   {swipe.film.release_year}
@@ -483,7 +484,7 @@ function FilmList() {
       <FilmDetailModal
         film={selectedFilm}
         onClose={() => setSelectedFilm(null)}
-        friendNames={
+        friends={
           selectedFilm ? friendsLikes[String(selectedFilm.id)] || [] : []
         }
       />

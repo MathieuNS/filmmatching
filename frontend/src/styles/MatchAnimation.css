@@ -1,0 +1,225 @@
+/* ==============================================
+   MatchAnimation.css — Animation "It's a Match !"
+   Style inspiré de Tinder : overlay plein écran
+   avec effets d'apparition et particules.
+   ============================================== */
+
+/* --- Overlay plein écran avec fond flouté --- */
+.match-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Fond sombre semi-transparent */
+  background: rgba(13, 13, 15, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  /* Animation d'apparition du fond */
+  animation: matchFadeIn 0.3s ease;
+}
+
+/* --- Contenu centré --- */
+.match-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 24px;
+  max-width: 340px;
+  width: 90%;
+  /* Animation d'entrée : le contenu monte avec un léger rebond */
+  animation: matchSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- Titre "It's a Match !" avec dégradé animé --- */
+.match-overlay__title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 2.2rem;
+  margin: 0;
+  /* Dégradé "Match" (vert → violet) */
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF, #FF4D6A);
+  /* Le background fait 200% de large pour l'animation */
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  /* Animation du dégradé qui se déplace */
+  animation: matchGradientShift 2s ease infinite;
+  /* Glow derrière le texte */
+  filter: drop-shadow(0 0 24px rgba(46, 224, 161, 0.4));
+}
+
+.match-overlay__subtitle {
+  font-family: 'Sora', sans-serif;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: #8B8B9E;
+  margin: 0;
+  animation: matchFadeIn 0.6s ease 0.2s both;
+}
+
+/* --- Affiche du film matché --- */
+.match-overlay__film {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: matchPulseIn 0.6s ease 0.3s both;
+}
+
+.match-overlay__film-img {
+  width: 140px;
+  height: 210px;
+  object-fit: cover;
+  border-radius: 16px;
+  /* Bordure avec dégradé "Match" */
+  border: 3px solid transparent;
+  /* Technique du double background pour une bordure dégradée */
+  background:
+    linear-gradient(#16161A, #16161A) padding-box,
+    linear-gradient(135deg, #2EE0A1, #7B5CFF) border-box;
+  /* Ombre verte diffuse */
+  box-shadow: 0 8px 32px rgba(46, 224, 161, 0.25);
+}
+
+.match-overlay__film-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #F0EEF2;
+  margin: 0;
+  text-align: center;
+}
+
+/* --- Avatars des amis matchés --- */
+.match-overlay__friends {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: matchFadeIn 0.5s ease 0.5s both;
+}
+
+.match-overlay__friend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-overlay__friend-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  /* Bordure dégradée vert → violet */
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#16161A, #16161A) padding-box,
+    linear-gradient(135deg, #2EE0A1, #7B5CFF) border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Pulse continu pour attirer l'attention */
+  animation: matchAvatarPulse 1.5s ease-in-out infinite;
+}
+
+.match-overlay__friend-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.match-overlay__friend-name {
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #2EE0A1;
+}
+
+/* --- Bouton "Continuer à swiper" --- */
+.match-overlay__close-btn {
+  margin-top: 8px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  color: #0D0D0F;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.3);
+  animation: matchFadeIn 0.5s ease 0.6s both;
+}
+
+.match-overlay__close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(46, 224, 161, 0.5);
+}
+
+/* ==============================================
+   Animations (keyframes)
+   ============================================== */
+
+/* Fondu d'apparition simple */
+@keyframes matchFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Le contenu monte depuis le bas avec un léger rebond */
+@keyframes matchSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(60px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Le dégradé du titre se déplace de gauche à droite en boucle */
+@keyframes matchGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* L'affiche du film apparaît avec un léger scale-up */
+@keyframes matchPulseIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Pulse continu sur les avatars des amis */
+@keyframes matchAvatarPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(46, 224, 161, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(46, 224, 161, 0);
+  }
+}

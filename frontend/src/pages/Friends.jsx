@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { getAvatarUrl } from "../utils/avatars";
 import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/Friends.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
@@ -39,6 +40,72 @@ function Friends() {
   // Message de feedback après envoi (succès ou erreur)
   const [feedbackMessage, setFeedbackMessage] = useState(null);
 
+  // --- Autocomplétion ---
+  // Liste de suggestions renvoyée par l'API (tableau d'objets { id, username, avatar })
+  const [suggestions, setSuggestions] = useState([]);
+  // Indique si une recherche est en cours (pour afficher un état de chargement)
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  // L'utilisateur sélectionné dans la liste de suggestions
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  /**
+   * Debounce pour l'autocomplétion.
+   *
+   * "Debounce" = on attend que l'utilisateur arrête de taper pendant 300ms
+   * avant d'envoyer la requête à l'API. Ça évite d'envoyer une requête
+   * à chaque lettre tapée (ex: "a", "al", "ali", "alic", "alice").
+   *
+   * useRef stocke le timer entre les rendus sans provoquer de re-render.
+   * À chaque frappe, on annule le timer précédent (clearTimeout) et on
+   * en crée un nouveau.
+   */
+  const debounceTimer = useRef(null);
+
+  useEffect(() => {
+    // Si l'utilisateur a sélectionné quelqu'un dans la liste, on ne cherche plus
+    if (selectedUser) return;
+
+    // Si le champ est vide ou trop court, on vide les suggestions
+    if (searchQuery.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Annuler le timer précédent si l'utilisateur tape encore
+    clearTimeout(debounceTimer.current);
+
+    // Lancer la recherche après 300ms d'inactivité
+    debounceTimer.current = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const res = await api.get(
+          `/api/users/search/?q=${encodeURIComponent(searchQuery.trim())}`
+        );
+        setSuggestions(res.data);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 300);
+
+    // Cleanup : annuler le timer si le composant se démonte ou si searchQuery change
+    return () => clearTimeout(debounceTimer.current);
+  }, [searchQuery, selectedUser]);
+
+  /**
+   * Appelée quand l'utilisateur clique sur une suggestion.
+   * On remplit le champ avec le pseudo choisi et on mémorise l'objet user
+   * pour l'envoyer directement lors de la demande d'ami.
+   *
+   * @param {Object} user - L'utilisateur sélectionné { id, username, avatar }
+   */
+  function handleSelectSuggestion(user) {
+    setSearchQuery(user.username);
+    setSelectedUser(user);
+    setSuggestions([]);
+  }
+
   /**
    * Au chargement de la page, on récupère :
    * 1. L'ID de l'utilisateur connecté (GET /api/users/me/)
@@ -72,6 +139,13 @@ function Friends() {
    * 1. Chercher l'utilisateur par pseudo (GET /api/users/search/?q=...)
    * 2. Si trouvé, envoyer la demande (POST /api/friends/ avec receiver=ID)
    */
+  /**
+   * Envoie une demande d'ami.
+   *
+   * Si l'utilisateur a cliqué sur une suggestion (selectedUser),
+   * on utilise directement son ID. Sinon, on cherche d'abord
+   * le pseudo exact dans l'API.
+   */
   async function handleSendRequest() {
     if (!searchQuery.trim()) return;
 
@@ -79,19 +153,38 @@ function Friends() {
     setFeedbackMessage(null);
 
     try {
-      // Étape 1 : chercher l'utilisateur par pseudo
-      const searchRes = await api.get(`/api/users/search/?q=${encodeURIComponent(searchQuery.trim())}`);
-      const foundUser = searchRes.data;
+      let targetUser = selectedUser;
 
-      // Étape 2 : envoyer la demande d'ami avec l'ID trouvé
-      await api.post("/api/friends/", { receiver: foundUser.id });
+      // Si aucun utilisateur sélectionné, on cherche par pseudo exact
+      if (!targetUser) {
+        const searchRes = await api.get(
+          `/api/users/search/?q=${encodeURIComponent(searchQuery.trim())}`
+        );
+        // L'API renvoie maintenant une liste — on cherche le match exact
+        const exactMatch = searchRes.data.find(
+          (u) => u.username.toLowerCase() === searchQuery.trim().toLowerCase()
+        );
+        if (!exactMatch) {
+          setFeedbackMessage({
+            type: "error",
+            text: "Aucun utilisateur trouvé avec ce pseudo exact.",
+          });
+          setSending(false);
+          return;
+        }
+        targetUser = exactMatch;
+      }
+
+      // Envoyer la demande d'ami avec l'ID trouvé
+      await api.post("/api/friends/", { receiver: targetUser.id });
 
       // Succès : on affiche un message et on recharge la liste
       setFeedbackMessage({
         type: "success",
-        text: `Demande envoyée à ${foundUser.username} !`,
+        text: `Demande envoyée à ${targetUser.username} !`,
       });
       setSearchQuery("");
+      setSelectedUser(null);
 
       // Recharger la liste des amitiés pour afficher la nouvelle demande
       const friendsRes = await api.get("/api/friends/");
@@ -104,8 +197,6 @@ function Friends() {
       if (error.response?.status === 404) {
         errorMsg = "Aucun utilisateur trouvé avec ce pseudo.";
       } else if (errorData?.non_field_errors) {
-        // Django renvoie "non_field_errors" quand unique_together est violé
-        // (= la demande d'ami existe déjà)
         errorMsg = "Une demande d'ami existe déjà avec cet utilisateur.";
       } else if (errorData?.error) {
         errorMsg = errorData.error;
@@ -304,7 +395,7 @@ function Friends() {
                     <div className="friends__card-avatar">
                       <img
                         className="friends__card-avatar-img"
-                        src={`/avatars/${friendship.sender_avatar || "avatar-popcorn.svg"}`}
+                        src={getAvatarUrl(friendship.sender_avatar || "avatar-popcorn.svg")}
                         alt="Avatar"
                       />
                     </div>
@@ -361,7 +452,7 @@ function Friends() {
                     <div className="friends__card-avatar">
                       <img
                         className="friends__card-avatar-img"
-                        src={`/avatars/${getFriendAvatar(friendship)}`}
+                        src={getAvatarUrl(getFriendAvatar(friendship))}
                         alt="Avatar"
                       />
                     </div>
@@ -396,7 +487,7 @@ function Friends() {
                   <div className="friends__card-avatar">
                     <img
                       className="friends__card-avatar-img"
-                      src={`/avatars/${friendship.receiver_avatar || "avatar-popcorn.svg"}`}
+                      src={getAvatarUrl(friendship.receiver_avatar || "avatar-popcorn.svg")}
                       alt="Avatar"
                     />
                   </div>
@@ -424,17 +515,59 @@ function Friends() {
           <div className="friends__section">
             <h2 className="friends__section-title">Ajouter un ami</h2>
             <div className="friends__add-form">
-              <input
-                className="friends__add-input"
-                type="text"
-                placeholder="Pseudo de ton ami..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                // Envoyer la demande en appuyant sur Entrée
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSendRequest();
-                }}
-              />
+              {/* Wrapper pour positionner la liste de suggestions sous l'input */}
+              <div className="friends__search-wrapper">
+                <input
+                  className="friends__add-input"
+                  type="text"
+                  placeholder="Pseudo de ton ami..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // Si l'utilisateur modifie le texte après avoir choisi une suggestion,
+                    // on annule la sélection pour relancer la recherche
+                    setSelectedUser(null);
+                  }}
+                  // Envoyer la demande en appuyant sur Entrée
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSendRequest();
+                  }}
+                />
+
+                {/* Liste de suggestions (autocomplétion) */}
+                {suggestions.length > 0 && (
+                  <ul className="friends__suggestions">
+                    {suggestions.map((user) => (
+                      <li
+                        key={user.id}
+                        className="friends__suggestion-item"
+                        onClick={() => handleSelectSuggestion(user)}
+                      >
+                        <div className="friends__suggestion-avatar">
+                          <img
+                            className="friends__suggestion-avatar-img"
+                            src={getAvatarUrl(user.avatar)}
+                            alt="Avatar"
+                          />
+                        </div>
+                        <span className="friends__suggestion-name">
+                          {user.username}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Indicateur de recherche en cours */}
+                {searchingUsers && searchQuery.trim().length >= 2 && (
+                  <div className="friends__suggestions">
+                    <li className="friends__suggestion-item friends__suggestion-item--loading">
+                      Recherche...
+                    </li>
+                  </div>
+                )}
+              </div>
+
               <button
                 className="friends__add-btn"
                 onClick={handleSendRequest}

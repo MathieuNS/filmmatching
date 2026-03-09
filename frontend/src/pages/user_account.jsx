@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import TmdbAttribution from "../components/TmdbAttribution";
+import { AVATARS, getAvatarUrl } from "../utils/avatars";
 import "../styles/UserAccount.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
 import "../styles/Home.css";
@@ -32,14 +33,8 @@ function UserAccount() {
   // true quand le sélecteur d'avatar est visible
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
-  // Liste des 5 avatars disponibles dans public/avatars/
-  const AVATARS = [
-    "avatar-camera.svg",
-    "avatar-clapperboard.svg",
-    "avatar-popcorn.svg",
-    "avatar-reel.svg",
-    "avatar-ticket.svg",
-  ];
+  // La liste des avatars est importée depuis utils/avatars.js
+  // Elle se met à jour automatiquement quand on ajoute des SVG dans src/assets/avatars/
 
   /**
    * Récupère les informations de l'utilisateur connecté au chargement de la page.
@@ -191,7 +186,7 @@ function UserAccount() {
           >
             <img
               className="account__avatar-img"
-              src={`/avatars/${user?.avatar || "avatar-popcorn.svg"}`}
+              src={getAvatarUrl(user?.avatar || "avatar-popcorn.svg")}
               alt="Avatar"
             />
             {/* Petit badge crayon pour indiquer que c'est modifiable */}
@@ -203,17 +198,17 @@ function UserAccount() {
             <div className="account__avatar-picker">
               <p className="account__avatar-picker-title">Choisis ton avatar</p>
               <div className="account__avatar-picker-grid">
-                {AVATARS.map((avatarName) => (
+                {AVATARS.map((avatar) => (
                   <button
-                    key={avatarName}
+                    key={avatar.name}
                     className={`account__avatar-picker-item ${
-                      user?.avatar === avatarName ? "account__avatar-picker-item--active" : ""
+                      user?.avatar === avatar.name ? "account__avatar-picker-item--active" : ""
                     }`}
-                    onClick={() => handleAvatarChange(avatarName)}
+                    onClick={() => handleAvatarChange(avatar.name)}
                   >
                     <img
-                      src={`/avatars/${avatarName}`}
-                      alt={avatarName}
+                      src={avatar.url}
+                      alt={avatar.name}
                     />
                   </button>
                 ))}

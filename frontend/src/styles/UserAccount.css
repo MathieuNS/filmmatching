@@ -90,7 +90,6 @@
 .account__avatar-img {
   width: 56px;
   height: 56px;
-  filter: brightness(0) invert(1);
 }
 
 /* Badge crayon en bas à droite de l'avatar */
@@ -155,7 +154,6 @@
 .account__avatar-picker-item img {
   width: 32px;
   height: 32px;
-  filter: brightness(0) invert(1);
   opacity: 0.6;
 }
 

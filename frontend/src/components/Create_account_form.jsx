@@ -14,17 +14,35 @@ function CreateAccountForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  // Case à cocher pour le consentement (politique de confidentialité + CGU)
+  const [accepted, setAccepted] = useState(false);
+  // Message d'erreur affiché sous le formulaire (null = pas d'erreur)
+  const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     setLoading(true);
+    setErrorMessage(null);
     e.preventDefault();
 
     try {
       await api.post("api/users/create/", { email, username, password });
       navigate("/login");
     } catch (error) {
-      alert(error);
+      // L'API renvoie un objet avec les champs en erreur
+      // ex: { "username": ["A user with that username already exists."] }
+      // ex: { "email": ["Cet email est déjà utilisé."] }
+      const data = error.response?.data;
+
+      if (data?.username) {
+        setErrorMessage("Ce pseudo est déjà pris.");
+      } else if (data?.email) {
+        setErrorMessage("Cette adresse email est déjà utilisée.");
+      } else if (data?.password) {
+        setErrorMessage("Le mot de passe est trop court ou trop simple.");
+      } else {
+        setErrorMessage("Une erreur est survenue. Vérifie tes informations.");
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +78,31 @@ function CreateAccountForm() {
           placeholder="Mot de passe"
         />
 
-        <button className="form-button" type="submit" disabled={loading}>
+        {/* Case à cocher de consentement (obligatoire RGPD) */}
+        <label className="form-checkbox">
+          <input
+            type="checkbox"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+          />
+          <span className="form-checkbox__text">
+            J'accepte la{" "}
+            <Link to="/rgpd" className="form-checkbox__link">
+              politique de confidentialité
+            </Link>{" "}
+            et les{" "}
+            <Link to="/mentions-legales" className="form-checkbox__link">
+              mentions légales
+            </Link>
+          </span>
+        </label>
+
+        {/* Message d'erreur affiché en cas d'échec */}
+        {errorMessage && (
+          <p className="form-error">{errorMessage}</p>
+        )}
+
+        <button className="form-button" type="submit" disabled={loading || !accepted}>
           {loading ? "Création..." : "Créer un compte"}
         </button>
 

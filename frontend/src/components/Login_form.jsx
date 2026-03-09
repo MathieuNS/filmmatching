@@ -14,10 +14,13 @@ function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  // Message d'erreur affiché sous le formulaire (null = pas d'erreur)
+  const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     setLoading(true);
+    setErrorMessage(null);
     e.preventDefault();
 
     try {
@@ -27,7 +30,8 @@ function LoginForm() {
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
       navigate("/home");
     } catch (error) {
-      alert(error);
+      // L'API renvoie un statut 401 quand les identifiants sont incorrects
+      setErrorMessage("Erreur d'identifiants.");
     } finally {
       setLoading(false);
     }
@@ -55,6 +59,11 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Mot de passe"
         />
+
+        {/* Message d'erreur affiché en cas d'échec de connexion */}
+        {errorMessage && (
+          <p className="form-error">{errorMessage}</p>
+        )}
 
         <button className="form-button" type="submit" disabled={loading}>
           {loading ? "Connexion..." : "Se connecter"}

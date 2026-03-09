@@ -30,6 +30,10 @@ function TmdbAttribution() {
       <Link to="/rgpd" className="tmdb-attribution__link">
         Politique de confidentialité
       </Link>
+      <span className="tmdb-attribution__separator">·</span>
+      <Link to="/mentions-legales" className="tmdb-attribution__link">
+        Mentions légales
+      </Link>
     </footer>
   );
 }
