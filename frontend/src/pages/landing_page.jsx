@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import TmdbAttribution from "../components/TmdbAttribution";
 // Import du fichier CSS dédié à la landing page
 import "../styles/LandingPage.css";
 
@@ -270,6 +271,8 @@ function LandingPage() {
           <Link to="/login">Se connecter</Link>
         </p>
       </div>
+
+      <TmdbAttribution />
     </div>
   );
 }

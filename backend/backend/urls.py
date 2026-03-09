@@ -4,6 +4,7 @@ from api.views import (
     CreateUserView,
     CurrentUserView,
     DeleteAccountView,
+    UpdateAvatarView,
     UserSearchView,
     FilmListCreateView,
     RandomFilmView,
@@ -30,6 +31,8 @@ urlpatterns = [
     path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
     # Suppression du compte (irréversible)
     path('api/users/me/delete/', DeleteAccountView.as_view(), name='delete-account'),
+    # Changer l'avatar de l'utilisateur connecté
+    path('api/users/me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
     # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
     path('api/users/search/', UserSearchView.as_view(), name='user-search'),
     path('api/token/', TokenObtainPairView.as_view(), name='get_token'),

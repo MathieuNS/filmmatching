@@ -4,7 +4,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import Films, Genres, Plateform, Swipe, Friendship
+from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
     FilmsSerializer,
@@ -74,6 +74,50 @@ class DeleteAccountView(APIView):
             {"message": "Compte supprimé avec succès."},
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+class UpdateAvatarView(APIView):
+    """
+    Met à jour l'avatar de l'utilisateur connecté.
+
+    - PATCH /api/users/me/avatar/
+    - Body : { "avatar": "avatar-camera.svg" }
+
+    Le frontend envoie le nom du fichier SVG correspondant
+    à l'avatar choisi par l'utilisateur. On vérifie que ce nom
+    fait bien partie des avatars disponibles (AVATAR_CHOICES)
+    pour éviter d'injecter une valeur invalide en BDD.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        """Change l'avatar de l'utilisateur connecté."""
+        # On récupère le nom d'avatar envoyé par le frontend
+        avatar = request.data.get('avatar')
+
+        if not avatar:
+            return Response(
+                {"error": "Le champ 'avatar' est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier que l'avatar fait partie des choix valides
+        # [c[0] for c in AVATAR_CHOICES] extrait les noms de fichiers
+        # ex: ["avatar-camera.svg", "avatar-clapperboard.svg", ...]
+        valid_avatars = [c[0] for c in AVATAR_CHOICES]
+        if avatar not in valid_avatars:
+            return Response(
+                {"error": f"Avatar invalide. Choix possibles : {valid_avatars}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Mettre à jour le profil de l'utilisateur
+        profile = request.user.profile
+        profile.avatar = avatar
+        profile.save()
+
+        return Response({"avatar": profile.avatar})
 
 
 class UserSearchView(APIView):

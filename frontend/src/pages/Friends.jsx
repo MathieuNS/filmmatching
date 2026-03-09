@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/Friends.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
 import "../styles/Home.css";
@@ -184,11 +185,33 @@ function Friends() {
    * @param {Object} friendship - L'objet amitié renvoyé par l'API
    * @returns {string} Le pseudo de l'ami
    */
+  /**
+   * Détermine le pseudo de l'ami dans une relation.
+   * Si je suis le sender, l'ami est le receiver (et vice versa).
+   *
+   * @param {Object} friendship - L'objet amitié renvoyé par l'API
+   * @returns {string} Le pseudo de l'ami
+   */
   function getFriendName(friendship) {
     if (friendship.sender === currentUserId) {
       return friendship.receiver_username;
     }
     return friendship.sender_username;
+  }
+
+  /**
+   * Détermine l'avatar de l'ami dans une relation.
+   * Même logique que getFriendName : si je suis le sender,
+   * l'avatar de l'ami est celui du receiver.
+   *
+   * @param {Object} friendship - L'objet amitié renvoyé par l'API
+   * @returns {string} Le nom du fichier avatar de l'ami
+   */
+  function getFriendAvatar(friendship) {
+    if (friendship.sender === currentUserId) {
+      return friendship.receiver_avatar || "avatar-popcorn.svg";
+    }
+    return friendship.sender_avatar || "avatar-popcorn.svg";
   }
 
   return (
@@ -279,9 +302,11 @@ function Friends() {
                 <div key={friendship.id} className="friends__card">
                   <div className="friends__card-info">
                     <div className="friends__card-avatar">
-                      <span className="friends__card-avatar-letter">
-                        {friendship.sender_username.charAt(0)}
-                      </span>
+                      <img
+                        className="friends__card-avatar-img"
+                        src={`/avatars/${friendship.sender_avatar || "avatar-popcorn.svg"}`}
+                        alt="Avatar"
+                      />
                     </div>
                     <div>
                       <div className="friends__card-name">
@@ -334,9 +359,11 @@ function Friends() {
                     onClick={() => navigate(`/amis/${friendship.id}/matchs`)}
                   >
                     <div className="friends__card-avatar">
-                      <span className="friends__card-avatar-letter">
-                        {getFriendName(friendship).charAt(0)}
-                      </span>
+                      <img
+                        className="friends__card-avatar-img"
+                        src={`/avatars/${getFriendAvatar(friendship)}`}
+                        alt="Avatar"
+                      />
                     </div>
                     <div>
                       <div className="friends__card-name">
@@ -367,9 +394,11 @@ function Friends() {
               <div key={friendship.id} className="friends__card">
                 <div className="friends__card-info">
                   <div className="friends__card-avatar">
-                    <span className="friends__card-avatar-letter">
-                      {friendship.receiver_username.charAt(0)}
-                    </span>
+                    <img
+                      className="friends__card-avatar-img"
+                      src={`/avatars/${friendship.receiver_avatar || "avatar-popcorn.svg"}`}
+                      alt="Avatar"
+                    />
                   </div>
                   <div>
                     <div className="friends__card-name">
@@ -424,6 +453,8 @@ function Friends() {
           </div>
         </div>
       )}
+
+      <TmdbAttribution />
     </div>
   );
 }

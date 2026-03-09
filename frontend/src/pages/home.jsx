@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
+import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/Home.css";
 
 /**
@@ -512,6 +513,7 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
+        <TmdbAttribution />
       </div>
     );
   }
@@ -536,6 +538,7 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
+        <TmdbAttribution />
       </div>
     );
   }
@@ -642,6 +645,8 @@ function Home() {
         availableGenres={availableGenres}
         availablePlateforms={availablePlateforms}
       />
+
+      <TmdbAttribution />
     </div>
   );
 }

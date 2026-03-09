@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0D0D0F"/>
+    </linearGradient>
+    <linearGradient id="ticket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFAA2B"/>
+      <stop offset="100%" stop-color="#e88a00"/>
+    </linearGradient>
+    <clipPath id="ticketClip">
+      <path d="M35 70 L35 88 Q45 88 45 95 Q45 102 35 102 L35 140 Q35 145 40 145 L160 145 Q165 145 165 140 L165 102 Q155 102 155 95 Q155 88 165 88 L165 70 Q165 65 160 65 L40 65 Q35 65 35 70 Z"/>
+    </clipPath>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bg4)"/>
+  <!-- Ticket shape with notches -->
+  <path d="M35 70 L35 88 Q45 88 45 95 Q45 102 35 102 L35 140 Q35 145 40 145 L160 145 Q165 145 165 140 L165 102 Q155 102 155 95 Q155 88 165 88 L165 70 Q165 65 160 65 L40 65 Q35 65 35 70 Z" fill="url(#ticket)"/>
+  <!-- Tear line -->
+  <line x1="130" y1="70" x2="130" y2="140" stroke="#0D0D0F" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4"/>
+  <!-- Ticket content -->
+  <text x="55" y="85" font-family="sans-serif" font-weight="bold" font-size="11" fill="#0D0D0F" opacity="0.9">CINEMA</text>
+  <text x="55" y="100" font-family="monospace" font-size="8" fill="#0D0D0F" opacity="0.6">SALLE 03</text>
+  <text x="55" y="115" font-family="monospace" font-size="8" fill="#0D0D0F" opacity="0.6">RANG F - SIEGE 12</text>
+  <text x="55" y="135" font-family="sans-serif" font-weight="bold" font-size="14" fill="#0D0D0F" opacity="0.8">20:30</text>
+  <!-- Stub section -->
+  <text x="135" y="95" font-family="monospace" font-size="7" fill="#0D0D0F" opacity="0.5" text-anchor="middle">F12</text>
+  <text x="135" y="115" font-family="monospace" font-size="9" fill="#0D0D0F" opacity="0.7" text-anchor="middle" transform="rotate(90, 135, 115)">ADMIT ONE</text>
+  <!-- Star decorations -->
+  <polygon points="50,125 51,128 54,128 52,130 53,133 50,131 47,133 48,130 46,128 49,128" fill="#0D0D0F" opacity="0.3"/>
+  <polygon points="110,80 111,83 114,83 112,85 113,88 110,86 107,88 108,85 106,83 109,83" fill="#0D0D0F" opacity="0.3"/>
+</svg>

@@ -1,5 +1,50 @@
+import random
 from django.db import models
 from django.contrib.auth.models import User
+
+
+# Liste des avatars disponibles dans frontend/public/avatars/
+AVATAR_CHOICES = [
+    ('avatar-camera.svg', 'Caméra'),
+    ('avatar-clapperboard.svg', 'Clap'),
+    ('avatar-popcorn.svg', 'Popcorn'),
+    ('avatar-reel.svg', 'Bobine'),
+    ('avatar-ticket.svg', 'Ticket'),
+]
+
+
+class Profile(models.Model):
+    """
+    Profil étendu de l'utilisateur.
+
+    Le modèle User de Django est fourni par le framework et ne peut pas
+    être modifié directement. Pour ajouter des champs personnalisés
+    (comme l'avatar), on crée un modèle Profile lié au User par
+    une relation OneToOneField.
+
+    Chaque User a exactement un Profile, créé automatiquement
+    via un signal (voir signals.py).
+    """
+
+    # OneToOneField = chaque User a exactement un Profile (et vice versa).
+    # related_name='profile' permet d'accéder au profil via user.profile
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+
+    # Nom du fichier avatar (ex: "avatar-popcorn.svg")
+    # On stocke juste le nom du fichier, pas le chemin complet,
+    # car les avatars sont dans frontend/public/avatars/
+    avatar = models.CharField(
+        max_length=50,
+        choices=AVATAR_CHOICES,
+        default='avatar-popcorn.svg',
+    )
+
+    class Meta:
+        verbose_name = "Profile"
+        verbose_name_plural = "Profiles"
+
+    def __str__(self):
+        return f"Profil de {self.user.username}"
 
 class Genres(models.Model):
     tmdb_id = models.IntegerField(unique=True, primary_key=True)  # ID du genre dans TMDB, pour éviter les doublons

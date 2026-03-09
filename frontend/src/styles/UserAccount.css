@@ -65,10 +65,11 @@
   margin: 0 auto;
 }
 
-/* --- Avatar circulaire avec l'initiale du pseudo --- */
+/* --- Avatar SVG de l'utilisateur --- */
 .account__avatar {
-  width: 88px;
-  height: 88px;
+  position: relative;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   /* Dégradé "Connexion" (violet → corail) */
   background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
@@ -76,14 +77,106 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 28px;
+  cursor: pointer;
+  transition: all 0.25s ease;
 }
 
-.account__avatar-letter {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 2.2rem;
-  color: #fff;
-  text-transform: uppercase;
+.account__avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 24px rgba(123, 92, 255, 0.3);
+}
+
+/* Image SVG de l'avatar à l'intérieur du cercle */
+.account__avatar-img {
+  width: 56px;
+  height: 56px;
+  filter: brightness(0) invert(1);
+}
+
+/* Badge crayon en bas à droite de l'avatar */
+.account__avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #16161A;
+  border: 2px solid #0D0D0F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #F0EEF2;
+}
+
+/* --- Sélecteur d'avatar (grille de 5 avatars) --- */
+.account__avatar-picker {
+  width: 100%;
+  padding: 20px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  margin-bottom: 24px;
+}
+
+.account__avatar-picker-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #8B8B9E;
+  text-align: center;
+  margin: 0 0 16px;
+}
+
+/* Grille des avatars cliquables */
+.account__avatar-picker-grid {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Chaque avatar cliquable dans la grille */
+.account__avatar-picker-item {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid #2A2A32;
+  background-color: #1E1E24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+}
+
+.account__avatar-picker-item img {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0) invert(1);
+  opacity: 0.6;
+}
+
+.account__avatar-picker-item:hover {
+  border-color: #7B5CFF;
+  background-color: rgba(123, 92, 255, 0.1);
+}
+
+.account__avatar-picker-item:hover img {
+  opacity: 1;
+}
+
+/* Avatar actuellement sélectionné — bordure violet + glow */
+.account__avatar-picker-item--active {
+  border-color: #7B5CFF;
+  background: linear-gradient(135deg, rgba(123, 92, 255, 0.2), rgba(255, 77, 106, 0.2));
+  box-shadow: 0 0 12px rgba(123, 92, 255, 0.3);
+}
+
+.account__avatar-picker-item--active img {
+  opacity: 1;
 }
 
 /* --- Bloc d'informations (pseudo, email) --- */

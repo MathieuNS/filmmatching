@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Films, Genres, Plateform, Swipe, Friendship
+from .models import Films, Genres, Plateform, Swipe, Friendship, Profile
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -8,18 +8,46 @@ class UserSerializer(serializers.ModelSerializer):
     Serializer pour créer un compte utilisateur.
     Le mot de passe est en 'write_only' : on peut l'envoyer pour créer
     le compte, mais il n'apparaît jamais dans les réponses de l'API.
+
+    Le champ 'avatar' est lu depuis le modèle Profile lié au User.
+    SerializerMethodField permet de créer un champ calculé qui n'existe pas
+    directement sur le modèle User, mais qu'on va chercher ailleurs (ici, sur le Profile).
     """
+
+    # Champ calculé : on va chercher l'avatar dans le Profile lié au User
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
+        fields = ['id', 'username', 'email', 'password', 'avatar']
         extra_kwargs = {'password': {'write_only': True}}
+
+    def get_avatar(self, obj):
+        """
+        Récupère le nom de fichier de l'avatar depuis le Profile.
+
+        hasattr() vérifie que le User a bien un Profile associé.
+        C'est une précaution : si un User a été créé avant l'ajout
+        du système de profils, il pourrait ne pas avoir de Profile.
+
+        Args:
+            obj: L'objet User dont on veut l'avatar
+
+        Returns:
+            Le nom du fichier avatar (ex: "avatar-popcorn.svg") ou None
+        """
+        if hasattr(obj, 'profile'):
+            return obj.profile.avatar
+        return None
 
     def create(self, validated_data):
         """
         Utilise create_user() au lieu de create() pour que
         le mot de passe soit hashé (chiffré) automatiquement.
         Sans ça, le mot de passe serait stocké en clair dans la BDD.
+
+        Le Profile (avec un avatar aléatoire) est créé automatiquement
+        par le signal post_save dans signals.py.
         """
         user = User.objects.create_user(**validated_data)
         return user
@@ -128,8 +156,15 @@ class FriendshipSerializer(serializers.ModelSerializer):
     # au lieu de simples IDs numériques (ex: "Alice" au lieu de "3")
     sender_username = serializers.CharField(source='sender.username', read_only=True)
     receiver_username = serializers.CharField(source='receiver.username', read_only=True)
+    # On ajoute les avatars pour afficher les images dans la liste d'amis
+    sender_avatar = serializers.CharField(source='sender.profile.avatar', read_only=True)
+    receiver_avatar = serializers.CharField(source='receiver.profile.avatar', read_only=True)
 
     class Meta:
         model = Friendship
-        fields = ['id', 'sender', 'sender_username', 'receiver', 'receiver_username', 'accepted', 'created_at']
+        fields = [
+            'id', 'sender', 'sender_username', 'sender_avatar',
+            'receiver', 'receiver_username', 'receiver_avatar',
+            'accepted', 'created_at',
+        ]
         read_only_fields = ['accepted', 'created_at']

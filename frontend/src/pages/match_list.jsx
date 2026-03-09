@@ -4,6 +4,7 @@ import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import "../styles/FilmList.css";
+import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/MatchList.css";
 import "../styles/Home.css";
 
@@ -425,6 +426,8 @@ function MatchList() {
         availableGenres={availableGenres}
         availablePlateforms={availablePlateforms}
       />
+
+      <TmdbAttribution />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
+import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/FilmList.css";
 import "../styles/FriendAvatars.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
@@ -496,6 +497,8 @@ function FilmList() {
         availableGenres={availableGenres}
         availablePlateforms={availablePlateforms}
       />
+
+      <TmdbAttribution />
     </div>
   );
 }

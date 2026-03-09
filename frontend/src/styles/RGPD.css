@@ -1,0 +1,116 @@
+/* ==============================================
+   RGPD — Page de politique de confidentialité
+   ============================================== */
+
+.rgpd {
+  min-height: 100vh;
+  background-color: var(--noir-cinema, #0D0D0F);
+  color: var(--blanc-doux, #F0EEF2);
+  padding: 0 20px 40px;
+  font-family: 'Sora', sans-serif;
+}
+
+/* --- Header avec flèche retour --- */
+.rgpd__header {
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+  gap: 12px;
+}
+
+.rgpd__back-btn {
+  background: none;
+  border: none;
+  color: var(--blanc-doux, #F0EEF2);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+  transition: background 0.25s ease;
+}
+
+.rgpd__back-btn:hover {
+  background: var(--gris-sombre, #1E1E24);
+}
+
+.rgpd__header-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* --- Contenu principal --- */
+.rgpd__content {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.rgpd__last-updated {
+  font-size: 0.75rem;
+  color: var(--gris-texte, #8B8B9E);
+  margin-bottom: 28px;
+}
+
+/* --- Sections --- */
+.rgpd__section {
+  margin-bottom: 28px;
+}
+
+.rgpd__section-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--blanc-doux, #F0EEF2);
+  margin: 0 0 10px;
+}
+
+.rgpd__text {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--gris-texte, #8B8B9E);
+  margin: 0 0 8px;
+}
+
+/* --- Listes --- */
+.rgpd__list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.rgpd__list li {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--gris-texte, #8B8B9E);
+  padding-left: 18px;
+  position: relative;
+  margin-bottom: 4px;
+}
+
+/* Puce personnalisée avec la couleur corail */
+.rgpd__list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--corail-vif, #FF4D6A);
+  font-weight: 700;
+}
+
+/* --- Mise en valeur --- */
+.rgpd__highlight {
+  color: var(--blanc-doux, #F0EEF2);
+  font-weight: 500;
+}
+
+/* --- Lien de contact --- */
+.rgpd__link {
+  color: var(--violet-nuit, #7B5CFF);
+  text-decoration: none;
+  transition: opacity 0.25s ease;
+}
+
+.rgpd__link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}

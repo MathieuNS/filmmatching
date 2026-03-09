@@ -9,6 +9,7 @@ import Friends from './pages/Friends'
 import UserAccount from './pages/user_account'
 import FilmList from './pages/films_list'
 import MatchList from './pages/match_list'
+import RGPD from './pages/rgpd'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Lougout() {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Lougout />} />
         <Route path="/create-login" element={<CreateLogin />} />
+        <Route path="/rgpd" element={<RGPD />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

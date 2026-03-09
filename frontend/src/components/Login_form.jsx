@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import TmdbAttribution from "./TmdbAttribution";
 import "../styles/Forms.css";
 
 /**
@@ -64,6 +65,7 @@ function LoginForm() {
           Pas encore de compte ? <Link to="/create-login">Créer un compte</Link>
         </p>
       </form>
+      <TmdbAttribution />
     </div>
   );
 }

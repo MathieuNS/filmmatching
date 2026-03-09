@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
+import TmdbAttribution from "./TmdbAttribution";
 import "../styles/Forms.css";
 
 /**
@@ -68,6 +69,7 @@ function CreateAccountForm() {
           Déjà un compte ? <Link to="/login">Se connecter</Link>
         </p>
       </form>
+      <TmdbAttribution />
     </div>
   );
 }

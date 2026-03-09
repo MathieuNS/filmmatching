@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0D0D0F"/>
+    </linearGradient>
+    <linearGradient id="clap" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2EE0A1"/>
+      <stop offset="100%" stop-color="#1ab87a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bg3)"/>
+  <!-- Board body -->
+  <rect x="40" y="80" width="120" height="80" rx="6" fill="#1e1e2e" stroke="#2EE0A1" stroke-width="2"/>
+  <!-- Text lines on board -->
+  <text x="52" y="102" font-family="monospace" font-size="9" fill="#2EE0A1" opacity="0.8">PROD:</text>
+  <line x1="82" y1="100" x2="145" y2="100" stroke="#2EE0A1" stroke-width="1" opacity="0.3"/>
+  <text x="52" y="118" font-family="monospace" font-size="9" fill="#2EE0A1" opacity="0.8">SCENE:</text>
+  <line x1="90" y1="116" x2="120" y2="116" stroke="#2EE0A1" stroke-width="1" opacity="0.3"/>
+  <text x="125" y="118" font-family="monospace" font-size="9" fill="#2EE0A1" opacity="0.8">TAKE:</text>
+  <line x1="148" y1="116" x2="155" y2="116" stroke="#2EE0A1" stroke-width="1" opacity="0.3"/>
+  <text x="52" y="134" font-family="monospace" font-size="9" fill="#2EE0A1" opacity="0.8">DIR:</text>
+  <line x1="75" y1="132" x2="145" y2="132" stroke="#2EE0A1" stroke-width="1" opacity="0.3"/>
+  <text x="52" y="150" font-family="monospace" font-size="9" fill="#2EE0A1" opacity="0.8">DATE:</text>
+  <line x1="82" y1="148" x2="120" y2="148" stroke="#2EE0A1" stroke-width="1" opacity="0.3"/>
+  <!-- Clapper top (closed position, slight angle) -->
+  <g transform="rotate(-12, 40, 80)">
+    <rect x="40" y="58" width="120" height="22" rx="4" fill="url(#clap)"/>
+    <!-- Diagonal stripes -->
+    <rect x="48" y="58" width="10" height="22" fill="#0D0D0F" transform="skewX(-15)"/>
+    <rect x="72" y="58" width="10" height="22" fill="#0D0D0F" transform="skewX(-15)"/>
+    <rect x="96" y="58" width="10" height="22" fill="#0D0D0F" transform="skewX(-15)"/>
+    <rect x="120" y="58" width="10" height="22" fill="#0D0D0F" transform="skewX(-15)"/>
+    <rect x="144" y="58" width="10" height="22" fill="#0D0D0F" transform="skewX(-15)"/>
+  </g>
+  <!-- Hinge circle -->
+  <circle cx="44" cy="80" r="5" fill="#2EE0A1" opacity="0.8"/>
+  <circle cx="44" cy="80" r="2" fill="#0D0D0F"/>
+</svg>

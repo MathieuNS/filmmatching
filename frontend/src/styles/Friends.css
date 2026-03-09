@@ -166,6 +166,13 @@
   text-transform: uppercase;
 }
 
+/* Image SVG de l'avatar dans les cartes amis */
+.friends__card-avatar-img {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1);
+}
+
 .friends__card-name {
   font-family: 'Sora', sans-serif;
   font-weight: 500;

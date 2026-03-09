@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/UserAccount.css";
 // On importe Home.css pour réutiliser les styles du menu hamburger
 import "../styles/Home.css";
@@ -27,6 +28,18 @@ function UserAccount() {
   const [deleting, setDeleting] = useState(false);
   // --- State pour le menu de navigation (hamburger) ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // --- State pour le sélecteur d'avatar ---
+  // true quand le sélecteur d'avatar est visible
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+
+  // Liste des 5 avatars disponibles dans public/avatars/
+  const AVATARS = [
+    "avatar-camera.svg",
+    "avatar-clapperboard.svg",
+    "avatar-popcorn.svg",
+    "avatar-reel.svg",
+    "avatar-ticket.svg",
+  ];
 
   /**
    * Récupère les informations de l'utilisateur connecté au chargement de la page.
@@ -69,6 +82,29 @@ function UserAccount() {
     } catch (error) {
       console.error("Erreur lors de la suppression du compte :", error);
       setDeleting(false);
+    }
+  }
+
+  /**
+   * Change l'avatar de l'utilisateur.
+   *
+   * Envoie le nom du fichier avatar choisi à l'API via PATCH,
+   * puis met à jour le state local pour que le changement
+   * s'affiche immédiatement sans recharger la page.
+   *
+   * @param {string} avatarName - Le nom du fichier avatar (ex: "avatar-camera.svg")
+   */
+  async function handleAvatarChange(avatarName) {
+    try {
+      // PATCH /api/users/me/avatar/ met à jour l'avatar en BDD
+      await api.patch("/api/users/me/avatar/", { avatar: avatarName });
+      // Mise à jour locale : on modifie le user dans le state
+      // pour que l'avatar s'affiche immédiatement
+      setUser((prev) => ({ ...prev, avatar: avatarName }));
+      // Fermer le sélecteur après le choix
+      setShowAvatarPicker(false);
+    } catch (error) {
+      console.error("Erreur lors du changement d'avatar :", error);
     }
   }
 
@@ -147,12 +183,43 @@ function UserAccount() {
         <div className="account__loading">Chargement...</div>
       ) : (
         <div className="account__content">
-          {/* Avatar avec la première lettre du pseudo */}
-          <div className="account__avatar">
-            <span className="account__avatar-letter">
-              {user?.username?.charAt(0) || "?"}
-            </span>
+          {/* Avatar SVG de l'utilisateur — cliquable pour changer */}
+          <div
+            className="account__avatar"
+            onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+            title="Cliquer pour changer d'avatar"
+          >
+            <img
+              className="account__avatar-img"
+              src={`/avatars/${user?.avatar || "avatar-popcorn.svg"}`}
+              alt="Avatar"
+            />
+            {/* Petit badge crayon pour indiquer que c'est modifiable */}
+            <span className="account__avatar-edit">✎</span>
           </div>
+
+          {/* Sélecteur d'avatar — visible quand on clique sur l'avatar */}
+          {showAvatarPicker && (
+            <div className="account__avatar-picker">
+              <p className="account__avatar-picker-title">Choisis ton avatar</p>
+              <div className="account__avatar-picker-grid">
+                {AVATARS.map((avatarName) => (
+                  <button
+                    key={avatarName}
+                    className={`account__avatar-picker-item ${
+                      user?.avatar === avatarName ? "account__avatar-picker-item--active" : ""
+                    }`}
+                    onClick={() => handleAvatarChange(avatarName)}
+                  >
+                    <img
+                      src={`/avatars/${avatarName}`}
+                      alt={avatarName}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bloc d'informations : pseudo + email */}
           <div className="account__info">
@@ -180,6 +247,8 @@ function UserAccount() {
           </button>
         </div>
       )}
+
+      <TmdbAttribution />
 
       {/* Modale de confirmation de suppression */}
       {showDeleteModal && (
