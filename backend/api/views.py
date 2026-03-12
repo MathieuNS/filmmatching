@@ -1,9 +1,17 @@
+import os
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 from rest_framework import generics, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
@@ -23,11 +31,195 @@ class CreateUserView(generics.CreateAPIView):
     - Endpoint : POST /api/users/create/
     - Accessible sans être connecté (AllowAny) car on ne peut pas
       demander à quelqu'un de se connecter avant de créer son compte.
+
+    À la création, le compte est inactif (is_active=False).
+    Un email de confirmation est envoyé avec un lien d'activation.
+    L'utilisateur doit cliquer sur ce lien pour activer son compte
+    et pouvoir se connecter.
     """
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+    # authentication_classes = [] désactive complètement l'authentification
+    # pour cette vue. Sans ça, si un token JWT expiré traîne dans localStorage,
+    # l'intercepteur Axios l'envoie → simplejwt le rejette avec 401
+    # AVANT même de vérifier AllowAny. En vidant authentication_classes,
+    # Django ignore le header Authorization et laisse passer la requête.
+    authentication_classes = []
+
+    def perform_create(self, serializer):
+        """
+        Appelée automatiquement après la validation des données.
+
+        1. Crée l'utilisateur avec is_active=False (compte désactivé)
+        2. Génère un token unique via default_token_generator
+        3. Envoie un email avec le lien d'activation
+
+        default_token_generator crée un token basé sur l'état de l'utilisateur
+        (son ID, is_active, last_login). Dès que is_active change (activation),
+        le token devient invalide automatiquement — pas besoin de le stocker en BDD.
+        """
+        # Créer l'utilisateur avec le compte désactivé
+        user = serializer.save(is_active=False)
+
+        # Générer le token d'activation
+        # urlsafe_base64_encode encode l'ID en base64 pour pouvoir le mettre dans une URL
+        # force_bytes convertit l'ID (entier) en bytes, nécessaire pour l'encodage
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # Construire le lien d'activation
+        # Le lien pointe vers le frontend qui appellera ensuite l'API d'activation
+        # L'URL du frontend est lue depuis le .env pour pouvoir changer entre
+        # dev (localhost:5173) et production (filmmatching.com) sans modifier le code
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        activation_link = f"{frontend_url}/activate/{uid}/{token}"
+
+        # Envoyer l'email de confirmation
+        send_mail(
+            subject="Confirme ton compte FilmMatching 🎬",
+            message=(
+                f"Salut {user.username} !\n\n"
+                f"Bienvenue sur FilmMatching !\n"
+                f"Clique sur ce lien pour activer ton compte :\n\n"
+                f"{activation_link}\n\n"
+                f"Ce lien est à usage unique. Une fois ton compte activé, "
+                f"tu pourras te connecter et commencer à swiper des films.\n\n"
+                f"À bientôt sur FilmMatching !"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,  # Si l'envoi échoue, on lève une erreur
+        )
+
+
+class ActivateAccountView(APIView):
+    """
+    Active le compte d'un utilisateur via le lien reçu par email.
+
+    - GET /api/users/activate/<uid>/<token>/
+    - Accessible sans être connecté (AllowAny).
+
+    Le lien contient deux informations :
+    - uid : l'ID de l'utilisateur encodé en base64
+    - token : un token généré par default_token_generator
+
+    Le token est valide une seule fois : dès que is_active passe à True,
+    le token est automatiquement invalidé (car default_token_generator
+    utilise is_active dans son calcul).
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, uidb64, token):
+        """
+        Vérifie le token et active le compte.
+
+        Args:
+            uidb64: L'ID de l'utilisateur encodé en base64
+            token: Le token de confirmation généré à l'inscription
+        """
+        try:
+            # Décoder l'ID : base64 → bytes → string
+            # force_str convertit les bytes en string Python
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            # Si l'ID est invalide ou l'utilisateur n'existe pas
+            return Response(
+                {"error": "Lien d'activation invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier que le token est valide pour cet utilisateur
+        # check_token() recalcule le token attendu et le compare
+        if default_token_generator.check_token(user, token):
+            # Activer le compte
+            user.is_active = True
+            user.save()
+            return Response(
+                {"message": "Ton compte a été activé avec succès ! Tu peux maintenant te connecter."},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            # Token invalide (déjà utilisé, expiré, ou falsifié)
+            return Response(
+                {"error": "Ce lien d'activation a expiré ou a déjà été utilisé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class CustomTokenObtainView(APIView):
+    """
+    Vue de connexion personnalisée qui remplace TokenObtainPairView.
+
+    - POST /api/token/
+    - Body : { "username": "alice", "password": "motdepasse" }
+
+    Pourquoi remplacer la vue par défaut de simplejwt ?
+    Parce que TokenObtainPairView renvoie toujours un 401 générique
+    ("No active account found...") que le compte soit inactif ou que
+    les identifiants soient faux. On veut distinguer les deux cas
+    pour afficher un message utile à l'utilisateur.
+
+    Logique :
+    1. Vérifier si le pseudo existe en BDD
+    2. Si oui, vérifier si le compte est actif (is_active)
+    3. Si actif, vérifier le mot de passe avec authenticate()
+    4. Générer et renvoyer les tokens JWT
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Authentifie l'utilisateur et renvoie les tokens JWT."""
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        if not username or not password:
+            return Response(
+                {"error": "Le pseudo et le mot de passe sont requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Étape 1 : vérifier si le pseudo existe
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Identifiants incorrects."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Étape 2 : vérifier si le compte est activé
+        if not user.is_active:
+            return Response(
+                {"error": "Vous devez activer votre compte pour vous connecter. Vérifiez votre boîte mail."},
+                # 403 Forbidden : le serveur comprend la requête mais refuse
+                # de l'exécuter (contrairement à 401 qui signifie "non identifié")
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Étape 3 : vérifier le mot de passe
+        # authenticate() vérifie le mot de passe hashé en BDD
+        # Renvoie l'objet User si c'est correct, None sinon
+        authenticated_user = authenticate(username=username, password=password)
+        if authenticated_user is None:
+            return Response(
+                {"error": "Identifiants incorrects."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Étape 4 : générer les tokens JWT
+        # RefreshToken.for_user() crée un refresh token lié à cet utilisateur
+        # .access_token génère le token d'accès correspondant
+        refresh = RefreshToken.for_user(authenticated_user)
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        })
 
 
 class CurrentUserView(APIView):

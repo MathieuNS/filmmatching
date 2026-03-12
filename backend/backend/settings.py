@@ -142,3 +142,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
+
+# ──────────────────────────────────────────────
+# Configuration email (SMTP Hostinger)
+# ──────────────────────────────────────────────
+# EMAIL_BACKEND : indique à Django comment envoyer les emails.
+# "smtp.EmailBackend" signifie qu'on utilise un vrai serveur SMTP (ici Hostinger).
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# Les paramètres de connexion au serveur SMTP, lus depuis le fichier .env
+EMAIL_HOST = os.getenv("EMAIL_HOST")           # Adresse du serveur SMTP (smtp.hostinger.com)
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 465))  # Port du serveur (465 = SSL)
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")  # Adresse email utilisée pour envoyer
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")  # Mot de passe de cette adresse
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "True") == "True"  # Active le chiffrement SSL
+
+# DEFAULT_FROM_EMAIL : l'adresse qui apparaît comme expéditeur dans les emails
+DEFAULT_FROM_EMAIL = "FilmMatching <contact@filmmatching.com>"

@@ -11,6 +11,8 @@ import FilmList from './pages/films_list'
 import MatchList from './pages/match_list'
 import RGPD from './pages/rgpd'
 import MentionsLegales from './pages/mentions_legales'
+import ActivateAccount from './pages/activate_account'
+import CheckEmail from './pages/check_email'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Lougout() {
@@ -46,6 +48,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Lougout />} />
         <Route path="/create-login" element={<CreateLogin />} />
+        <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
+        <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/rgpd" element={<RGPD />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
         <Route path="/" element={<LandingPage />} />

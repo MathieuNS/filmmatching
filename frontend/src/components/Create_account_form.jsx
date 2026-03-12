@@ -27,7 +27,9 @@ function CreateAccountForm() {
 
     try {
       await api.post("api/users/create/", { email, username, password });
-      navigate("/login");
+      // Redirige vers la page "Vérifie ta boîte mail" au lieu de /login
+      // car le compte n'est pas encore actif (il faut cliquer sur le lien)
+      navigate("/check-email");
     } catch (error) {
       // L'API renvoie un objet avec les champs en erreur
       // ex: { "username": ["A user with that username already exists."] }

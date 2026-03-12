@@ -1,6 +1,8 @@
 import random
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from pytz import timezone
 
 
 # Liste des avatars disponibles dans frontend/public/avatars/
@@ -181,4 +183,3 @@ class Friendship(models.Model):
     def __str__(self):
         status = "amis" if self.accepted else "en attente"
         return f"{self.sender.username} ↔ {self.receiver.username} ({status})"
-

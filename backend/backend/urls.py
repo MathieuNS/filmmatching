@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from api.views import (
     CreateUserView,
+    ActivateAccountView,
+    CustomTokenObtainView,
     CurrentUserView,
     DeleteAccountView,
     UpdateAvatarView,
@@ -27,6 +29,8 @@ urlpatterns = [
 
     # --- Authentification ---
     path('api/users/create/', CreateUserView.as_view(), name='create-user'),
+    # Activation du compte via le lien reçu par email
+    path('api/users/activate/<str:uidb64>/<str:token>/', ActivateAccountView.as_view(), name='activate-account'),
     # Infos de l'utilisateur connecté (pseudo, email)
     path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
     # Suppression du compte (irréversible)
@@ -35,7 +39,8 @@ urlpatterns = [
     path('api/users/me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
     # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
     path('api/users/search/', UserSearchView.as_view(), name='user-search'),
-    path('api/token/', TokenObtainPairView.as_view(), name='get_token'),
+    # Vue personnalisée pour distinguer "compte inactif" de "mauvais identifiants"
+    path('api/token/', CustomTokenObtainView.as_view(), name='get_token'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("api-auth/", include("rest_framework.urls")),
 

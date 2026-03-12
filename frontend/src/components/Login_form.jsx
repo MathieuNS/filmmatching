@@ -30,8 +30,11 @@ function LoginForm() {
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
       navigate("/home");
     } catch (error) {
-      // L'API renvoie un statut 401 quand les identifiants sont incorrects
-      setErrorMessage("Erreur d'identifiants.");
+      // Le backend renvoie un message différent selon le cas :
+      // - 401 : identifiants incorrects
+      // - 403 : compte non activé (l'utilisateur n'a pas cliqué sur le lien email)
+      const serverMessage = error.response?.data?.error;
+      setErrorMessage(serverMessage || "Erreur d'identifiants.");
     } finally {
       setLoading(false);
     }

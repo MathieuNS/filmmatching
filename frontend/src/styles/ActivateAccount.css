@@ -1,0 +1,65 @@
+/* ============================================
+   ActivateAccount.css — Page d'activation de compte
+   Réutilise les classes de Forms.css (form-page, form-container, etc.)
+   et ajoute des styles spécifiques à cette page.
+   ============================================ */
+
+/* Conteneur légèrement ajusté pour centrer le contenu verticalement */
+.activate-container {
+  text-align: center;
+}
+
+/* --- Icône de résultat (check ou croix) --- */
+.activate-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+/* Icône succès : fond vert avec coche blanche */
+.activate-icon--success {
+  background-color: rgba(46, 224, 161, 0.15);
+  color: var(--vert-match);
+  border: 2px solid rgba(46, 224, 161, 0.3);
+}
+
+/* Icône erreur : fond rouge avec croix blanche */
+.activate-icon--error {
+  background-color: rgba(255, 77, 106, 0.15);
+  color: var(--corail-vif);
+  border: 2px solid rgba(255, 77, 106, 0.3);
+}
+
+/* --- Spinner de chargement --- */
+/* Un cercle qui tourne pour indiquer que la vérification est en cours.
+   border-top est coloré, les autres côtés sont transparents,
+   ce qui crée l'effet de rotation partielle. */
+.activate-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gris-moyen);
+  border-top: 3px solid var(--violet-nuit);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-top: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Texte de redirection --- */
+.activate-redirect {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gris-texte);
+  margin: 8px 0 20px 0;
+}
