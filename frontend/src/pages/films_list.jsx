@@ -5,6 +5,7 @@ import api from "../api";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
+import StarRating from "../components/StarRating";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FilmList.css";
 import "../styles/FriendAvatars.css";
@@ -183,6 +184,33 @@ function FilmList() {
   }
 
   /**
+   * Met à jour la note d'un film "déjà vu".
+   *
+   * Envoie un PATCH à l'API avec la nouvelle note, puis met à jour
+   * le state local pour que l'affichage se rafraîchisse immédiatement
+   * sans recharger depuis l'API.
+   *
+   * @param {number} swipeId - L'ID du swipe à noter
+   * @param {number|null} newRating - La nouvelle note (0.5 à 5.0, ou null pour supprimer)
+   */
+  async function handleRatingChange(swipeId, newRating) {
+    try {
+      // PATCH envoie seulement le champ rating au backend
+      await api.patch(`/api/swipes/${swipeId}/`, { rating: newRating });
+
+      // Mise à jour locale : on modifie la note dans le state "seen"
+      setSwipes((prev) => ({
+        ...prev,
+        seen: prev.seen.map((s) =>
+          s.id === swipeId ? { ...s, rating: newRating } : s
+        ),
+      }));
+    } catch (error) {
+      console.error("Erreur lors de la notation :", error);
+    }
+  }
+
+  /**
    * Applique les filtres sélectionnés dans le bottom sheet.
    * Appelée quand l'utilisateur clique "Appliquer" dans le FilterBottomSheet.
    *
@@ -249,8 +277,16 @@ function FilmList() {
     (activeFilters.yearMin ? 1 : 0) +
     (activeFilters.yearMax ? 1 : 0);
 
-  // Films filtrés pour l'onglet actif
-  const filteredSwipes = filterSwipes(swipes[activeTab]);
+  // Films filtrés pour l'onglet actif.
+  // Pour l'onglet "Déjà vu", on trie par note décroissante (5 étoiles en premier).
+  // Les films sans note (null) sont placés à la fin grâce au "|| 0" :
+  // null devient 0, donc ils passent après les films notés.
+  const filteredSwipes = filterSwipes(swipes[activeTab]).sort((a, b) => {
+    if (activeTab !== "seen") return 0;
+    const ratingA = a.rating ? parseFloat(a.rating) : 0;
+    const ratingB = b.rating ? parseFloat(b.rating) : 0;
+    return ratingB - ratingA;
+  });
 
   // Configuration des onglets : label, statut, icône
   const tabs = [
@@ -441,6 +477,18 @@ function FilmList() {
                 <span className="film-list__card-year">
                   {swipe.film.release_year}
                 </span>
+
+                {/* Notation par étoiles — visible uniquement dans l'onglet "Déjà vu".
+                    Le onClick avec stopPropagation empêche le clic sur les étoiles
+                    d'ouvrir la modale du film (sinon le clic "remonte" à la carte). */}
+                {activeTab === "seen" && (
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <StarRating
+                      value={swipe.rating ? parseFloat(swipe.rating) : null}
+                      onChange={(newRating) => handleRatingChange(swipe.id, newRating)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Bouton ⋯ pour ouvrir le menu de changement de statut */}

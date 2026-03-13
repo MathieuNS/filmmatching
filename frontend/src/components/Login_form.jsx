@@ -63,6 +63,11 @@ function LoginForm() {
           placeholder="Mot de passe"
         />
 
+        {/* Lien mot de passe oublié, placé juste sous le champ mot de passe */}
+        <p className="form-forgot">
+          <Link to="/forgot-password">Mot de passe oublié ?</Link>
+        </p>
+
         {/* Message d'erreur affiché en cas d'échec de connexion */}
         {errorMessage && (
           <p className="form-error">{errorMessage}</p>

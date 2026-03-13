@@ -861,6 +861,201 @@ class MatchListView(APIView):
         return Response(serializer.data)
 
 
+class ForgotPasswordView(APIView):
+    """
+    Envoie un email de réinitialisation de mot de passe.
+
+    - POST /api/users/forgot-password/
+    - Body : { "email": "alice@mail.com" }
+    - Accessible sans être connecté (AllowAny).
+
+    Fonctionnement :
+    1. On cherche un utilisateur avec cet email en BDD
+    2. Si trouvé, on génère un token unique (comme pour l'activation)
+       et on envoie un email avec un lien de réinitialisation
+    3. Si non trouvé, on renvoie quand même un 200 pour ne pas révéler
+       si un email existe ou non dans la base (sécurité)
+
+    Le token est généré par default_token_generator, qui utilise
+    le mot de passe hashé dans son calcul. Dès que le mot de passe
+    change, le token devient automatiquement invalide — donc le lien
+    ne peut être utilisé qu'une seule fois.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Cherche l'utilisateur par email et envoie le lien de réinitialisation."""
+        email = request.data.get("email", "").strip()
+
+        if not email:
+            return Response(
+                {"error": "L'adresse email est requise."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # On cherche l'utilisateur avec cet email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # On ne dit PAS que l'email n'existe pas (sécurité)
+            # Un attaquant ne doit pas pouvoir deviner quels emails sont inscrits
+            return Response(
+                {"message": "Si cette adresse existe, un email de réinitialisation a été envoyé."},
+                status=status.HTTP_200_OK,
+            )
+
+        # Générer le token et l'uid encodé en base64
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        # Construire le lien vers la page frontend de réinitialisation
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
+
+        # Envoyer l'email
+        send_mail(
+            subject="Réinitialise ton mot de passe FilmMatching",
+            message=(
+                f"Salut {user.username} !\n\n"
+                f"Tu as demandé à réinitialiser ton mot de passe.\n"
+                f"Clique sur ce lien pour choisir un nouveau mot de passe :\n\n"
+                f"{reset_link}\n\n"
+                f"Si tu n'es pas à l'origine de cette demande, ignore cet email.\n"
+                f"Ton mot de passe actuel ne sera pas modifié.\n\n"
+                f"À bientôt sur FilmMatching !"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response(
+            {"message": "Si cette adresse existe, un email de réinitialisation a été envoyé."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResetPasswordView(APIView):
+    """
+    Réinitialise le mot de passe d'un utilisateur via le lien reçu par email.
+
+    - POST /api/users/reset-password/<uid>/<token>/
+    - Body : { "password": "nouveau_mot_de_passe" }
+    - Accessible sans être connecté (AllowAny).
+
+    Le lien contient :
+    - uid : l'ID de l'utilisateur encodé en base64
+    - token : un token généré par default_token_generator
+
+    Le token est basé sur le mot de passe hashé actuel.
+    Dès que set_password() change le hash, le token est invalidé
+    automatiquement — le lien ne peut donc être utilisé qu'une fois.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, uidb64, token):
+        """Vérifie le token et met à jour le mot de passe."""
+        # Décoder l'uid pour retrouver l'utilisateur
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response(
+                {"error": "Lien de réinitialisation invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier que le token est valide
+        if not default_token_generator.check_token(user, token):
+            return Response(
+                {"error": "Ce lien a expiré ou a déjà été utilisé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Récupérer le nouveau mot de passe
+        password = request.data.get("password", "").strip()
+        if not password:
+            return Response(
+                {"error": "Le nouveau mot de passe est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # set_password() hash le mot de passe avant de le stocker
+        # (ne jamais stocker un mot de passe en clair !)
+        user.set_password(password)
+        user.save()
+
+        return Response(
+            {"message": "Ton mot de passe a été modifié avec succès !"},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ContactView(APIView):
+    """
+    Reçoit un message depuis le formulaire de contact et l'envoie par email.
+
+    - POST /api/contact/
+    - Body : { "name": "Alice", "email": "alice@mail.com", "subject": "Question", "message": "..." }
+    - Accessible sans être connecté (AllowAny) car un visiteur
+      non inscrit doit aussi pouvoir nous contacter.
+
+    L'email est envoyé à contact@filmmatching.com via le serveur SMTP
+    configuré dans settings.py. L'adresse de l'expéditeur affichée
+    est celle du site (DEFAULT_FROM_EMAIL), et on ajoute un header
+    Reply-To avec l'email du visiteur pour pouvoir lui répondre facilement.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Valide les champs du formulaire et envoie l'email."""
+        name = request.data.get("name", "").strip()
+        email = request.data.get("email", "").strip()
+        subject = request.data.get("subject", "").strip()
+        message = request.data.get("message", "").strip()
+
+        # Vérifier que tous les champs obligatoires sont remplis
+        if not name or not email or not subject or not message:
+            return Response(
+                {"error": "Tous les champs sont obligatoires."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Construire le contenu de l'email envoyé à l'équipe
+        full_message = (
+            f"Nouveau message depuis le formulaire de contact :\n\n"
+            f"Nom : {name}\n"
+            f"Email : {email}\n"
+            f"Sujet : {subject}\n\n"
+            f"Message :\n{message}"
+        )
+
+        try:
+            send_mail(
+                subject=f"[Contact FilmMatching] {subject}",
+                message=full_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=["contact@filmmatching.com"],
+                fail_silently=False,
+            )
+        except Exception:
+            return Response(
+                {"error": "Une erreur est survenue lors de l'envoi. Réessaie plus tard."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"message": "Ton message a bien été envoyé ! Nous te répondrons rapidement."},
+            status=status.HTTP_200_OK,
+        )
+
+
 class FriendsLikesView(APIView):
     """
     Pour chaque film liké par l'utilisateur, renvoie la liste des amis

@@ -34,6 +34,10 @@ function TmdbAttribution() {
       <Link to="/mentions-legales" className="tmdb-attribution__link">
         Mentions légales
       </Link>
+      <span className="tmdb-attribution__separator">·</span>
+      <Link to="/contact" className="tmdb-attribution__link">
+        Contact
+      </Link>
     </footer>
   );
 }

@@ -1,5 +1,6 @@
 import random
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from pytz import timezone
@@ -139,6 +140,20 @@ class Swipe(models.Model):
     film = models.ForeignKey(Films, on_delete=models.CASCADE, related_name='swipes')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Note attribuée par l'utilisateur (uniquement pour les films "déjà vu").
+    # DecimalField avec 1 décimale permet les demi-étoiles : 0.5, 1.0, 1.5, ..., 5.0
+    # null=True car seuls les films vus peuvent être notés (les likes/dislikes n'ont pas de note).
+    rating = models.DecimalField(
+        max_digits=2,           # 2 chiffres au total (ex: "4.5")
+        decimal_places=1,       # 1 chiffre après la virgule
+        null=True,              # Permet la valeur NULL en base de données
+        blank=True,             # Permet de ne pas remplir le champ dans les formulaires
+        validators=[
+            MinValueValidator(0.5),   # Note minimum : 0.5 étoile
+            MaxValueValidator(5.0),   # Note maximum : 5 étoiles
+        ],
+    )
 
     class Meta:
         verbose_name = "Swipe"

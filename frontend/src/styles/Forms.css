@@ -176,6 +176,40 @@ html, body {
   text-decoration: underline;
 }
 
+/* --- Lien "Mot de passe oublié ?" --- */
+.form-forgot {
+  width: 100%;
+  text-align: right;
+  margin: -8px 0 4px 0;
+}
+
+.form-forgot a {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: var(--gris-texte);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.form-forgot a:hover {
+  color: var(--violet-nuit);
+}
+
+/* --- Message de succès sous les champs --- */
+.form-success {
+  width: 100%;
+  text-align: center;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--vert-match);
+  background-color: rgba(46, 224, 161, 0.1);
+  border: 1px solid rgba(46, 224, 161, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 4px 0;
+  box-sizing: border-box;
+}
+
 /* --- Message d'erreur sous les champs --- */
 .form-error {
   width: 100%;

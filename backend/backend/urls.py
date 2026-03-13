@@ -20,6 +20,9 @@ from api.views import (
     FriendshipDeleteView,
     MatchListView,
     FriendsLikesView,
+    ContactView,
+    ForgotPasswordView,
+    ResetPasswordView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -39,10 +42,17 @@ urlpatterns = [
     path('api/users/me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
     # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
     path('api/users/search/', UserSearchView.as_view(), name='user-search'),
+    # Mot de passe oublié : envoie un email avec un lien de réinitialisation
+    path('api/users/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    # Réinitialisation du mot de passe via le lien reçu par email
+    path('api/users/reset-password/<str:uidb64>/<str:token>/', ResetPasswordView.as_view(), name='reset-password'),
     # Vue personnalisée pour distinguer "compte inactif" de "mauvais identifiants"
     path('api/token/', CustomTokenObtainView.as_view(), name='get_token'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("api-auth/", include("rest_framework.urls")),
+
+    # --- Contact ---
+    path('api/contact/', ContactView.as_view(), name='contact'),
 
     # --- Films ---
     path('api/films/', FilmListCreateView.as_view(), name='film-list-create'),

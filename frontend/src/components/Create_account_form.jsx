@@ -13,6 +13,8 @@ function CreateAccountForm() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Deuxième champ pour confirmer le mot de passe
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   // Case à cocher pour le consentement (politique de confidentialité + CGU)
   const [accepted, setAccepted] = useState(false);
@@ -21,9 +23,17 @@ function CreateAccountForm() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    setLoading(true);
-    setErrorMessage(null);
     e.preventDefault();
+    setErrorMessage(null);
+
+    // Vérifier que les deux mots de passe sont identiques
+    // avant d'envoyer la requête à l'API
+    if (password !== confirmPassword) {
+      setErrorMessage("Les mots de passe ne sont pas identiques.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       await api.post("api/users/create/", { email, username, password });
@@ -78,6 +88,13 @@ function CreateAccountForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Mot de passe"
+        />
+        <input
+          className="form-input"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Confirmer le mot de passe"
         />
 
         {/* Case à cocher de consentement (obligatoire RGPD) */}

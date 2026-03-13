@@ -1,0 +1,76 @@
+/* ============================================
+   StarRating.css — Notation par étoiles (demi-étoiles)
+   Utilise la couleur ambre-doré (#FFAA2B) cohérente avec
+   le badge "déjà vu" de la design system.
+   ============================================ */
+
+/* Conteneur principal : étoiles + score côte à côte */
+.star-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Conteneur des 5 étoiles */
+.star-rating__stars {
+  display: flex;
+  gap: 2px;
+}
+
+/* Chaque étoile est un conteneur relatif pour superposer les 2 SVG */
+.star-rating__star {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  /* Empêche la sélection de texte au double-clic */
+  user-select: none;
+}
+
+/* Quand les étoiles sont cliquables, on change le curseur */
+.star-rating__star--interactive {
+  cursor: pointer;
+}
+
+/* Les 2 SVG (fond gris + remplissage doré) sont superposés */
+.star-rating__svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: all 0.15s ease;
+}
+
+/* Le SVG rempli est par-dessus le SVG de fond */
+.star-rating__svg--filled {
+  z-index: 1;
+}
+
+/* Score textuel (ex: "3.5/5") */
+.star-rating__score {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #FFAA2B;
+  min-width: 30px;
+}
+
+/* --- Variante sur les cartes de la liste (plus petite) --- */
+.film-list__card .star-rating {
+  /* Positionné en bas de l'overlay, sous le titre */
+  margin-top: 4px;
+}
+
+.film-list__card .star-rating__star {
+  width: 16px;
+  height: 16px;
+}
+
+.film-list__card .star-rating__score {
+  font-size: 0.65rem;
+}
+
+/* --- Hover glow sur les étoiles interactives --- */
+.star-rating__star--interactive:hover .star-rating__svg--filled path {
+  filter: drop-shadow(0 0 4px rgba(255, 170, 43, 0.5));
+}

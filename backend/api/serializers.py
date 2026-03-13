@@ -135,9 +135,59 @@ class SwipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
         # created_at est en lecture seule car il se remplit tout seul (auto_now_add)
         read_only_fields = ['created_at']
+
+    def validate_rating(self, value):
+        """
+        Vérifie que la note est un multiple de 0.5 (demi-étoiles uniquement).
+
+        Par exemple : 1.0, 1.5, 2.0 sont valides, mais 1.3 ou 2.7 ne le sont pas.
+        On utilise l'opérateur modulo (%) pour vérifier que le reste de la division
+        par 0.5 est bien égal à 0.
+
+        Args:
+            value: La note envoyée par le frontend (ex: 3.5)
+
+        Returns:
+            La note validée
+
+        Raises:
+            ValidationError: Si la note n'est pas un multiple de 0.5
+        """
+        if value is not None and float(value) % 0.5 != 0:
+            raise serializers.ValidationError(
+                "La note doit être un multiple de 0.5 (ex: 1.0, 1.5, 2.0, ...)."
+            )
+        return value
+
+    def validate(self, data):
+        """
+        Validation croisée : la note n'est autorisée que pour les films "déjà vu".
+
+        Cette méthode est appelée après les validations individuelles de chaque champ.
+        Elle permet de vérifier des règles qui dépendent de plusieurs champs à la fois.
+
+        Args:
+            data: Dictionnaire contenant tous les champs validés
+
+        Returns:
+            Les données validées
+
+        Raises:
+            ValidationError: Si on essaie de noter un film qui n'est pas en statut "seen"
+        """
+        # On récupère le statut : soit celui envoyé dans la requête,
+        # soit celui déjà en base (pour un PATCH partiel)
+        status = data.get('status', getattr(self.instance, 'status', None))
+        rating = data.get('rating')
+
+        if rating is not None and status != 'seen':
+            raise serializers.ValidationError({
+                'rating': "La note n'est autorisée que pour les films déjà vus."
+            })
+        return data
 
 
 class SwipeDetailSerializer(serializers.ModelSerializer):
@@ -159,7 +209,7 @@ class SwipeDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
         read_only_fields = ['created_at']
 
 

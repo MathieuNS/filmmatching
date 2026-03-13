@@ -14,10 +14,13 @@ import MentionsLegales from './pages/mentions_legales'
 import ActivateAccount from './pages/activate_account'
 import CheckEmail from './pages/check_email'
 import ProtectedRoute from './components/ProtectedRoute'
+import Contact from './pages/contact'
+import ForgotPassword from './pages/forgot_password'
+import ResetPassword from './pages/reset_password'
 
 function Lougout() {
   localStorage.clear()
-  return <Navigate to="/login" />
+  return <Navigate to="/" />
 }
 
 function CreateAccountAndLogout() {
@@ -52,6 +55,9 @@ function App() {
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/rgpd" element={<RGPD />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

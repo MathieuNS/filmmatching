@@ -1,0 +1,111 @@
+/* ==============================================
+   NotFound — Page 404
+   ============================================== */
+
+.notfound-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: var(--noir-cinema, #0D0D0F);
+  color: var(--blanc-doux, #F0EEF2);
+  padding: 40px 20px;
+}
+
+.notfound-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+/* Code 404 en grand avec le gradient Connexion */
+.notfound-code {
+  font-family: 'Outfit', sans-serif;
+  font-size: 7rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--violet-nuit, #7B5CFF), var(--corail-vif, #FF4D6A));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+/* Titre */
+.notfound-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+/* Texte explicatif */
+.notfound-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--gris-texte, #8B8B9E);
+  text-align: center;
+  max-width: 360px;
+  line-height: 1.6;
+  margin: 0 0 32px;
+}
+
+/* Bouton retour à l'accueil */
+.notfound-button {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--blanc-doux, #F0EEF2);
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--violet-nuit, #7B5CFF), var(--corail-vif, #FF4D6A));
+  border: none;
+  border-radius: 14px;
+  padding: 14px 32px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(123, 92, 255, 0.25);
+}
+
+.notfound-button:hover {
+  box-shadow: 0 6px 32px rgba(123, 92, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Bloc qui regroupe le bouton + les liens d'auth */
+.notfound-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Ligne "Se connecter ou Créer un compte" */
+.notfound-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notfound-auth__separator {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--gris-texte, #8B8B9E);
+}
+
+.notfound-auth__link {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--violet-nuit, #7B5CFF);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.notfound-auth__link:hover {
+  color: var(--corail-vif, #FF4D6A);
+  text-decoration: underline;
+}
