@@ -109,3 +109,20 @@
   color: var(--corail-vif, #FF4D6A);
   text-decoration: underline;
 }
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .notfound-code {
+    font-size: 4rem;
+  }
+
+  .notfound-title {
+    font-size: 1.2rem;
+  }
+
+  .notfound-page {
+    padding: 32px 16px;
+  }
+}
