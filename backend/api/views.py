@@ -15,6 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
+    UpdateProfileSerializer,
     FilmsSerializer,
     GenreSerializer,
     PlateformSerializer,
@@ -240,6 +241,64 @@ class CurrentUserView(APIView):
         """Renvoie le pseudo et l'email de l'utilisateur connecté."""
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class UpdateProfileView(APIView):
+    """
+    Modifie le profil de l'utilisateur connecté (pseudo, email, mot de passe).
+
+    - PATCH /api/users/me/update/
+    - Accessible uniquement aux utilisateurs connectés (IsAuthenticated).
+
+    On utilise PATCH (et non PUT) car l'utilisateur peut ne modifier
+    qu'un seul champ à la fois. PATCH = mise à jour partielle.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        """
+        Met à jour les champs envoyés dans la requête.
+
+        Le serializer valide les données (unicité du pseudo/email,
+        correspondance des mots de passe), puis on applique les
+        modifications sur l'objet User.
+
+        Args:
+            request: La requête HTTP contenant les champs à modifier
+
+        Returns:
+            Les données mises à jour de l'utilisateur (pseudo, email, avatar)
+        """
+        # On passe request dans le context pour que le serializer puisse
+        # accéder à request.user (nécessaire pour les vérifications d'unicité)
+        serializer = UpdateProfileSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        # raise_exception=True fait que DRF renvoie automatiquement
+        # une réponse 400 avec les erreurs si la validation échoue
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        validated = serializer.validated_data
+
+        # On ne modifie que les champs qui ont été envoyés
+        if 'username' in validated:
+            user.username = validated['username']
+        if 'email' in validated:
+            user.email = validated['email']
+        if 'password' in validated:
+            # set_password() hash le mot de passe avant de le stocker
+            # Ne JAMAIS faire user.password = "..." directement,
+            # sinon le mot de passe serait en clair dans la BDD
+            user.set_password(validated['password'])
+
+        user.save()
+
+        # On renvoie les données mises à jour avec UserSerializer
+        # pour que le frontend puisse mettre à jour son state
+        return Response(UserSerializer(user).data)
 
 
 class DeleteAccountView(APIView):

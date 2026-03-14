@@ -299,97 +299,116 @@
 /* --- Barre de boutons d'action (like / déjà vu / dislike) --- */
 .home__actions {
   display: flex;
-  /* Espace égal entre les boutons */
+  /* align-items: flex-start aligne les groupes par le haut,
+     pour que les boutons restent au même niveau même si
+     un label prend 2 lignes (ex: "Pas intéressé") */
+  align-items: flex-start;
   justify-content: center;
-  gap: 16px;
-  /* Espacement au-dessus des boutons */
+  gap: 20px;
   margin-top: 12px;
-  /* Même largeur max que la carte film pour l'alignement */
-  max-width: 420px;
-  width: 100%;
-  /* flex-shrink: 0 empêche les boutons de rétrécir quand l'espace manque */
   flex-shrink: 0;
 }
 
-/* --- Style commun à tous les boutons d'action --- */
-.home__action-btn {
-  /* Flexbox pour centrer l'icône et le texte verticalement */
+/* --- Groupe bouton + label en dessous --- */
+.home__action-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  /* Taille et forme du bouton */
-  flex: 1;
-  padding: 14px 8px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  /* Pas de bordure par défaut */
-  cursor: pointer;
-  /* Police du design system */
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  /* Transition douce au survol */
-  transition: all 0.25s ease;
-  /* Fond transparent par défaut */
-  background-color: #16161A;
+  gap: 10px;
 }
 
-/* --- Icône dans le bouton (cercle avec symbole) --- */
-.home__action-icon {
-  /* Taille du cercle d'icône */
-  width: 48px;
-  height: 48px;
+/* --- Bouton rond (cercle avec icône SVG) --- */
+.home__action-btn {
+  /* Taille fixe + border-radius 50% = cercle parfait */
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  /* Centre l'icône/texte dans le cercle */
+  /* Pas de padding sinon le cercle se déforme */
+  padding: 0;
+  border: none;
+  /* Dégradé subtil comme dans le code de référence */
+  background: linear-gradient(145deg, #161619, #1E1E23);
+  /* Centre le SVG dans le cercle */
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  transition: all 0.25s ease;
+  cursor: pointer;
+  /* Animation fluide au survol */
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* === Bouton "À voir" (like) — Couleur corail/rose === */
-.home__action-btn--like {
+.home__action-btn:hover {
+  transform: scale(1.12) translateY(-3px);
+}
+
+.home__action-btn:active {
+  transform: scale(0.95);
+}
+
+/* --- Label texte sous le bouton --- */
+.home__action-label {
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+  text-align: center;
+}
+
+/* === Bouton "Pas intéressé" (dislike) — Couleur corail === */
+.home__action-btn--dislike {
   color: #FF4D6A;
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 0 1px rgba(255, 77, 106, 0.12);
 }
 
-.home__action-btn--like .home__action-icon {
-  background-color: rgba(255, 77, 106, 0.12);
+.home__action-btn--dislike:hover {
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 30px rgba(255, 77, 106, 0.25);
 }
 
-/* Effet au survol : glow (lueur) autour du bouton */
-.home__action-btn--like:hover {
-  background-color: rgba(255, 77, 106, 0.08);
-  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.2);
+.home__action-label--dislike {
+  color: #FF4D6A;
+  width: 64px;
 }
 
 /* === Bouton "Déjà vu" — Couleur ambre/doré === */
 .home__action-btn--seen {
   color: #FFAA2B;
-}
-
-.home__action-btn--seen .home__action-icon {
-  background-color: rgba(255, 170, 43, 0.12);
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 0 1px rgba(255, 170, 43, 0.12);
 }
 
 .home__action-btn--seen:hover {
-  background-color: rgba(255, 170, 43, 0.08);
-  box-shadow: 0 4px 24px rgba(255, 170, 43, 0.2);
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 30px rgba(255, 170, 43, 0.25);
 }
 
-/* === Bouton "Pas intéressé" (dislike) — Couleur grise === */
-.home__action-btn--dislike {
-  color: #8B8B9E;
+.home__action-label--seen {
+  color: #FFAA2B;
+  width: 64px;
 }
 
-.home__action-btn--dislike .home__action-icon {
-  background-color: rgba(139, 139, 158, 0.12);
+/* === Bouton "À voir" (like) — Couleur vert match === */
+.home__action-btn--like {
+  color: #2EE0A1;
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 0 1px rgba(46, 224, 161, 0.12);
 }
 
-.home__action-btn--dislike:hover {
-  background-color: rgba(139, 139, 158, 0.08);
-  box-shadow: 0 4px 24px rgba(139, 139, 158, 0.15);
+.home__action-btn--like:hover {
+  box-shadow: 0 4px 20px #0D0D0F,
+              inset 0 1px 0 rgba(138, 138, 154, 0.06),
+              0 0 30px rgba(46, 224, 161, 0.25);
+}
+
+.home__action-label--like {
+  color: #2EE0A1;
+  width: 64px;
 }
 
 /* --- Message quand il n'y a plus de films à voir --- */
@@ -448,17 +467,16 @@
   }
 
   .home__actions {
-    gap: 10px;
+    gap: 16px;
   }
 
   .home__action-btn {
-    padding: 12px 6px;
-    font-size: 0.78rem;
+    width: 56px;
+    height: 56px;
   }
 
-  .home__action-icon {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
+  .home__action-btn svg {
+    width: 24px;
+    height: 24px;
   }
 }

@@ -5,6 +5,7 @@ from api.views import (
     ActivateAccountView,
     CustomTokenObtainView,
     CurrentUserView,
+    UpdateProfileView,
     DeleteAccountView,
     UpdateAvatarView,
     UserSearchView,
@@ -36,6 +37,8 @@ urlpatterns = [
     path('api/users/activate/<str:uidb64>/<str:token>/', ActivateAccountView.as_view(), name='activate-account'),
     # Infos de l'utilisateur connecté (pseudo, email)
     path('api/users/me/', CurrentUserView.as_view(), name='current-user'),
+    # Modifier le profil (pseudo, email, mot de passe)
+    path('api/users/me/update/', UpdateProfileView.as_view(), name='update-profile'),
     # Suppression du compte (irréversible)
     path('api/users/me/delete/', DeleteAccountView.as_view(), name='delete-account'),
     # Changer l'avatar de l'utilisateur connecté

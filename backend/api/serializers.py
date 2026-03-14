@@ -74,6 +74,104 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class UpdateProfileSerializer(serializers.Serializer):
+    """
+    Serializer pour modifier le profil de l'utilisateur connecté.
+
+    Tous les champs sont optionnels : l'utilisateur peut ne modifier
+    que son pseudo, ou que son email, ou que son mot de passe.
+
+    On utilise serializers.Serializer (et non ModelSerializer) car on a
+    besoin d'une logique personnalisée : vérification d'unicité en excluant
+    l'utilisateur actuel, et confirmation du mot de passe.
+    """
+
+    # required=False : le champ n'est pas obligatoire dans la requête
+    username = serializers.CharField(required=False, max_length=150)
+    email = serializers.EmailField(required=False)
+    # write_only=True : ces champs ne seront jamais renvoyés dans la réponse
+    password = serializers.CharField(required=False, write_only=True)
+    password_confirm = serializers.CharField(required=False, write_only=True)
+
+    def validate_username(self, value):
+        """
+        Vérifie que le pseudo n'est pas déjà pris par un autre utilisateur.
+
+        self.context['request'].user donne l'utilisateur connecté.
+        On l'exclut de la recherche avec .exclude(pk=...) pour ne pas
+        bloquer s'il garde le même pseudo.
+
+        Args:
+            value: Le nouveau pseudo saisi
+
+        Returns:
+            Le pseudo validé
+
+        Raises:
+            ValidationError: Si un autre utilisateur a déjà ce pseudo
+        """
+        user = self.context['request'].user
+        # iexact = comparaison insensible à la casse ("Mathi" == "mathi")
+        if User.objects.filter(username__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Ce pseudo est déjà utilisé.")
+        return value
+
+    def validate_email(self, value):
+        """
+        Vérifie que l'email n'est pas déjà utilisé par un autre compte.
+
+        Même logique que pour le pseudo : on exclut l'utilisateur actuel.
+
+        Args:
+            value: La nouvelle adresse email
+
+        Returns:
+            L'email validé (en minuscules)
+
+        Raises:
+            ValidationError: Si un autre compte utilise déjà cet email
+        """
+        user = self.context['request'].user
+        if User.objects.filter(email__iexact=value).exclude(pk=user.pk).exists():
+            raise serializers.ValidationError("Cet email est déjà utilisé.")
+        return value.lower()
+
+    def validate(self, data):
+        """
+        Validation croisée : si un mot de passe est fourni,
+        la confirmation doit aussi être fournie et correspondre.
+
+        Cette méthode est appelée après les validations individuelles
+        de chaque champ. Elle permet de comparer plusieurs champs entre eux.
+
+        Args:
+            data: Dictionnaire de tous les champs validés
+
+        Returns:
+            Les données validées (sans password_confirm, qui n'est plus utile)
+
+        Raises:
+            ValidationError: Si les deux mots de passe ne correspondent pas
+        """
+        password = data.get('password')
+        password_confirm = data.get('password_confirm')
+
+        if password:
+            if not password_confirm:
+                raise serializers.ValidationError({
+                    'password_confirm': "Confirme ton nouveau mot de passe."
+                })
+            if password != password_confirm:
+                raise serializers.ValidationError({
+                    'password_confirm': "Les mots de passe ne correspondent pas."
+                })
+
+        # On retire password_confirm des données validées car on n'en a
+        # plus besoin pour la sauvegarde (seul password sera utilisé)
+        data.pop('password_confirm', None)
+        return data
+
+
 class FilmsSerializer(serializers.ModelSerializer):
     """
     Serializer complet pour le modèle Films.

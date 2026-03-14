@@ -33,6 +33,20 @@ function UserAccount() {
   // true quand le sélecteur d'avatar est visible
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
+  // --- States pour l'édition du profil ---
+  // Les valeurs des champs du formulaire d'édition
+  const [editUsername, setEditUsername] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editPasswordConfirm, setEditPasswordConfirm] = useState("");
+  // true pendant que la requête de sauvegarde est en cours
+  const [saving, setSaving] = useState(false);
+  // Message de succès affiché temporairement après la sauvegarde
+  const [successMessage, setSuccessMessage] = useState("");
+  // Objet contenant les erreurs de validation renvoyées par l'API
+  // ex: { username: "Ce pseudo est déjà utilisé." }
+  const [errors, setErrors] = useState({});
+
   // La liste des avatars est importée depuis utils/avatars.js
   // Elle se met à jour automatiquement quand on ajoute des SVG dans src/assets/avatars/
 
@@ -44,9 +58,13 @@ function UserAccount() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        // GET /api/users/me/ renvoie { id, username, email }
+        // GET /api/users/me/ renvoie { id, username, email, avatar }
         const response = await api.get("/api/users/me/");
         setUser(response.data);
+        // On pré-remplit les champs d'édition avec les valeurs actuelles
+        // pour que l'utilisateur voie ses infos et ne modifie que ce qu'il veut
+        setEditUsername(response.data.username || "");
+        setEditEmail(response.data.email || "");
       } catch (error) {
         console.error("Erreur lors du chargement du profil :", error);
       } finally {
@@ -100,6 +118,72 @@ function UserAccount() {
       setShowAvatarPicker(false);
     } catch (error) {
       console.error("Erreur lors du changement d'avatar :", error);
+    }
+  }
+
+  /**
+   * Sauvegarde les modifications du profil (pseudo, email, mot de passe).
+   *
+   * On n'envoie que les champs qui ont été modifiés pour éviter
+   * des validations inutiles côté backend. Par exemple, si l'utilisateur
+   * ne change que son pseudo, on n'envoie pas l'email ni le mot de passe.
+   */
+  async function handleSaveProfile() {
+    // On réinitialise les erreurs et le message de succès
+    setErrors({});
+    setSuccessMessage("");
+
+    // On construit un objet avec uniquement les champs modifiés
+    const data = {};
+
+    // On compare avec les valeurs actuelles pour ne pas envoyer
+    // des données identiques (ce qui déclencherait une erreur "déjà utilisé")
+    if (editUsername && editUsername !== user.username) {
+      data.username = editUsername;
+    }
+    if (editEmail && editEmail !== user.email) {
+      data.email = editEmail;
+    }
+    // Pour le mot de passe, on l'envoie seulement s'il a été rempli
+    if (editPassword) {
+      data.password = editPassword;
+      data.password_confirm = editPasswordConfirm;
+    }
+
+    // Si rien n'a changé, on ne fait pas de requête
+    if (Object.keys(data).length === 0) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // PATCH /api/users/me/update/ met à jour le profil en BDD
+      const response = await api.patch("/api/users/me/update/", data);
+      // On met à jour le state local avec les nouvelles données
+      setUser(response.data);
+      // On vide les champs de mot de passe après la sauvegarde
+      setEditPassword("");
+      setEditPasswordConfirm("");
+      setSuccessMessage("Modifications enregistrées !");
+      // Le message de succès disparaît après 3 secondes
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      // L'API renvoie les erreurs de validation dans error.response.data
+      // ex: { username: ["Ce pseudo est déjà utilisé."] }
+      if (error.response && error.response.data) {
+        const apiErrors = error.response.data;
+        // On transforme les tableaux d'erreurs en chaînes simples
+        // car DRF renvoie les erreurs sous forme de tableaux
+        const formattedErrors = {};
+        for (const key in apiErrors) {
+          formattedErrors[key] = Array.isArray(apiErrors[key])
+            ? apiErrors[key][0]
+            : apiErrors[key];
+        }
+        setErrors(formattedErrors);
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -216,22 +300,96 @@ function UserAccount() {
             </div>
           )}
 
-          {/* Bloc d'informations : pseudo + email */}
+          {/* Formulaire d'édition du profil */}
           <div className="account__info">
+            {/* Champ Pseudo — éditable */}
             <div className="account__info-item">
-              <span className="account__info-label">Pseudo</span>
-              <span className="account__info-value">
-                {user?.username || "Inconnu"}
-              </span>
+              <label className="account__info-label" htmlFor="edit-username">
+                Pseudo
+              </label>
+              <input
+                id="edit-username"
+                className="account__input"
+                type="text"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+              />
+              {/* Message d'erreur affiché si le pseudo est déjà pris */}
+              {errors.username && (
+                <span className="account__error">{errors.username}</span>
+              )}
             </div>
 
+            {/* Champ Email — éditable */}
             <div className="account__info-item">
-              <span className="account__info-label">Email</span>
-              <span className="account__info-value">
-                {user?.email || "Non renseigné"}
-              </span>
+              <label className="account__info-label" htmlFor="edit-email">
+                Email
+              </label>
+              <input
+                id="edit-email"
+                className="account__input"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+              />
+              {errors.email && (
+                <span className="account__error">{errors.email}</span>
+              )}
             </div>
+
+            {/* Champ Nouveau mot de passe — optionnel */}
+            <div className="account__info-item">
+              <label className="account__info-label" htmlFor="edit-password">
+                Nouveau mot de passe
+              </label>
+              <input
+                id="edit-password"
+                className="account__input"
+                type="password"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                placeholder="Laisser vide pour ne pas changer"
+              />
+              {errors.password && (
+                <span className="account__error">{errors.password}</span>
+              )}
+            </div>
+
+            {/* Confirmation du mot de passe — visible uniquement si
+                l'utilisateur a commencé à taper un nouveau mot de passe */}
+            {editPassword && (
+              <div className="account__info-item">
+                <label className="account__info-label" htmlFor="edit-password-confirm">
+                  Confirmer le mot de passe
+                </label>
+                <input
+                  id="edit-password-confirm"
+                  className="account__input"
+                  type="password"
+                  value={editPasswordConfirm}
+                  onChange={(e) => setEditPasswordConfirm(e.target.value)}
+                  placeholder="Retaper le mot de passe"
+                />
+                {errors.password_confirm && (
+                  <span className="account__error">{errors.password_confirm}</span>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Message de succès après sauvegarde */}
+          {successMessage && (
+            <span className="account__success">{successMessage}</span>
+          )}
+
+          {/* Bouton Sauvegarder */}
+          <button
+            className="account__save-btn"
+            onClick={handleSaveProfile}
+            disabled={saving}
+          >
+            {saving ? "Sauvegarde..." : "Sauvegarder"}
+          </button>
 
           {/* Bouton de suppression du compte */}
           <button

@@ -40,8 +40,7 @@ function RGPD() {
         <section className="rgpd__section">
           <h2 className="rgpd__section-title">1. Introduction</h2>
           <p className="rgpd__text">
-            FilmMatching est un projet personnel et non commercial. La présente politique
-            de confidentialité vous informe sur la manière dont vos données personnelles
+            La présente politique de confidentialité vous informe sur la manière dont vos données personnelles
             sont collectées, utilisées et protégées conformément au Règlement Général sur
             la Protection des Données (RGPD — Règlement UE 2016/679).
           </p>
@@ -56,11 +55,11 @@ function RGPD() {
             contacter via la page{" "}
             <span
               className="rgpd__link"
-              onClick={() => navigate("/compte")}
+              onClick={() => navigate("/contact")}
               role="link"
               tabIndex={0}
             >
-              Mon compte
+              Contact
             </span>.
           </p>
         </section>
@@ -82,7 +81,7 @@ function RGPD() {
             </li>
             <li>
               <span className="rgpd__highlight">Mot de passe</span> — stocké sous forme chiffrée
-              (hashé), jamais en clair
+              (hashé)
             </li>
             <li>
               <span className="rgpd__highlight">Préférences de swipe</span> — vos likes, dislikes
@@ -167,8 +166,8 @@ function RGPD() {
             FilmMatching met en place les mesures suivantes pour protéger vos données :
           </p>
           <ul className="rgpd__list">
-            <li>Mots de passe hashés avec l'algorithme PBKDF2 de Django</li>
-            <li>Authentification par tokens JWT (JSON Web Tokens) à durée limitée</li>
+            <li>Mots de passe hashés</li>
+            <li>Authentification par tokens à durée limitée</li>
             <li>Accès aux données protégé par authentification sur chaque requête API</li>
           </ul>
         </section>
@@ -207,7 +206,7 @@ function RGPD() {
         <section className="rgpd__section">
           <h2 className="rgpd__section-title">11. Cookies et stockage local</h2>
           <p className="rgpd__text">
-            FilmMatching n'utilise pas de cookies. Seuls des tokens d'authentification (JWT)
+            FilmMatching n'utilise pas de cookies. Seuls des tokens d'authentification
             sont stockés dans le <span className="rgpd__highlight">localStorage</span> de votre
             navigateur pour maintenir votre session. Ces tokens sont automatiquement supprimés
             lors de la déconnexion.

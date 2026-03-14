@@ -37,21 +37,13 @@ function MentionsLegales() {
         <section className="rgpd__section">
           <h2 className="rgpd__section-title">1. Éditeur du site</h2>
           <p className="rgpd__text">
-            Le site <span className="rgpd__highlight">FilmMatching</span> est un projet
-            personnel à but non commercial, édité par :
+            Le site <span className="rgpd__highlight">FilmMatching</span> édité par :
           </p>
           <ul className="rgpd__list">
             <li>
-              <span className="rgpd__highlight">Nom</span> — [Votre nom complet]
-            </li>
-            <li>
-              <span className="rgpd__highlight">Email de contact</span> — [votre-email@exemple.com]
+              <span className="rgpd__highlight">Email de contact</span> — [contact@filmmatching.com]
             </li>
           </ul>
-          <p className="rgpd__text">
-            FilmMatching est un projet personnel non commercial, développé dans un cadre
-            d'apprentissage. Il ne constitue pas une activité professionnelle.
-          </p>
         </section>
 
         {/* 2. Hébergeur */}
@@ -62,13 +54,10 @@ function MentionsLegales() {
           </p>
           <ul className="rgpd__list">
             <li>
-              <span className="rgpd__highlight">Nom</span> — [Nom de l'hébergeur, ex: OVH, Vercel, Render...]
+              <span className="rgpd__highlight">Nom</span> — [Hostinger]
             </li>
             <li>
-              <span className="rgpd__highlight">Adresse</span> — [Adresse de l'hébergeur]
-            </li>
-            <li>
-              <span className="rgpd__highlight">Site web</span> — [URL de l'hébergeur]
+              <span className="rgpd__highlight">Site web</span> — [https://www.hostinger.com/]
             </li>
           </ul>
         </section>
@@ -114,10 +103,7 @@ function MentionsLegales() {
         <section className="rgpd__section">
           <h2 className="rgpd__section-title">5. Cookies et stockage local</h2>
           <p className="rgpd__text">
-            FilmMatching n'utilise pas de cookies. Seuls des tokens d'authentification (JWT)
-            sont stockés dans le localStorage de votre navigateur pour maintenir votre session
-            active. Ces données techniques sont strictement nécessaires au fonctionnement
-            du service et sont supprimées lors de la déconnexion.
+            FilmMatching n'utilise pas de cookies.
           </p>
         </section>
 
