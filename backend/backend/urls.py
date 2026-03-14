@@ -28,7 +28,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     # --- Admin Django ---
-    path('admin/', admin.site.urls),
+    path('filmmatching-secret-admin/', admin.site.urls),
 
     # --- Authentification ---
     path('api/users/create/', CreateUserView.as_view(), name='create-user'),

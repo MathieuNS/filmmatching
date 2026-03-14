@@ -111,7 +111,7 @@ class Films(models.Model):
         verbose_name = "Film"
         verbose_name_plural = "Films"
         unique_together = ('tmdb_id', 'type')  # Un même tmdb_id peut exister pour un Film ET une Série, mais pas deux fois pour le même type
-
+        ordering = ['-popularity', '-release_year', 'title']  # Tri par popularité décroissante par défaut
 
     def __str__(self):
         return self.title
