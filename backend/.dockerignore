@@ -1,0 +1,17 @@
+# Fichiers à NE PAS copier dans le conteneur Docker.
+# Ça réduit la taille de l'image et accélère le build.
+
+# Environnement virtuel Python (les dépendances sont installées dans le conteneur)
+venv/
+__pycache__/
+*.pyc
+
+# Base de données SQLite (on utilise PostgreSQL en production)
+db.sqlite3
+
+# Fichiers d'environnement (passés via env_file dans docker-compose)
+.env
+
+# Fichiers Git
+.git/
+.gitignore

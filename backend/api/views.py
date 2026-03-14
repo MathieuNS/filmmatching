@@ -1,4 +1,5 @@
 import os
+import logging
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
@@ -23,6 +24,12 @@ from .serializers import (
     SwipeDetailSerializer,
     FriendshipSerializer,
 )
+
+# On crée un logger pour ce fichier.
+# __name__ vaut "api.views", ce qui correspond au logger "api" configuré
+# dans settings.py. Tous les messages envoyés à ce logger iront
+# dans la console ET dans les fichiers logs/app.log et logs/errors.log.
+logger = logging.getLogger(__name__)
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -63,6 +70,7 @@ class CreateUserView(generics.CreateAPIView):
         """
         # Créer l'utilisateur avec le compte désactivé
         user = serializer.save(is_active=False)
+        logger.info("Nouveau compte créé : %s (email: %s)", user.username, user.email)
 
         # Générer le token d'activation
         # urlsafe_base64_encode encode l'ID en base64 pour pouvoir le mettre dans une URL
@@ -78,6 +86,7 @@ class CreateUserView(generics.CreateAPIView):
         activation_link = f"{frontend_url}/activate/{uid}/{token}"
 
         # Envoyer l'email de confirmation
+        logger.info("Envoi de l'email d'activation à %s", user.email)
         send_mail(
             subject="Confirme ton compte FilmMatching 🎬",
             message=(
@@ -128,6 +137,7 @@ class ActivateAccountView(APIView):
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             # Si l'ID est invalide ou l'utilisateur n'existe pas
+            logger.warning("Tentative d'activation avec un lien invalide (uid: %s)", uidb64)
             return Response(
                 {"error": "Lien d'activation invalide."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -139,12 +149,14 @@ class ActivateAccountView(APIView):
             # Activer le compte
             user.is_active = True
             user.save()
+            logger.info("Compte activé : %s", user.username)
             return Response(
                 {"message": "Ton compte a été activé avec succès ! Tu peux maintenant te connecter."},
                 status=status.HTTP_200_OK,
             )
         else:
             # Token invalide (déjà utilisé, expiré, ou falsifié)
+            logger.warning("Token d'activation expiré/invalide pour %s", user.username)
             return Response(
                 {"error": "Ce lien d'activation a expiré ou a déjà été utilisé."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -189,6 +201,7 @@ class CustomTokenObtainView(APIView):
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
+            logger.warning("Tentative de connexion avec un pseudo inexistant : %s", username)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -196,6 +209,7 @@ class CustomTokenObtainView(APIView):
 
         # Étape 2 : vérifier si le compte est activé
         if not user.is_active:
+            logger.warning("Connexion refusée (compte inactif) : %s", username)
             return Response(
                 {"error": "Vous devez activer votre compte pour vous connecter. Vérifiez votre boîte mail."},
                 # 403 Forbidden : le serveur comprend la requête mais refuse
@@ -208,6 +222,7 @@ class CustomTokenObtainView(APIView):
         # Renvoie l'objet User si c'est correct, None sinon
         authenticated_user = authenticate(username=username, password=password)
         if authenticated_user is None:
+            logger.warning("Échec de connexion (mauvais mot de passe) : %s", username)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -217,6 +232,7 @@ class CustomTokenObtainView(APIView):
         # RefreshToken.for_user() crée un refresh token lié à cet utilisateur
         # .access_token génère le token d'accès correspondant
         refresh = RefreshToken.for_user(authenticated_user)
+        logger.info("Connexion réussie : %s", username)
         return Response({
             "refresh": str(refresh),
             "access": str(refresh.access_token),
@@ -295,6 +311,7 @@ class UpdateProfileView(APIView):
             user.set_password(validated['password'])
 
         user.save()
+        logger.info("Profil mis à jour : %s (champs: %s)", user.username, list(validated.keys()))
 
         # On renvoie les données mises à jour avec UserSerializer
         # pour que le frontend puisse mettre à jour son state
@@ -318,9 +335,11 @@ class DeleteAccountView(APIView):
     def delete(self, request):
         """Supprime définitivement le compte de l'utilisateur connecté."""
         user = request.user
+        username = user.username
         # .delete() supprime l'utilisateur et toutes ses données liées
         # (swipes, amitiés, etc.) grâce aux relations CASCADE en BDD.
         user.delete()
+        logger.info("Compte supprimé : %s", username)
         return Response(
             {"message": "Compte supprimé avec succès."},
             status=status.HTTP_204_NO_CONTENT,
@@ -615,6 +634,7 @@ class SwipeCreateView(generics.CreateAPIView):
         """
         # Appel de la méthode create() de base pour enregistrer le swipe
         response = super().create(request, *args, **kwargs)
+        logger.info("Swipe : %s → film %s (%s)", request.user.username, request.data.get('film'), request.data.get('status'))
 
         # Si c'est un "like", on cherche les amis qui ont aussi liké ce film
         if request.data.get('status') == 'like':
@@ -649,6 +669,11 @@ class SwipeCreateView(generics.CreateAPIView):
 
             # Ajouter la liste dans la réponse
             response.data['matched_friends'] = matched_friends
+
+            # Logger les matchs trouvés
+            if matched_friends:
+                friend_names = [f['username'] for f in matched_friends]
+                logger.info("Match trouvé ! %s et %s ont liké le film %s", request.user.username, friend_names, film_id)
 
         return response
 
@@ -789,6 +814,7 @@ class FriendshipView(generics.ListCreateAPIView):
                 )
 
         serializer.save(sender=user)
+        logger.info("Demande d'ami envoyée : %s → %s", user.username, receiver.username)
 
 
 class FriendshipAcceptView(APIView):
@@ -827,6 +853,7 @@ class FriendshipAcceptView(APIView):
         # On passe accepted à True et on sauvegarde
         friendship.accepted = True
         friendship.save()
+        logger.info("Demande d'ami acceptée : %s ↔ %s", friendship.sender.username, friendship.receiver.username)
         serializer = FriendshipSerializer(friendship)
         return Response(serializer.data)
 
@@ -863,6 +890,7 @@ class FriendshipDeleteView(APIView):
             )
 
         friendship.delete()
+        logger.info("Amitié supprimée : %s ↔ %s (par %s)", friendship.sender.username, friendship.receiver.username, request.user.username)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -974,6 +1002,7 @@ class ForgotPasswordView(APIView):
         reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
 
         # Envoyer l'email
+        logger.info("Demande de réinitialisation de mot de passe pour : %s", user.username)
         send_mail(
             subject="Réinitialise ton mot de passe FilmMatching",
             message=(
@@ -1047,6 +1076,7 @@ class ResetPasswordView(APIView):
         # (ne jamais stocker un mot de passe en clair !)
         user.set_password(password)
         user.save()
+        logger.info("Mot de passe réinitialisé pour : %s", user.username)
 
         return Response(
             {"message": "Ton mot de passe a été modifié avec succès !"},
@@ -1104,11 +1134,13 @@ class ContactView(APIView):
                 fail_silently=False,
             )
         except Exception:
+            logger.error("Échec d'envoi du formulaire de contact de %s (%s)", name, email, exc_info=True)
             return Response(
                 {"error": "Une erreur est survenue lors de l'envoi. Réessaie plus tard."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        logger.info("Message de contact reçu de %s (%s) — sujet : %s", name, email, subject)
         return Response(
             {"message": "Ton message a bien été envoyé ! Nous te répondrons rapidement."},
             status=status.HTTP_200_OK,

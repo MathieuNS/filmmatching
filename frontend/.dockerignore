@@ -1,0 +1,7 @@
+# Fichiers à NE PAS copier dans le conteneur Docker.
+
+node_modules/
+dist/
+.env
+.git/
+.gitignore

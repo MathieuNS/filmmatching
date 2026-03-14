@@ -1,0 +1,93 @@
+# ── docker-compose.yml ──
+# Ce fichier est le "chef d'orchestre" de l'application.
+# Il décrit les 3 services (conteneurs) et comment ils communiquent :
+#   - db       : base de données PostgreSQL
+#   - backend  : API Django + Gunicorn
+#   - frontend : React buildé + Nginx
+#
+# Pour tout lancer : docker compose up -d
+# Pour tout arrêter : docker compose down
+# Pour voir les logs : docker compose logs -f
+
+services:
+
+  # ── Service 1 : Base de données PostgreSQL ──
+  db:
+    # Image officielle PostgreSQL version 16 (alpine = version légère).
+    image: postgres:16-alpine
+    # restart: unless-stopped → redémarre automatiquement sauf si on l'arrête manuellement.
+    restart: unless-stopped
+    # Variables d'environnement lues depuis le fichier .env.production.
+    # PostgreSQL les utilise pour créer la base de données au premier lancement.
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    # Volume = stockage persistant. Sans ça, les données disparaissent
+    # quand le conteneur est supprimé. Le volume "postgres_data" garde les données
+    # même après un "docker compose down".
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Healthcheck = vérification que PostgreSQL est prêt à recevoir des connexions.
+    # pg_isready est un utilitaire PostgreSQL qui teste la connexion.
+    # Le backend attend que ce check passe avant de démarrer (voir depends_on).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Service 2 : Backend Django + Gunicorn ──
+  backend:
+    # build.context = dossier contenant le Dockerfile du backend.
+    build:
+      context: ./backend
+    restart: unless-stopped
+    # env_file charge toutes les variables du fichier .env.production
+    # dans le conteneur (SECRET_KEY, DB_*, EMAIL_*, etc.).
+    env_file:
+      - .env.production
+    # Volumes : on monte le dossier logs et staticfiles pour y accéder depuis l'hôte.
+    volumes:
+      - backend_static:/app/staticfiles
+      - backend_logs:/app/logs
+    # depends_on avec condition : le backend ne démarre que quand PostgreSQL
+    # est en bonne santé (healthcheck passé). Sans ça, Django pourrait démarrer
+    # avant que la base soit prête → erreur de connexion.
+    depends_on:
+      db:
+        condition: service_healthy
+    # La commande exécutée au démarrage du conteneur.
+    # 1. migrate → applique les migrations (crée/met à jour les tables)
+    # 2. gunicorn → lance le serveur Django
+    # "sh -c" permet d'enchaîner plusieurs commandes avec &&.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 3 backend.wsgi:application"
+
+  # ── Service 3 : Frontend React + Nginx ──
+  frontend:
+    build:
+      context: ./frontend
+      # args permet de passer des variables au Dockerfile pendant le build.
+      # VITE_API_URL est "injecté" dans le code React au moment du build.
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    restart: unless-stopped
+    # Port mapping : le port 80 du conteneur est exposé sur le port 80 de l'hôte.
+    # C'est ce qui rend le site accessible depuis l'extérieur.
+    ports:
+      - "80:80"
+    # On monte le volume des fichiers statiques Django pour que Nginx puisse les servir.
+    volumes:
+      - backend_static:/app/staticfiles:ro
+    depends_on:
+      - backend
+
+# ── Volumes nommés ──
+# Les volumes persistent les données entre les redémarrages de conteneurs.
+# "docker compose down" ne supprime PAS les volumes (il faut ajouter -v pour ça).
+volumes:
+  postgres_data:
+  backend_static:
+  backend_logs:

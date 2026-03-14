@@ -28,9 +28,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# En production, on met DEBUG=False dans le fichier .env
+# os.getenv("DEBUG", "True") lit la variable DEBUG du .env.
+# Si elle n'existe pas, on utilise "True" par défaut (mode développement).
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS : liste des noms de domaine autorisés à accéder au site.
+# En production, on met le vrai domaine (ex: "filmmatching.com").
+# os.getenv(...).split(",") permet de mettre plusieurs domaines séparés par des virgules.
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -95,11 +101,21 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
+#
+# On utilise PostgreSQL en production et SQLite en développement.
+# La variable DB_ENGINE dans le .env détermine laquelle utiliser :
+# - Si DB_ENGINE=django.db.backends.postgresql → PostgreSQL
+# - Si DB_ENGINE n'est pas définie → SQLite (par défaut, pour le dev local)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+        # Les paramètres ci-dessous ne sont utilisés que par PostgreSQL.
+        # SQLite les ignore car il n'a pas besoin de user/password/host.
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', ''),
     }
 }
 
@@ -144,10 +160,150 @@ STATIC_URL = 'static/'
 # en plus des dossiers static/ de chaque app. On y met notre CSS admin personnalisé.
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# STATIC_ROOT : dossier où Django rassemble TOUS les fichiers statiques
+# quand on lance "python manage.py collectstatic".
+# En production, Nginx sert ces fichiers directement (plus rapide que Django).
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS : en dev on autorise tout, en prod on restreint aux domaines autorisés.
+# CORS_ALLOWED_ORIGINS est lu depuis le .env (ex: "https://filmmatching.com")
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    # On filtre les valeurs vides pour éviter un bug si la variable n'est pas définie.
+    # "".split(",") donnerait [""] (une liste avec une chaîne vide), ce qui pourrait
+    # laisser passer des requêtes non autorisées.
+    cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins.split(",") if o.strip()]
 CORS_ALLOWS_CREDENTIALS = True
+
+# ──────────────────────────────────────────────
+# Sécurité en production
+# ──────────────────────────────────────────────
+# Ces paramètres ne s'activent qu'en production (DEBUG=False).
+# Ils protègent contre les attaques courantes (man-in-the-middle, clickjacking, XSS).
+if not DEBUG:
+    # SECURE_SSL_REDIRECT : redirige automatiquement HTTP → HTTPS.
+    # Sans ça, un utilisateur qui tape "filmmatching.com" (sans https) verrait une erreur.
+    SECURE_SSL_REDIRECT = True
+
+    # SESSION_COOKIE_SECURE : le cookie de session n'est envoyé que via HTTPS.
+    # Empêche qu'un attaquant intercepte le cookie sur une connexion non chiffrée.
+    SESSION_COOKIE_SECURE = True
+
+    # CSRF_COOKIE_SECURE : même chose pour le cookie CSRF.
+    CSRF_COOKIE_SECURE = True
+
+    # SECURE_BROWSER_XSS_FILTER : active le filtre anti-XSS du navigateur.
+    SECURE_BROWSER_XSS_FILTER = True
+
+    # SECURE_CONTENT_TYPE_NOSNIFF : empêche le navigateur de "deviner" le type de fichier.
+    # Sans ça, un fichier malveillant pourrait être interprété comme du JavaScript.
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    # SECURE_PROXY_SSL_HEADER : indique à Django que Nginx gère le HTTPS.
+    # Nginx ajoute le header X-Forwarded-Proto, et Django le lit pour savoir
+    # si la requête originale était en HTTPS (même si Nginx → Django est en HTTP).
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ──────────────────────────────────────────────
+# Configuration des logs
+# ──────────────────────────────────────────────
+# LOGGING configure le système de journalisation de Django.
+# C'est comme une boîte noire d'avion : ça enregistre tout ce qui se passe
+# dans l'application pour pouvoir diagnostiquer les problèmes plus tard.
+#
+# Structure :
+# - formatters : comment formater chaque ligne de log (date, niveau, message)
+# - handlers   : où envoyer les logs (console, fichier...)
+# - loggers    : quels modules surveiller et à quel niveau
+LOGGING = {
+    'version': 1,
+    # disable_existing_loggers = False → on garde les loggers par défaut de Django
+    # (sinon Django ne loggerait plus rien lui-même, comme les erreurs 500)
+    'disable_existing_loggers': False,
+
+    # --- Formatters : le format des lignes de log ---
+    'formatters': {
+        # Format détaillé pour les fichiers de log
+        # Exemple : "2026-03-14 15:30:45 [INFO] api.views : Utilisateur alice connecté"
+        'verbose': {
+            'format': '{asctime} [{levelname}] {name} : {message}',
+            'style': '{',
+            # datefmt personnalise le format de la date
+            # Sans ça, Python affiche "2026-03-14 15:30:45,123" (avec millisecondes)
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        # Format simple pour la console (plus lisible pendant le dev)
+        # Exemple : "[INFO] Utilisateur alice connecté"
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+
+    # --- Handlers : où envoyer les logs ---
+    'handlers': {
+        # Handler console : affiche les logs dans le terminal (utile en dev)
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'level': 'DEBUG',
+        },
+        # Handler fichier : écrit les logs dans un fichier logs/app.log
+        # RotatingFileHandler évite que le fichier grossisse à l'infini :
+        # quand il atteint maxBytes (5 Mo), il est renommé app.log.1
+        # et un nouveau app.log est créé. On garde 3 anciens fichiers (backupCount).
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'app.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 Mo
+            'backupCount': 3,
+            'formatter': 'verbose',
+            'level': 'INFO',
+        },
+        # Handler séparé pour les erreurs uniquement
+        # Permet de retrouver rapidement les problèmes critiques
+        # sans chercher dans des centaines de lignes INFO
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'errors.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 Mo
+            'backupCount': 3,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+    },
+
+    # --- Loggers : quels modules surveiller ---
+    'loggers': {
+        # Logger pour notre application (api/)
+        # C'est celui qu'on utilisera dans views.py avec logging.getLogger(__name__)
+        'api': {
+            'handlers': ['console', 'file', 'error_file'],
+            # DEBUG en dev pour tout voir, à passer en INFO en production
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        # Logger Django : capture les erreurs internes de Django
+        # (erreurs 500, problèmes de template, etc.)
+        'django': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Logger pour les requêtes HTTP de Django
+        # WARNING = on ne logge que les erreurs 4xx/5xx, pas chaque requête
+        'django.request': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
 
 # ──────────────────────────────────────────────
 # Configuration email (SMTP Hostinger)
