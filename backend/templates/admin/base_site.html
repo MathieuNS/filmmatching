@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{#
+  Ce template surcharge le template par défaut de l'admin Django.
+  Il hérite de "admin/base.html" (le template original) et ajoute
+  notre CSS personnalisé + les polices Google Fonts du projet.
+#}
+
+{% block title %}{{ title }} | FilmMatching Admin{% endblock %}
+
+{% block branding %}
+  <div id="site-name"><a href="{% url 'admin:index' %}">FilmMatching</a></div>
+{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {# Google Fonts — Outfit (titres) et Sora (texte) #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  {# Notre CSS personnalisé qui surcharge les styles de l'admin #}
+  <link rel="stylesheet" href="{% static 'admin/css/custom_admin.css' %}">
+{% endblock %}
