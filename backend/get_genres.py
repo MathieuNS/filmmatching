@@ -27,3 +27,15 @@ response = requests.get(GENRES_URL_TV, headers=headers).json()
 for genre in response["genres"]:
     print(genre["id"], genre["name"])
     Genres.objects.get_or_create(tmdb_id=genre["id"], genre=genre["name"])
+
+response_tv = requests.get(GENRES_URL_TV, headers=headers).json()
+response_films = requests.get(GENRES_URL, headers=headers).json()
+
+for genre in response_tv["genres"]:
+    print(genre["id"], genre["name"])
+    Genres.objects.get_or_create(tmdb_id=genre["id"], genre=genre["name"])
+
+
+for genre_film in response_films["genres"]:
+    print(genre_film["id"], genre_film["name"])
+    Genres.objects.get_or_create(tmdb_id=genre_film["id"], genre=genre_film["name"])
