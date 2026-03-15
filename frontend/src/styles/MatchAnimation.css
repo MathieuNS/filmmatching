@@ -18,7 +18,27 @@
   justify-content: center;
   z-index: 2000;
   /* Animation d'apparition du fond */
-  animation: matchFadeIn 0.3s ease;
+  animation: matchFadeIn 0.2s ease;
+}
+
+/* --- Variante landing : ne bloque pas la page ---
+   Sur la landing, l'overlay est positionné dans le flux,
+   juste au-dessus des cartes de la démo. Le visiteur peut
+   toujours scroller et cliquer sur les liens en dehors. */
+.match-overlay--landing {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 100%;
+  /* Fond plus transparent pour garder le contexte */
+  background: rgba(13, 13, 15, 0.88);
+  border-radius: 20px;
+  z-index: 10;
+  animation: matchFadeIn 0.15s ease;
+  /* Ne pas bloquer les clics en dehors */
+  pointer-events: auto;
 }
 
 /* --- Contenu centré --- */
@@ -31,7 +51,13 @@
   max-width: 340px;
   width: 90%;
   /* Animation d'entrée : le contenu monte avec un léger rebond */
-  animation: matchSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: matchSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Contenu compact pour la variante landing */
+.match-overlay--landing .match-overlay__content {
+  gap: 10px;
+  padding: 18px 12px;
 }
 
 /* --- Titre "It's a Match !" avec dégradé animé --- */
@@ -59,7 +85,7 @@
   font-size: 0.95rem;
   color: #8B8B9E;
   margin: 0;
-  animation: matchFadeIn 0.6s ease 0.2s both;
+  animation: matchFadeIn 0.3s ease 0.1s both;
 }
 
 /* --- Affiche du film matché --- */
@@ -68,7 +94,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  animation: matchPulseIn 0.6s ease 0.3s both;
+  animation: matchPulseIn 0.35s ease 0.15s both;
 }
 
 .match-overlay__film-img {
@@ -101,7 +127,7 @@
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
-  animation: matchFadeIn 0.5s ease 0.5s both;
+  animation: matchFadeIn 0.25s ease 0.2s both;
 }
 
 .match-overlay__friend {
@@ -134,6 +160,14 @@
   border-radius: 50%;
 }
 
+/* Lettre initiale quand il n'y a pas d'image d'avatar */
+.match-overlay__friend-avatar span {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--blanc-doux, #F0EEF2);
+}
+
 .match-overlay__friend-name {
   font-family: 'Sora', sans-serif;
   font-weight: 500;
@@ -155,12 +189,47 @@
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 4px 24px rgba(46, 224, 161, 0.3);
-  animation: matchFadeIn 0.5s ease 0.6s both;
+  animation: matchFadeIn 0.25s ease 0.25s both;
 }
 
 .match-overlay__close-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 28px rgba(46, 224, 161, 0.5);
+}
+
+/* ==============================================
+   Variante landing — tailles réduites pour
+   s'intégrer dans la zone de la démo
+   ============================================== */
+.match-overlay--landing .match-overlay__title {
+  font-size: 1.4rem;
+}
+
+.match-overlay--landing .match-overlay__subtitle {
+  font-size: 0.75rem;
+}
+
+.match-overlay--landing .match-overlay__film-img {
+  width: 90px;
+  height: 135px;
+  border-radius: 12px;
+}
+
+.match-overlay--landing .match-overlay__film-title {
+  font-size: 0.85rem;
+}
+
+.match-overlay--landing .match-overlay__friend-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.match-overlay--landing .match-overlay__friend-avatar span {
+  font-size: 0.9rem;
+}
+
+.match-overlay--landing .match-overlay__friend-name {
+  font-size: 0.7rem;
 }
 
 /* ==============================================
