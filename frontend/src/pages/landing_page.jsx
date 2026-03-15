@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import TmdbAttribution from "../components/TmdbAttribution";
 // Import du fichier CSS dédié à la landing page
 import "../styles/LandingPage.css";
+// Import du CSS de l'animation "It's a Match !" pour la démo
+import "../styles/MatchAnimation.css";
 
 /**
  * Liste des films/séries utilisés pour la démo de swipe.
@@ -87,6 +89,10 @@ function LandingPage() {
   // Index dans la séquence de directions (SWIPE_SEQUENCE)
   const [swipeStep, setSwipeStep] = useState(0);
 
+  // Affiche ou non l'overlay "It's a Match !" après un like
+  // Stocke le film matché pour l'afficher dans l'overlay, ou null
+  const [matchFilm, setMatchFilm] = useState(null);
+
   // Direction actuelle du swipe : "right", "left" ou "up"
   const swipeDirection = SWIPE_SEQUENCE[swipeStep];
 
@@ -96,6 +102,15 @@ function LandingPage() {
   const nextFilm = DEMO_FILMS[(currentIndex + 1) % DEMO_FILMS.length];
 
   useEffect(() => {
+    // Si un match est affiché, on met le cycle en pause
+    // L'overlay reste visible 2 secondes, puis on reprend
+    if (matchFilm) {
+      const matchTimer = setTimeout(() => {
+        setMatchFilm(null);
+      }, 2000);
+      return () => clearTimeout(matchTimer);
+    }
+
     /**
      * Timer principal qui gère le cycle d'animation.
      *
@@ -103,23 +118,35 @@ function LandingPage() {
      * 1. La carte du dessus sort (phase "exiting", 0.5s)
      * 2. On passe au film suivant : la carte du dessous devient
      *    celle du dessus, et une nouvelle carte apparaît en dessous
+     * 3. Si c'était un like (right), on affiche l'overlay de match
      */
     const interval = setInterval(() => {
       // La carte du dessus sort
       setAnimPhase("exiting");
 
-      // Après 400ms (durée de l'animation de sortie),
+      // Après 500ms (durée de l'animation de sortie),
       // on avance au film suivant
       setTimeout(() => {
+        // On récupère la direction actuelle AVANT de mettre à jour le step
+        setSwipeStep((prevStep) => {
+          const direction = SWIPE_SEQUENCE[prevStep];
+
+          // Si c'était un like, on affiche l'animation de match
+          if (direction === "right") {
+            setMatchFilm(DEMO_FILMS[currentIndex]);
+          }
+
+          return (prevStep + 1) % SWIPE_SEQUENCE.length;
+        });
+
         setCurrentIndex((prev) => (prev + 1) % DEMO_FILMS.length);
-        setSwipeStep((prev) => (prev + 1) % SWIPE_SEQUENCE.length);
         setAnimPhase("visible");
       }, 500);
     }, 3000);
 
     // Nettoyage : on supprime le timer quand le composant est démonté
     return () => clearInterval(interval);
-  }, []);
+  }, [matchFilm, currentIndex]);
 
   /**
    * Détermine la classe CSS de la carte du dessus selon la phase
@@ -227,6 +254,39 @@ function LandingPage() {
           }`}>
             👁 Déjà vu
           </div>
+
+          {/* --- Overlay "It's a Match !" ---
+               Positionné dans la zone des cartes pour ne pas bloquer
+               le reste de la page (CTA, liens de connexion, etc.).
+               Se ferme automatiquement après 2 secondes. */}
+          {matchFilm && (
+            <div className="match-overlay match-overlay--landing">
+              <div className="match-overlay__content">
+                <h2 className="match-overlay__title">It's a Match !</h2>
+                <p className="match-overlay__subtitle">
+                  Toi et Alex aimez le même film
+                </p>
+
+                <div className="match-overlay__film">
+                  <img
+                    className="match-overlay__film-img"
+                    src={matchFilm.img}
+                    alt={`Affiche de ${matchFilm.title}`}
+                  />
+                  <p className="match-overlay__film-title">{matchFilm.title}</p>
+                </div>
+
+                <div className="match-overlay__friends">
+                  <div className="match-overlay__friend">
+                    <div className="match-overlay__friend-avatar">
+                      <span>A</span>
+                    </div>
+                    <span className="match-overlay__friend-name">Alex</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Icône "like" à droite — s'illumine quand le swipe va à droite */}
