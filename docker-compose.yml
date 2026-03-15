@@ -74,13 +74,18 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL}
     restart: unless-stopped
-    # Port mapping : le port 80 du conteneur est exposé sur le port 80 de l'hôte.
-    # C'est ce qui rend le site accessible depuis l'extérieur.
+    # Port mapping : on expose le port 80 (HTTP) et 443 (HTTPS).
+    # Le port 80 sert uniquement à rediriger vers HTTPS.
     ports:
       - "80:80"
-    # On monte le volume des fichiers statiques Django pour que Nginx puisse les servir.
+      - "443:443"
+    # Volumes :
+    # - backend_static : fichiers statiques Django (CSS admin, etc.)
+    # - certificats Let's Encrypt : montés en lecture seule depuis le VPS
+    #   pour que Nginx puisse servir en HTTPS.
     volumes:
       - backend_static:/app/staticfiles:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
 
