@@ -55,7 +55,7 @@ function LoginForm() {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Pseudo"
+          placeholder="Pseudo ou email"
         />
         {/* Wrapper du champ mot de passe : contient l'input + le bouton œil */}
         <div className="form-password-wrapper">

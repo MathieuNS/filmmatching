@@ -87,20 +87,108 @@ class CreateUserView(generics.CreateAPIView):
 
         # Envoyer l'email de confirmation
         logger.info("Envoi de l'email d'activation à %s", user.email)
+
+        # Version texte brut (affichée si le client email ne supporte pas le HTML)
+        text_message = (
+            f"Salut {user.username} !\n\n"
+            f"Bienvenue sur FilmMatching !\n\n"
+            f"FilmMatching, c'est comme Tinder mais pour les films : "
+            f"swipe les films et séries que tu aimes, connecte-toi avec "
+            f"tes amis et découvre vos goûts en commun.\n\n"
+            f"Clique sur ce lien pour activer ton compte :\n"
+            f"{activation_link}\n\n"
+            f"Ce lien est à usage unique.\n\n"
+            f"À bientôt sur FilmMatching !"
+        )
+
+        # Version HTML stylisée de l'email
+        # IMPORTANT pour les emails HTML :
+        # - Pas de linear-gradient : non supporté par Gmail, Outlook, etc.
+        #   → On utilise des couleurs unies (background-color) à la place.
+        # - Pas de CSS externe ni de <style> : ignorés par les clients email.
+        #   → Tout le style est en inline (attribut style="").
+        html_message = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head><meta charset="UTF-8"></head>
+        <body style="margin:0; padding:0; background-color:#0D0D0F; font-family:Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D0D0F; padding:40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#16161A; border-radius:20px; overflow:hidden;">
+
+                  <!-- En-tête avec emoji et nom de l'app -->
+                  <tr>
+                    <td align="center" style="background-color:#16161A; padding:32px 20px 24px;">
+                      <h1 style="margin:0; font-size:28px; color:#FF4D6A; font-weight:700;">
+                        &#127916; FilmMatching
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Corps du message -->
+                  <tr>
+                    <td style="padding:32px 28px;">
+                      <h2 style="margin:0 0 16px; font-size:20px; color:#F0EEF2;">
+                        Salut {user.username} !
+                      </h2>
+                      <p style="margin:0 0 20px; font-size:15px; color:#8B8B9E; line-height:1.6;">
+                        Bienvenue sur <strong style="color:#F0EEF2;">FilmMatching</strong> !
+                        Swipe les films et séries que tu aimes, connecte-toi
+                        avec tes amis et découvre vos goûts en commun.
+                        Fini les soirées à scroller sans savoir quoi regarder !
+                      </p>
+
+                      <!-- Bouton d'activation -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center" style="padding:8px 0 24px;">
+                            <a href="{activation_link}"
+                               style="display:inline-block; padding:14px 36px; background-color:#7B5CFF; color:#ffffff; font-size:16px; font-weight:600; text-decoration:none; border-radius:14px;">
+                              Activer mon compte
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0 0 8px; font-size:13px; color:#8B8B9E; line-height:1.5;">
+                        Ce lien est à usage unique. Si le bouton ne fonctionne pas,
+                        copie-colle ce lien dans ton navigateur :
+                      </p>
+                      <p style="margin:0; font-size:12px; color:#7B5CFF; word-break:break-all;">
+                        {activation_link}
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td align="center" style="padding:20px 28px; border-top:1px solid #2A2A32;">
+                      <p style="margin:0; font-size:12px; color:#8B8B9E;">
+                        &copy; FilmMatching — Tu reçois cet email car un compte
+                        a été créé avec cette adresse.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        # send_mail avec html_message : Django envoie les DEUX versions
+        # (texte brut + HTML). Le client email du destinataire choisit
+        # automatiquement la version qu'il peut afficher.
         send_mail(
             subject="Confirme ton compte FilmMatching 🎬",
-            message=(
-                f"Salut {user.username} !\n\n"
-                f"Bienvenue sur FilmMatching !\n"
-                f"Clique sur ce lien pour activer ton compte :\n\n"
-                f"{activation_link}\n\n"
-                f"Ce lien est à usage unique. Une fois ton compte activé, "
-                f"tu pourras te connecter et commencer à swiper des films.\n\n"
-                f"À bientôt sur FilmMatching !"
-            ),
+            message=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=False,  # Si l'envoi échoue, on lève une erreur
+            html_message=html_message,
+            fail_silently=False,
         )
 
 
@@ -188,20 +276,27 @@ class CustomTokenObtainView(APIView):
 
     def post(self, request):
         """Authentifie l'utilisateur et renvoie les tokens JWT."""
-        username = request.data.get("username")
+        # Le champ "username" peut contenir un pseudo OU un email.
+        # On détecte lequel c'est grâce au caractère "@".
+        login = request.data.get("username")
         password = request.data.get("password")
 
-        if not username or not password:
+        if not login or not password:
             return Response(
-                {"error": "Le pseudo et le mot de passe sont requis."},
+                {"error": "Le pseudo/email et le mot de passe sont requis."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Étape 1 : vérifier si le pseudo existe
+        # Étape 1 : vérifier si l'utilisateur existe (par pseudo ou par email)
+        # Si le champ contient un "@", on cherche par email.
+        # Sinon, on cherche par pseudo.
         try:
-            user = User.objects.get(username=username)
+            if "@" in login:
+                user = User.objects.get(email=login)
+            else:
+                user = User.objects.get(username=login)
         except User.DoesNotExist:
-            logger.warning("Tentative de connexion avec un pseudo inexistant : %s", username)
+            logger.warning("Tentative de connexion avec un identifiant inexistant : %s", login)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -209,7 +304,7 @@ class CustomTokenObtainView(APIView):
 
         # Étape 2 : vérifier si le compte est activé
         if not user.is_active:
-            logger.warning("Connexion refusée (compte inactif) : %s", username)
+            logger.warning("Connexion refusée (compte inactif) : %s", login)
             return Response(
                 {"error": "Vous devez activer votre compte pour vous connecter. Vérifiez votre boîte mail."},
                 # 403 Forbidden : le serveur comprend la requête mais refuse
@@ -218,11 +313,11 @@ class CustomTokenObtainView(APIView):
             )
 
         # Étape 3 : vérifier le mot de passe
-        # authenticate() vérifie le mot de passe hashé en BDD
-        # Renvoie l'objet User si c'est correct, None sinon
-        authenticated_user = authenticate(username=username, password=password)
+        # authenticate() attend toujours le username (pas l'email),
+        # donc on utilise user.username qu'on a trouvé à l'étape 1
+        authenticated_user = authenticate(username=user.username, password=password)
         if authenticated_user is None:
-            logger.warning("Échec de connexion (mauvais mot de passe) : %s", username)
+            logger.warning("Échec de connexion (mauvais mot de passe) : %s", login)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -232,7 +327,7 @@ class CustomTokenObtainView(APIView):
         # RefreshToken.for_user() crée un refresh token lié à cet utilisateur
         # .access_token génère le token d'accès correspondant
         refresh = RefreshToken.for_user(authenticated_user)
-        logger.info("Connexion réussie : %s", username)
+        logger.info("Connexion réussie : %s", user.username)
         return Response({
             "refresh": str(refresh),
             "access": str(refresh.access_token),

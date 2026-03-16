@@ -31,6 +31,12 @@ function CheckEmail() {
           </ul>
         </div>
 
+        {/* Incitation à ajouter des amis pour découvrir les matchs */}
+        <p className="check-email-friends-hint">
+          Une fois connecté, pense à <strong>ajouter tes amis</strong> pour
+          découvrir les films et séries que vous aimez en commun !
+        </p>
+
         <Link to="/login" className="form-button" style={{ textDecoration: "none", textAlign: "center" }}>
           Aller à la connexion
         </Link>
