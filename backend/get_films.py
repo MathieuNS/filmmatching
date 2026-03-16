@@ -186,7 +186,7 @@ def get_films_and_series(url,
 
 if __name__ == "__main__":
 
-    start_date = datetime(1950, 1, 1)
+    start_date = datetime.now() - relativedelta(month=1)  # On récupère les films et séries sortis depuis le mois dernier
     end_date = datetime.now()
     month_delta = relativedelta(months=1)
 
