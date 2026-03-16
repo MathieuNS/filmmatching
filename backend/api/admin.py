@@ -8,8 +8,6 @@ from .models import Genres, Plateform, Films, Swipe, Friendship, Profile, Castin
 # avec notre configuration qui affiche is_active (compte activé ou non).
 admin.site.unregister(User)
 
-admin.site.register(Genres)
-admin.site.register(Plateform)
 admin.site.register(Swipe)
 admin.site.register(Friendship)
 admin.site.register(Profile)
@@ -19,13 +17,14 @@ admin.site.register(Director)
 @admin.register(Films)  # Décorateur pour enregistrer Films avec une configuration personnalisée
 class FilmsAdmin(admin.ModelAdmin):
     list_display = (
-        'title', 
+        'title',
+        'tmdb_id',
         'type', 
         'release_year', 
         'popularity',
         'director'
         )  # Affiche ces champs dans la liste des films
-    search_fields = ('title',)  # Permet de rechercher par titre ou année de sortie
+    search_fields = ('title', 'tmdb_id')  # Permet de rechercher par titre ou année de sortie
     list_filter = ('type', 'release_year')  # Ajoute des filtres pour le type et l'année de sortie
 
 @admin.register(User)
@@ -37,3 +36,19 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('is_active',)
     # Recherche par nom d'utilisateur ou email
     search_fields = ('username', 'email')
+
+@admin.register(Genres)
+class GenresAdmin(admin.ModelAdmin):
+    list_display = (
+        'tmdb_id',
+        'genre'
+    )
+    search_fields = ('genre', 'tmdb_id')
+
+@admin.register(Plateform)
+class PlateformAdmin(admin.ModelAdmin):
+    list_display = (
+        'tmdb_id',
+        'plateform'
+    )
+    search_fields = ('plateform', 'tmdb_id')

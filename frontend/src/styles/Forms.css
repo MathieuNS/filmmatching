@@ -114,6 +114,54 @@ html, body {
   box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.15);
 }
 
+/* --- Wrapper du champ mot de passe ---
+   Conteneur relatif pour positionner le bouton œil à droite de l'input.
+   On reprend le margin-bottom de .form-input (14px) car l'input
+   à l'intérieur n'aura plus de margin-bottom propre. */
+.form-password-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+/* L'input à l'intérieur du wrapper ne doit pas avoir
+   de margin-bottom (c'est le wrapper qui le gère),
+   et on ajoute du padding à droite pour que le texte
+   ne passe pas sous le bouton œil */
+.form-password-wrapper .form-input {
+  margin-bottom: 0;
+  padding-right: 48px;
+}
+
+/* --- Bouton œil (afficher/masquer le mot de passe) ---
+   Positionné en absolu à droite dans le wrapper */
+.form-password-toggle {
+  position: absolute;
+  right: 12px;
+  /* Centré verticalement dans l'input */
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gris-texte);
+  transition: color 0.25s ease;
+}
+
+.form-password-toggle:hover {
+  color: var(--blanc-doux);
+}
+
+/* L'icône SVG dans le bouton */
+.form-password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* --- Case à cocher de consentement --- */
 .form-checkbox {
   display: flex;
