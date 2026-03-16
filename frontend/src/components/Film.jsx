@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect, useRef } from "react";
 // Import du fichier CSS associé au composant
 import "../styles/Films.css";
 
@@ -8,6 +8,10 @@ import "../styles/Films.css";
  * L'affiche du film est utilisée en fond, avec un dégradé sombre
  * en bas pour rendre le texte lisible. Toutes les infos sont
  * superposées sur l'image (style Netflix/Tinder).
+ *
+ * Chaque section de texte (synopsis, acteurs, genres, plateformes)
+ * détecte automatiquement si son contenu est tronqué. Si c'est le
+ * cas, un lien "voir plus" apparaît pour déplier la section.
  *
  * @param {Object} props - Les propriétés du composant
  * @param {string} props.title - Le titre du film ou de la série
@@ -32,6 +36,76 @@ function Film({
   release_year,
   director,
 }) {
+  // --- States pour savoir si chaque section est dépliée ---
+  const [expanded, setExpanded] = useState({
+    synopsis: false,
+    actors: false,
+    tags: false,
+    platforms: false,
+  });
+
+  // --- States pour savoir si chaque section EST tronquée ---
+  // (true = le contenu dépasse et est coupé → on affiche "voir plus")
+  const [truncated, setTruncated] = useState({
+    synopsis: false,
+    actors: false,
+    tags: false,
+    platforms: false,
+  });
+
+  // --- Refs vers les éléments DOM pour mesurer la troncature ---
+  // On compare scrollHeight (hauteur totale du contenu) avec
+  // clientHeight (hauteur visible). Si scrollHeight > clientHeight,
+  // le contenu est tronqué.
+  const synopsisRef = useRef(null);
+  const actorsRef = useRef(null);
+  const tagsRef = useRef(null);
+  const platformsRef = useRef(null);
+
+  // Réinitialiser les sections dépliées quand le film change
+  // (sinon le "voir plus" resterait ouvert d'un film à l'autre)
+  useEffect(() => {
+    setExpanded({
+      synopsis: false,
+      actors: false,
+      tags: false,
+      platforms: false,
+    });
+  }, [title, img]);
+
+  // Vérifier la troncature après chaque rendu
+  // On ne vérifie que les sections qui sont repliées (collapsed),
+  // car une section dépliée a forcément scrollHeight === clientHeight
+  useEffect(() => {
+    const checks = {
+      synopsis: synopsisRef,
+      actors: actorsRef,
+      tags: tagsRef,
+      platforms: platformsRef,
+    };
+
+    setTruncated((prev) => {
+      const next = { ...prev };
+      for (const [key, ref] of Object.entries(checks)) {
+        // Si la section est dépliée, on garde la valeur précédente
+        // (on sait déjà qu'elle était tronquée puisqu'on l'a dépliée)
+        if (!expanded[key] && ref.current) {
+          next[key] = ref.current.scrollHeight > ref.current.clientHeight;
+        }
+      }
+      return next;
+    });
+  }, [synopsis, main_actors, tags, plateform, expanded]);
+
+  /**
+   * Bascule l'état déplié/replié d'une section.
+   *
+   * @param {string} field - Le nom de la section ("synopsis", "actors", etc.)
+   */
+  function toggleExpand(field) {
+    setExpanded((prev) => ({ ...prev, [field]: !prev[field] }));
+  }
+
   return (
     // Conteneur principal : position relative pour superposer le contenu sur l'image
     <div className="film-card">
@@ -71,9 +145,27 @@ function Film({
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
 
-        {/* Synopsis (limité à 3 lignes pour rester compact) */}
+        {/* Synopsis — tronqué à 3 lignes par défaut, dépliable */}
         {synopsis && (
-          <p className="film-card__synopsis">{synopsis}</p>
+          <div className="film-card__section">
+            <p
+              className={`film-card__synopsis ${
+                expanded.synopsis ? "film-card__synopsis--expanded" : ""
+              }`}
+              ref={synopsisRef}
+            >
+              {synopsis}
+            </p>
+            {(truncated.synopsis || expanded.synopsis) && (
+              <button
+                className="film-card__see-more"
+                onClick={() => toggleExpand("synopsis")}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {expanded.synopsis ? "voir moins" : "voir plus"}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Réalisateur */}
@@ -83,33 +175,81 @@ function Film({
           </p>
         )}
 
-        {/* Acteurs principaux */}
+        {/* Acteurs principaux — tronqué à 1 ligne par défaut, dépliable */}
         {main_actors && (
-          <p className="film-card__actors">
-            <span className="film-card__label">Acteurs :</span> {main_actors}
-          </p>
-        )}
-
-        {/* Tags / Genres */}
-        {tags && tags.length > 0 && (
-          <div className="film-card__tags">
-            {tags.map((tag, index) => (
-              <span key={index} className="film-card__tag">
-                {tag}
-              </span>
-            ))}
+          <div className="film-card__section">
+            <p
+              className={`film-card__actors ${
+                expanded.actors ? "film-card__actors--expanded" : ""
+              }`}
+              ref={actorsRef}
+            >
+              <span className="film-card__label">Acteurs :</span> {main_actors}
+            </p>
+            {(truncated.actors || expanded.actors) && (
+              <button
+                className="film-card__see-more"
+                onClick={() => toggleExpand("actors")}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {expanded.actors ? "voir moins" : "voir plus"}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Plateformes de streaming */}
+        {/* Tags / Genres — tronqué à 1 ligne par défaut, dépliable */}
+        {tags && tags.length > 0 && (
+          <div className="film-card__section">
+            <div
+              className={`film-card__tags ${
+                expanded.tags ? "film-card__tags--expanded" : ""
+              }`}
+              ref={tagsRef}
+            >
+              {tags.map((tag, index) => (
+                <span key={index} className="film-card__tag">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            {(truncated.tags || expanded.tags) && (
+              <button
+                className="film-card__see-more"
+                onClick={() => toggleExpand("tags")}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {expanded.tags ? "voir moins" : "voir plus"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Plateformes de streaming — tronqué à 1 ligne par défaut, dépliable */}
         {plateform && plateform.length > 0 && (
-          <div className="film-card__platforms">
-            <span className="film-card__label">Disponible sur :</span>
-            {plateform.map((plat, index) => (
-              <span key={index} className="film-card__platform">
-                {plat}
-              </span>
-            ))}
+          <div className="film-card__section">
+            <div
+              className={`film-card__platforms ${
+                expanded.platforms ? "film-card__platforms--expanded" : ""
+              }`}
+              ref={platformsRef}
+            >
+              <span className="film-card__label">Disponible sur :</span>
+              {plateform.map((plat, index) => (
+                <span key={index} className="film-card__platform">
+                  {plat}
+                </span>
+              ))}
+            </div>
+            {(truncated.platforms || expanded.platforms) && (
+              <button
+                className="film-card__see-more"
+                onClick={() => toggleExpand("platforms")}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {expanded.platforms ? "voir moins" : "voir plus"}
+              </button>
+            )}
           </div>
         )}
       </div>

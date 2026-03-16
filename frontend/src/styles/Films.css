@@ -59,6 +59,33 @@
   gap: 6px;
 }
 
+/* --- Section dépliable ---
+   Wrapper autour de chaque champ qui peut être tronqué.
+   Regroupe le contenu + le bouton "voir plus". */
+.film-card__section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Bouton "voir plus" / "voir moins" ---
+   Petit lien discret sous le contenu tronqué */
+.film-card__see-more {
+  background: none;
+  border: none;
+  color: #7B5CFF;
+  font-size: 0.7rem;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  align-self: flex-start;
+  transition: color 0.25s ease;
+}
+
+.film-card__see-more:hover {
+  color: #a58aff;
+}
+
 /* --- Ligne du haut : badge type + année --- */
 .film-card__meta {
   display: flex;
@@ -125,6 +152,13 @@
   overflow: hidden;
 }
 
+/* Quand le synopsis est déplié, on retire la troncature */
+.film-card__synopsis--expanded {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
 /* --- Labels (Réalisateur, Acteurs, Disponible sur) --- */
 .film-card__label {
   color: rgba(240, 238, 242, 0.5);
@@ -154,12 +188,28 @@
   overflow: hidden;
 }
 
+/* Quand les acteurs sont dépliés */
+.film-card__actors--expanded {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
 /* --- Tags / Genres (badges) --- */
 .film-card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
+  /* Limiter à 1 ligne (~28px = hauteur d'un badge) */
+  max-height: 26px;
+  overflow: hidden;
+}
+
+/* Quand les tags sont dépliés, on retire la limite de hauteur */
+.film-card__tags--expanded {
+  max-height: none;
+  overflow: visible;
 }
 
 .film-card__tag {
@@ -179,6 +229,15 @@
   align-items: center;
   gap: 6px;
   margin-top: 2px;
+  /* Limiter à 1 ligne (~28px = hauteur d'un badge + label) */
+  max-height: 26px;
+  overflow: hidden;
+}
+
+/* Quand les plateformes sont dépliées */
+.film-card__platforms--expanded {
+  max-height: none;
+  overflow: visible;
 }
 
 .film-card__platform {
@@ -210,8 +269,22 @@
     font-size: 0.75rem;
   }
 
+  /* Quand déplié sur mobile, même comportement */
+  .film-card__synopsis--expanded {
+    -webkit-line-clamp: unset;
+    display: block;
+    overflow: visible;
+  }
+
   .film-card__director,
   .film-card__actors {
     font-size: 0.75rem;
+  }
+
+  /* Quand déplié sur mobile, même comportement */
+  .film-card__actors--expanded {
+    -webkit-line-clamp: unset;
+    display: block;
+    overflow: visible;
   }
 }
