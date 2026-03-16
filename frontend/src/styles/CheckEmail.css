@@ -52,3 +52,18 @@
   color: var(--gris-texte);
   line-height: 1.6;
 }
+
+/* Phrase d'incitation à ajouter des amis */
+.check-email-friends-hint {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: var(--vert-match);
+  background-color: rgba(46, 224, 161, 0.08);
+  border: 1px solid rgba(46, 224, 161, 0.15);
+  border-radius: 14px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+}

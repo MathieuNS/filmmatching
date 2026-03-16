@@ -87,20 +87,108 @@ class CreateUserView(generics.CreateAPIView):
 
         # Envoyer l'email de confirmation
         logger.info("Envoi de l'email d'activation à %s", user.email)
+
+        # Version texte brut (affichée si le client email ne supporte pas le HTML)
+        text_message = (
+            f"Salut {user.username} !\n\n"
+            f"Bienvenue sur FilmMatching !\n\n"
+            f"FilmMatching, c'est comme Tinder mais pour les films : "
+            f"swipe les films et séries que tu aimes, connecte-toi avec "
+            f"tes amis et découvre vos goûts en commun.\n\n"
+            f"Clique sur ce lien pour activer ton compte :\n"
+            f"{activation_link}\n\n"
+            f"Ce lien est à usage unique.\n\n"
+            f"À bientôt sur FilmMatching !"
+        )
+
+        # Version HTML stylisée de l'email
+        # IMPORTANT pour les emails HTML :
+        # - Pas de linear-gradient : non supporté par Gmail, Outlook, etc.
+        #   → On utilise des couleurs unies (background-color) à la place.
+        # - Pas de CSS externe ni de <style> : ignorés par les clients email.
+        #   → Tout le style est en inline (attribut style="").
+        html_message = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head><meta charset="UTF-8"></head>
+        <body style="margin:0; padding:0; background-color:#0D0D0F; font-family:Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D0D0F; padding:40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#16161A; border-radius:20px; overflow:hidden;">
+
+                  <!-- En-tête avec emoji et nom de l'app -->
+                  <tr>
+                    <td align="center" style="background-color:#16161A; padding:32px 20px 24px;">
+                      <h1 style="margin:0; font-size:28px; color:#FF4D6A; font-weight:700;">
+                        &#127916; FilmMatching
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Corps du message -->
+                  <tr>
+                    <td style="padding:32px 28px;">
+                      <h2 style="margin:0 0 16px; font-size:20px; color:#F0EEF2;">
+                        Salut {user.username} !
+                      </h2>
+                      <p style="margin:0 0 20px; font-size:15px; color:#8B8B9E; line-height:1.6;">
+                        Bienvenue sur <strong style="color:#F0EEF2;">FilmMatching</strong> !
+                        Swipe les films et séries que tu aimes, connecte-toi
+                        avec tes amis et découvre vos goûts en commun.
+                        Fini les soirées à scroller sans savoir quoi regarder !
+                      </p>
+
+                      <!-- Bouton d'activation -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center" style="padding:8px 0 24px;">
+                            <a href="{activation_link}"
+                               style="display:inline-block; padding:14px 36px; background-color:#7B5CFF; color:#ffffff; font-size:16px; font-weight:600; text-decoration:none; border-radius:14px;">
+                              Activer mon compte
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0 0 8px; font-size:13px; color:#8B8B9E; line-height:1.5;">
+                        Ce lien est à usage unique. Si le bouton ne fonctionne pas,
+                        copie-colle ce lien dans ton navigateur :
+                      </p>
+                      <p style="margin:0; font-size:12px; color:#7B5CFF; word-break:break-all;">
+                        {activation_link}
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td align="center" style="padding:20px 28px; border-top:1px solid #2A2A32;">
+                      <p style="margin:0; font-size:12px; color:#8B8B9E;">
+                        &copy; FilmMatching — Tu reçois cet email car un compte
+                        a été créé avec cette adresse.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        # send_mail avec html_message : Django envoie les DEUX versions
+        # (texte brut + HTML). Le client email du destinataire choisit
+        # automatiquement la version qu'il peut afficher.
         send_mail(
             subject="Confirme ton compte FilmMatching 🎬",
-            message=(
-                f"Salut {user.username} !\n\n"
-                f"Bienvenue sur FilmMatching !\n"
-                f"Clique sur ce lien pour activer ton compte :\n\n"
-                f"{activation_link}\n\n"
-                f"Ce lien est à usage unique. Une fois ton compte activé, "
-                f"tu pourras te connecter et commencer à swiper des films.\n\n"
-                f"À bientôt sur FilmMatching !"
-            ),
+            message=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=False,  # Si l'envoi échoue, on lève une erreur
+            html_message=html_message,
+            fail_silently=False,
         )
 
 
