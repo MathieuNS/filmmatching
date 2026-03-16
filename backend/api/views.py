@@ -188,20 +188,27 @@ class CustomTokenObtainView(APIView):
 
     def post(self, request):
         """Authentifie l'utilisateur et renvoie les tokens JWT."""
-        username = request.data.get("username")
+        # Le champ "username" peut contenir un pseudo OU un email.
+        # On détecte lequel c'est grâce au caractère "@".
+        login = request.data.get("username")
         password = request.data.get("password")
 
-        if not username or not password:
+        if not login or not password:
             return Response(
-                {"error": "Le pseudo et le mot de passe sont requis."},
+                {"error": "Le pseudo/email et le mot de passe sont requis."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Étape 1 : vérifier si le pseudo existe
+        # Étape 1 : vérifier si l'utilisateur existe (par pseudo ou par email)
+        # Si le champ contient un "@", on cherche par email.
+        # Sinon, on cherche par pseudo.
         try:
-            user = User.objects.get(username=username)
+            if "@" in login:
+                user = User.objects.get(email=login)
+            else:
+                user = User.objects.get(username=login)
         except User.DoesNotExist:
-            logger.warning("Tentative de connexion avec un pseudo inexistant : %s", username)
+            logger.warning("Tentative de connexion avec un identifiant inexistant : %s", login)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -209,7 +216,7 @@ class CustomTokenObtainView(APIView):
 
         # Étape 2 : vérifier si le compte est activé
         if not user.is_active:
-            logger.warning("Connexion refusée (compte inactif) : %s", username)
+            logger.warning("Connexion refusée (compte inactif) : %s", login)
             return Response(
                 {"error": "Vous devez activer votre compte pour vous connecter. Vérifiez votre boîte mail."},
                 # 403 Forbidden : le serveur comprend la requête mais refuse
@@ -218,11 +225,11 @@ class CustomTokenObtainView(APIView):
             )
 
         # Étape 3 : vérifier le mot de passe
-        # authenticate() vérifie le mot de passe hashé en BDD
-        # Renvoie l'objet User si c'est correct, None sinon
-        authenticated_user = authenticate(username=username, password=password)
+        # authenticate() attend toujours le username (pas l'email),
+        # donc on utilise user.username qu'on a trouvé à l'étape 1
+        authenticated_user = authenticate(username=user.username, password=password)
         if authenticated_user is None:
-            logger.warning("Échec de connexion (mauvais mot de passe) : %s", username)
+            logger.warning("Échec de connexion (mauvais mot de passe) : %s", login)
             return Response(
                 {"error": "Identifiants incorrects."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -232,7 +239,7 @@ class CustomTokenObtainView(APIView):
         # RefreshToken.for_user() crée un refresh token lié à cet utilisateur
         # .access_token génère le token d'accès correspondant
         refresh = RefreshToken.for_user(authenticated_user)
-        logger.info("Connexion réussie : %s", username)
+        logger.info("Connexion réussie : %s", user.username)
         return Response({
             "refresh": str(refresh),
             "access": str(refresh.access_token),
