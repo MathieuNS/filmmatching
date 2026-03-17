@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import api from "../api";
 import TmdbAttribution from "../components/TmdbAttribution";
 // Import du fichier CSS dédié à la landing page
 import "../styles/LandingPage.css";
@@ -78,6 +81,16 @@ const SWIPE_SEQUENCE = ["right", "left", "up", "right", "left"];
  * @returns {JSX.Element} La page d'accueil
  */
 function LandingPage() {
+  // --- Tous les hooks en haut du composant ---
+  // En React, les hooks (useState, useEffect) doivent TOUJOURS être appelés
+  // dans le même ordre à chaque rendu. On ne peut pas mettre un "return"
+  // avant un hook, sinon React perd le fil et plante.
+  // C'est pour ça qu'on déclare TOUS les useState ici, avant les conditions.
+
+  // --- Redirection automatique si le user est déjà connecté ---
+  // null = vérification en cours, true = connecté, false = pas connecté
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+
   // Index du film actuellement affiché (carte du dessus)
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -92,6 +105,64 @@ function LandingPage() {
   // Affiche ou non l'overlay "It's a Match !" après un like
   // Stocke le film matché pour l'afficher dans l'overlay, ou null
   const [matchFilm, setMatchFilm] = useState(null);
+
+  // --- Effect 1 : vérification du token JWT ---
+  useEffect(() => {
+    /**
+     * Vérifie si un token JWT valide existe dans le localStorage.
+     * C'est la même logique que ProtectedRoute, mais inversée :
+     * - ProtectedRoute bloque les non-connectés -> redirige vers /login
+     * - Ici, on redirige les connectés -> vers /home
+     *
+     * On essaie aussi de rafraîchir le token s'il est expiré,
+     * comme ça le user reste connecté même après 30 minutes d'inactivité
+     * (tant que le refresh token de 2 jours est encore valide).
+     */
+    async function checkAuth() {
+      const token = localStorage.getItem(ACCESS_TOKEN);
+
+      // Pas de token du tout -> pas connecté
+      if (!token) {
+        setIsAuthenticated(false);
+        return;
+      }
+
+      try {
+        // On décode le token pour vérifier sa date d'expiration
+        const decoded = jwtDecode(token);
+        const now = Date.now() / 1000;
+
+        if (decoded.exp > now) {
+          // Le token est encore valide -> le user est connecté
+          setIsAuthenticated(true);
+        } else {
+          // Le token access est expiré -> on essaie de le rafraîchir
+          const refreshToken = localStorage.getItem(REFRESH_TOKEN);
+          if (!refreshToken) {
+            setIsAuthenticated(false);
+            return;
+          }
+
+          const response = await api.post("/api/token/refresh/", {
+            refresh: refreshToken,
+          });
+
+          if (response.status === 200) {
+            // Refresh réussi -> on stocke le nouveau access token
+            localStorage.setItem(ACCESS_TOKEN, response.data.access);
+            setIsAuthenticated(true);
+          } else {
+            setIsAuthenticated(false);
+          }
+        }
+      } catch (error) {
+        // Token invalide ou refresh échoué -> pas connecté
+        setIsAuthenticated(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
 
   // Direction actuelle du swipe : "right", "left" ou "up"
   const swipeDirection = SWIPE_SEQUENCE[swipeStep];
@@ -147,6 +218,22 @@ function LandingPage() {
     // Nettoyage : on supprime le timer quand le composant est démonté
     return () => clearInterval(interval);
   }, [matchFilm, currentIndex]);
+
+  // --- Redirections conditionnelles ---
+  // On les met APRES tous les hooks pour respecter les règles de React.
+
+  // Pendant la vérification du token, on ne montre rien
+  // (évite un "flash" de la landing page avant la redirection)
+  if (isAuthenticated === null) {
+    return null;
+  }
+
+  // Si le user est connecté, on le redirige directement vers /home
+  // replace={true} remplace l'entrée dans l'historique du navigateur,
+  // comme ça le bouton "retour" ne ramène pas à la landing page
+  if (isAuthenticated) {
+    return <Navigate to="/home" replace={true} />;
+  }
 
   /**
    * Détermine la classe CSS de la carte du dessus selon la phase
