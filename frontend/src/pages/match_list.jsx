@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../api";
+import { getAvatarUrl } from "../utils/avatars";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import "../styles/FilmList.css";
@@ -9,31 +10,41 @@ import "../styles/MatchList.css";
 import "../styles/Home.css";
 
 /**
- * Page "Matchs" — Affiche les films likés en commun avec un ami.
+ * Page "Matchs" — Affiche les films likés en commun avec un ou plusieurs amis.
  *
- * Accessible via /amis/:friendshipId/matchs
+ * 2 modes d'accès :
+ * - Mode 1v1 : /amis/:friendshipId/matchs → matchs avec un seul ami
+ * - Mode groupe : /amis/groupe/matchs?ids=12,34,56 → matchs avec plusieurs amis
  *
- * useParams() récupère le paramètre :friendshipId dans l'URL.
- * Ce paramètre est l'ID de la relation d'amitié (pas l'ID de l'ami).
+ * Le mode est déterminé automatiquement :
+ * - Si friendshipId est présent dans l'URL → mode 1v1 (comportement existant)
+ * - Si le query param "ids" est présent → mode groupe (nouvel endpoint)
  *
- * Fonctionnalités :
- * - Grille de films matchés (même style que FilmList)
- * - Filtres (type, genres, plateformes, année) via FilterBottomSheet
- * - Bouton "Choix aléatoire" qui pioche un film au hasard parmi les matchs filtrés
- *
- * @returns {JSX.Element} La page des matchs avec un ami
+ * @returns {JSX.Element} La page des matchs
  */
 function MatchList() {
   const navigate = useNavigate();
   // useParams() extrait les paramètres dynamiques de l'URL.
-  // Pour la route /amis/:friendshipId/matchs, ça donne { friendshipId: "7" }
+  // Pour /amis/:friendshipId/matchs → { friendshipId: "7" }
+  // Pour /amis/groupe/matchs → { friendshipId: undefined }
   const { friendshipId } = useParams();
+
+  // useSearchParams() lit les query params de l'URL (après le "?").
+  // Pour /amis/groupe/matchs?ids=12,34,56 → searchParams.get("ids") = "12,34,56"
+  const [searchParams] = useSearchParams();
+
+  // Détermine si on est en mode groupe (plusieurs amis) ou 1v1
+  // En mode groupe, friendshipId est undefined et on a un param "ids"
+  const groupIds = searchParams.get("ids");
+  const isGroupMode = !friendshipId && !!groupIds;
 
   // --- Données ---
   // Liste des films matchés renvoyés par l'API
   const [matchedFilms, setMatchedFilms] = useState([]);
-  // Le pseudo de l'ami (pour l'afficher dans le titre)
+  // Mode 1v1 : le pseudo de l'ami (string)
+  // Mode groupe : liste des amis [{ username, avatar }, ...]
   const [friendName, setFriendName] = useState("");
+  const [groupFriends, setGroupFriends] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // --- Menu hamburger ---
@@ -60,43 +71,55 @@ function MatchList() {
   /**
    * Charge les films matchés et les options de filtres au montage.
    *
-   * On fait 3 appels en parallèle :
-   * 1. Les matchs (GET /api/friends/<id>/matches/)
-   * 2. Les genres disponibles (pour le filtre)
-   * 3. Les plateformes disponibles (pour le filtre)
-   *
-   * On récupère aussi la liste d'amis pour trouver le pseudo de l'ami.
+   * 2 modes :
+   * - Mode 1v1 : GET /api/friends/<id>/matches/ + recherche du nom de l'ami
+   * - Mode groupe : GET /api/friends/group-matches/?ids=12,34,56
+   *   L'API groupe renvoie directement les noms/avatars des amis.
    */
   useEffect(() => {
     async function fetchData() {
       try {
-        const [matchesRes, genresRes, plateformsRes, friendsRes] =
-          await Promise.all([
-            api.get(`/api/friends/${friendshipId}/matches/`),
+        if (isGroupMode) {
+          // --- Mode groupe ---
+          // On appelle le nouvel endpoint qui fait l'intersection de N listes
+          const [groupRes, genresRes, plateformsRes] = await Promise.all([
+            api.get(`/api/friends/group-matches/?ids=${groupIds}`),
             api.get("/api/genres/"),
             api.get("/api/platforms/"),
-            api.get("/api/friends/"),
           ]);
 
-        setMatchedFilms(matchesRes.data);
-        setAvailableGenres(genresRes.data);
-        setAvailablePlateforms(plateformsRes.data);
+          // L'API renvoie { films: [...], friends: [{username, avatar}, ...] }
+          setMatchedFilms(groupRes.data.films);
+          setGroupFriends(groupRes.data.friends);
+          setAvailableGenres(genresRes.data);
+          setAvailablePlateforms(plateformsRes.data);
+        } else {
+          // --- Mode 1v1 (comportement existant) ---
+          const [matchesRes, genresRes, plateformsRes, friendsRes] =
+            await Promise.all([
+              api.get(`/api/friends/${friendshipId}/matches/`),
+              api.get("/api/genres/"),
+              api.get("/api/platforms/"),
+              api.get("/api/friends/"),
+            ]);
 
-        // Trouver le pseudo de l'ami dans la liste d'amitiés.
-        // On cherche l'amitié qui correspond au friendshipId dans l'URL.
-        const friendship = friendsRes.data.find(
-          (f) => f.id === parseInt(friendshipId)
-        );
-        if (friendship) {
-          // On récupère notre propre ID pour savoir qui est "l'autre"
-          const userRes = await api.get("/api/users/me/");
-          const myId = userRes.data.id;
-          // Si je suis le sender, l'ami est le receiver (et vice versa)
-          setFriendName(
-            friendship.sender === myId
-              ? friendship.receiver_username
-              : friendship.sender_username
+          setMatchedFilms(matchesRes.data);
+          setAvailableGenres(genresRes.data);
+          setAvailablePlateforms(plateformsRes.data);
+
+          // Trouver le pseudo de l'ami dans la liste d'amitiés
+          const friendship = friendsRes.data.find(
+            (f) => f.id === parseInt(friendshipId)
           );
+          if (friendship) {
+            const userRes = await api.get("/api/users/me/");
+            const myId = userRes.data.id;
+            setFriendName(
+              friendship.sender === myId
+                ? friendship.receiver_username
+                : friendship.sender_username
+            );
+          }
         }
       } catch (error) {
         console.error("Erreur lors du chargement des matchs :", error);
@@ -106,7 +129,7 @@ function MatchList() {
     }
 
     fetchData();
-  }, [friendshipId]);
+  }, [friendshipId, groupIds, isGroupMode]);
 
   /**
    * Applique les filtres sélectionnés dans le bottom sheet.
@@ -212,7 +235,11 @@ function MatchList() {
             ←
           </button>
           <h1 className="film-list__title">
-            {friendName ? `Matchs avec ${friendName}` : "Matchs"}
+            {isGroupMode
+              ? "Matchs de groupe"
+              : friendName
+                ? `Matchs avec ${friendName}`
+                : "Matchs"}
           </h1>
         </div>
 
@@ -308,6 +335,26 @@ function MatchList() {
         </div>
       </div>
 
+      {/* En mode groupe, on affiche les avatars des amis sélectionnés
+          sous le header pour rappeler qui participe à la soirée. */}
+      {isGroupMode && groupFriends.length > 0 && (
+        <div className="match-list__group-members">
+          <span className="match-list__group-label">Avec</span>
+          {groupFriends.map((friend, index) => (
+            <div key={index} className="match-list__group-member">
+              <div className="match-list__group-avatar">
+                <img
+                  className="match-list__group-avatar-img"
+                  src={getAvatarUrl(friend.avatar)}
+                  alt={friend.username}
+                />
+              </div>
+              <span className="match-list__group-name">{friend.username}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Contenu */}
       {loading ? (
         <div className="film-list__loading">Chargement...</div>
@@ -316,7 +363,9 @@ function MatchList() {
           <div className="film-list__empty-icon">🎬</div>
           <h2 className="film-list__empty-title">Aucun match pour l'instant</h2>
           <p className="film-list__empty-text">
-            Continuez à swiper tous les deux pour trouver des films en commun !
+            {isGroupMode
+              ? "Aucun film n'a été liké par tout le groupe. Continuez tous à swiper !"
+              : "Continuez à swiper tous les deux pour trouver des films en commun !"}
           </p>
         </div>
       ) : (

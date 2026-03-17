@@ -1043,6 +1043,118 @@ class MatchListView(APIView):
         return Response(serializer.data)
 
 
+class GroupMatchListView(APIView):
+    """
+    Renvoie les films likés en commun entre l'utilisateur connecté
+    et PLUSIEURS amis (mode "soirée cinéma").
+
+    - GET /api/friends/group-matches/?ids=12,34,56
+
+    Le paramètre "ids" contient les IDs des relations d'amitié
+    (les mêmes IDs qu'on utilise pour /api/friends/<id>/matches/).
+
+    Logique :
+    1. Vérifier que chaque amitié existe, est acceptée, et inclut le user
+    2. Récupérer la liste d'amis correspondants
+    3. Calculer l'intersection : les films likés par le user ET par TOUS les amis
+
+    Renvoie aussi la liste des noms/avatars des amis sélectionnés
+    pour l'affichage dans le header de la page.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Renvoie les films matchés avec un groupe d'amis."""
+        user = request.user
+
+        # Récupérer les IDs depuis le query param "ids" (ex: "12,34,56")
+        ids_param = request.query_params.get("ids", "")
+        if not ids_param:
+            return Response(
+                {"error": "Le paramètre 'ids' est requis (ex: ?ids=12,34,56)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Convertir la chaîne "12,34,56" en liste d'entiers [12, 34, 56]
+        try:
+            friendship_ids = [int(x) for x in ids_param.split(",") if x]
+        except ValueError:
+            return Response(
+                {"error": "Les IDs doivent être des nombres séparés par des virgules."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(friendship_ids) == 0:
+            return Response(
+                {"error": "Au moins un ID d'amitié est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier chaque amitié et récupérer les amis
+        friends = []
+        friends_info = []  # Pour renvoyer les noms/avatars au frontend
+
+        for fid in friendship_ids:
+            try:
+                friendship = Friendship.objects.select_related(
+                    "sender", "sender__profile", "receiver", "receiver__profile"
+                ).get(pk=fid, accepted=True)
+            except Friendship.DoesNotExist:
+                return Response(
+                    {"error": f"Amitié {fid} introuvable ou pas encore acceptée."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Vérifier que le user fait partie de cette amitié
+            if user != friendship.sender and user != friendship.receiver:
+                return Response(
+                    {"error": f"Vous ne faites pas partie de l'amitié {fid}."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Déterminer qui est l'ami (l'autre personne)
+            friend = friendship.receiver if user == friendship.sender else friendship.sender
+            friends.append(friend)
+
+            # Récupérer l'avatar via le profil (ou un avatar par défaut)
+            avatar = "avatar-popcorn.svg"
+            if hasattr(friend, "profile") and friend.profile.avatar:
+                avatar = friend.profile.avatar
+
+            friends_info.append({
+                "username": friend.username,
+                "avatar": avatar,
+            })
+
+        # Calculer l'intersection des likes
+        # On part des films likés par le user connecté
+        matched_film_ids = set(
+            Swipe.objects.filter(
+                user=user, status="like"
+            ).values_list("film_id", flat=True)
+        )
+
+        # Pour chaque ami, on fait l'intersection avec ses likes
+        # À la fin, il ne reste que les films likés par TOUT LE MONDE
+        for friend in friends:
+            friend_likes = set(
+                Swipe.objects.filter(
+                    user=friend, status="like"
+                ).values_list("film_id", flat=True)
+            )
+            matched_film_ids &= friend_likes  # &= est l'intersection de sets
+
+        # Récupérer les objets Films correspondants
+        matched_films = Films.objects.filter(id__in=matched_film_ids)
+
+        serializer = FilmsSerializer(matched_films, many=True)
+        return Response({
+            "films": serializer.data,
+            "friends": friends_info,
+        })
+
+
 class ForgotPasswordView(APIView):
     """
     Envoie un email de réinitialisation de mot de passe.

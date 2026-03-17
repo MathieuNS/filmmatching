@@ -274,6 +274,117 @@
   border-color: rgba(255, 77, 106, 0.3);
 }
 
+/* --- Header de section (titre + bouton soirée cinéma) --- */
+.friends__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* --- Bouton "Soirée cinéma" --- */
+.friends__group-btn {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(46, 224, 161, 0.3);
+  background-color: rgba(46, 224, 161, 0.1);
+  color: #2EE0A1;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.friends__group-btn:hover {
+  background-color: rgba(46, 224, 161, 0.18);
+  box-shadow: 0 4px 16px rgba(46, 224, 161, 0.2);
+}
+
+/* État actif : le bouton change de couleur quand le mode est activé */
+.friends__group-btn--active {
+  border-color: rgba(139, 139, 158, 0.3);
+  background-color: rgba(139, 139, 158, 0.1);
+  color: #8B8B9E;
+}
+
+.friends__group-btn--active:hover {
+  background-color: rgba(139, 139, 158, 0.18);
+  box-shadow: none;
+}
+
+/* Texte d'aide en mode sélection */
+.friends__select-hint {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: #8B8B9E;
+  margin: 0;
+  padding: 0 4px;
+}
+
+/* --- Checkbox custom (mode sélection) --- */
+.friends__checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid #2A2A32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: transparent;
+  transition: all 0.25s ease;
+}
+
+/* Checkbox cochée : fond vert + coche blanche */
+.friends__checkbox--checked {
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* Carte sélectionnée : bordure verte */
+.friends__card--selected {
+  border-color: rgba(46, 224, 161, 0.4);
+  background-color: rgba(46, 224, 161, 0.05);
+}
+
+/* --- Bouton flottant "Voir les matchs" --- */
+.friends__floating-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  /* Dégradé pour que le bouton ne soit pas "collé" au contenu en dessous */
+  background: linear-gradient(transparent, #0D0D0F 30%);
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+}
+
+.friends__floating-btn {
+  width: 100%;
+  max-width: 560px;
+  padding: 16px;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.3);
+}
+
+.friends__floating-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(46, 224, 161, 0.45);
+}
+
 /* --- Formulaire d'envoi de demande d'ami --- */
 .friends__add-form {
   display: flex;

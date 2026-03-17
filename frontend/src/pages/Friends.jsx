@@ -34,6 +34,12 @@ function Friends() {
   const [friendships, setFriendships] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // --- Mode "Soirée cinéma" (sélection multi-amis) ---
+  // Quand selectMode est true, des checkboxes apparaissent sur chaque ami
+  const [selectMode, setSelectMode] = useState(false);
+  // Set d'IDs des amitiés sélectionnées (on utilise un Set pour ajouter/retirer facilement)
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   // --- Formulaire d'ajout d'ami ---
   const [searchQuery, setSearchQuery] = useState("");
   const [sending, setSending] = useState(false);
@@ -253,6 +259,42 @@ function Friends() {
     }
   }
 
+  /**
+   * Ajoute ou retire un ami de la sélection "soirée cinéma".
+   *
+   * On utilise un Set (ensemble) au lieu d'un tableau car :
+   * - .has() vérifie si un élément existe en O(1) (instantané)
+   * - .add() et .delete() ajoutent/retirent sans doublons
+   *
+   * On crée un nouveau Set à chaque modification car React ne détecte
+   * un changement de state que si la RÉFÉRENCE change (nouvel objet).
+   * Modifier le Set existant ne déclencherait pas de re-render.
+   *
+   * @param {number} friendshipId - L'ID de l'amitié à sélectionner/désélectionner
+   */
+  function toggleSelection(friendshipId) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(friendshipId)) {
+        next.delete(friendshipId);
+      } else {
+        next.add(friendshipId);
+      }
+      return next;
+    });
+  }
+
+  /**
+   * Navigue vers la page des matchs de groupe.
+   * On passe les IDs des amitiés sélectionnées en query params.
+   * Ex: /amis/groupe/matchs?ids=12,34,56
+   */
+  function handleGroupMatch() {
+    if (selectedIds.size < 2) return;
+    const idsString = Array.from(selectedIds).join(",");
+    navigate(`/amis/groupe/matchs?ids=${idsString}`);
+  }
+
   // --- Tri des amitiés en 3 catégories ---
   // On utilise l'ID de l'utilisateur connecté pour déterminer son rôle
 
@@ -430,12 +472,36 @@ function Friends() {
 
           {/* === Section : Amis confirmés === */}
           <div className="friends__section">
-            <h2 className="friends__section-title">
-              Amis
-              <span className="friends__section-badge friends__section-badge--friends">
-                {confirmedFriends.length}
-              </span>
-            </h2>
+            <div className="friends__section-header">
+              <h2 className="friends__section-title">
+                Amis
+                <span className="friends__section-badge friends__section-badge--friends">
+                  {confirmedFriends.length}
+                </span>
+              </h2>
+
+              {/* Bouton pour activer/désactiver le mode sélection multi-amis.
+                  Visible seulement s'il y a au moins 2 amis (sinon pas d'intérêt). */}
+              {confirmedFriends.length >= 2 && (
+                <button
+                  className={`friends__group-btn ${selectMode ? "friends__group-btn--active" : ""}`}
+                  onClick={() => {
+                    setSelectMode(!selectMode);
+                    // Quand on désactive le mode, on vide la sélection
+                    if (selectMode) setSelectedIds(new Set());
+                  }}
+                >
+                  🎬 {selectMode ? "Annuler" : "Soirée cinéma"}
+                </button>
+              )}
+            </div>
+
+            {/* Explication du mode sélection — visible seulement en mode sélection */}
+            {selectMode && (
+              <p className="friends__select-hint">
+                Sélectionne au moins 2 amis pour voir les films en commun entre vous tous.
+              </p>
+            )}
 
             {confirmedFriends.length === 0 ? (
               <p className="friends__empty">
@@ -443,39 +509,73 @@ function Friends() {
               </p>
             ) : (
               confirmedFriends.map((friendship) => (
-                <div key={friendship.id} className="friends__card friends__card--friend">
-                  {/* Zone cliquable : avatar + nom → ouvre la page des matchs */}
-                  <div
-                    className="friends__card-info friends__card-info--clickable"
-                    onClick={() => navigate(`/amis/${friendship.id}/matchs`)}
-                  >
-                    <div className="friends__card-avatar">
-                      <img
-                        className="friends__card-avatar-img"
-                        src={getAvatarUrl(getFriendAvatar(friendship))}
-                        alt="Avatar"
-                      />
-                    </div>
-                    <div>
-                      <div className="friends__card-name">
-                        {getFriendName(friendship)}
+                <div
+                  key={friendship.id}
+                  className={`friends__card friends__card--friend ${
+                    selectMode && selectedIds.has(friendship.id) ? "friends__card--selected" : ""
+                  }`}
+                >
+                  {/* En mode sélection : checkbox + clic sur toute la carte pour cocher/décocher.
+                      En mode normal : clic sur avatar+nom → page des matchs 1v1. */}
+                  {selectMode ? (
+                    <div
+                      className="friends__card-info friends__card-info--clickable"
+                      onClick={() => toggleSelection(friendship.id)}
+                    >
+                      {/* Checkbox visuelle (custom, pas un <input> natif) */}
+                      <div className={`friends__checkbox ${
+                        selectedIds.has(friendship.id) ? "friends__checkbox--checked" : ""
+                      }`}>
+                        {selectedIds.has(friendship.id) && "✓"}
                       </div>
-                      <div className="friends__card-status">
-                        Voir les matchs →
+                      <div className="friends__card-avatar">
+                        <img
+                          className="friends__card-avatar-img"
+                          src={getAvatarUrl(getFriendAvatar(friendship))}
+                          alt="Avatar"
+                        />
+                      </div>
+                      <div>
+                        <div className="friends__card-name">
+                          {getFriendName(friendship)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <button
-                    className="friends__remove-btn"
-                    onClick={(e) => {
-                      // stopPropagation empêche le clic de naviguer vers la page matchs
-                      e.stopPropagation();
-                      handleDelete(friendship.id);
-                    }}
-                    aria-label={`Supprimer ${getFriendName(friendship)}`}
-                  >
-                    Retirer
-                  </button>
+                  ) : (
+                    <>
+                      {/* Zone cliquable : avatar + nom → ouvre la page des matchs */}
+                      <div
+                        className="friends__card-info friends__card-info--clickable"
+                        onClick={() => navigate(`/amis/${friendship.id}/matchs`)}
+                      >
+                        <div className="friends__card-avatar">
+                          <img
+                            className="friends__card-avatar-img"
+                            src={getAvatarUrl(getFriendAvatar(friendship))}
+                            alt="Avatar"
+                          />
+                        </div>
+                        <div>
+                          <div className="friends__card-name">
+                            {getFriendName(friendship)}
+                          </div>
+                          <div className="friends__card-status">
+                            Voir les matchs →
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        className="friends__remove-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(friendship.id);
+                        }}
+                        aria-label={`Supprimer ${getFriendName(friendship)}`}
+                      >
+                        Retirer
+                      </button>
+                    </>
+                  )}
                 </div>
               ))
             )}
@@ -584,6 +684,20 @@ function Friends() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Bouton flottant "Voir les matchs" — visible en mode sélection
+          quand au moins 2 amis sont cochés.
+          Fixé en bas de l'écran pour être toujours accessible. */}
+      {selectMode && selectedIds.size >= 2 && (
+        <div className="friends__floating-bar">
+          <button
+            className="friends__floating-btn"
+            onClick={handleGroupMatch}
+          >
+            🎬 Voir les matchs ({selectedIds.size} amis)
+          </button>
         </div>
       )}
 
