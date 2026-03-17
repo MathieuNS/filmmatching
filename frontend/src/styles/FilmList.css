@@ -105,6 +105,150 @@
   font-weight: 700;
 }
 
+/* --- Barre de recherche avec autocomplétion --- */
+
+/* Conteneur principal : position relative pour que les suggestions
+   se positionnent en dessous du champ (en absolute) */
+.film-list__search-container {
+  position: relative;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 20px;
+}
+
+/* Wrapper du champ : contient l'icône + l'input + le bouton clear */
+.film-list__search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background-color: #1E1E24;
+  transition: all 0.25s ease;
+}
+
+/* Quand le champ est focus, on met en avant la bordure */
+.film-list__search-input-wrapper:focus-within {
+  border-color: rgba(123, 92, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.1);
+}
+
+.film-list__search-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.film-list__search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.film-list__search-input::placeholder {
+  color: #8B8B9E;
+}
+
+/* Bouton "x" pour effacer la recherche */
+.film-list__search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #8B8B9E;
+  font-size: 0.7rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.film-list__search-clear:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #F0EEF2;
+}
+
+/* --- Liste de suggestions (autocomplétion) --- */
+.film-list__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  /* z-index élevé pour passer au-dessus des cartes */
+  z-index: 30;
+  animation: cardMenuFadeIn 0.15s ease;
+}
+
+/* Chaque suggestion : bouton full-width avec image + texte */
+.film-list__suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.film-list__suggestion-item:hover {
+  background-color: rgba(123, 92, 255, 0.1);
+}
+
+/* Séparateur entre les suggestions */
+.film-list__suggestions li + li .film-list__suggestion-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Mini affiche du film dans la suggestion */
+.film-list__suggestion-img {
+  width: 32px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.film-list__suggestion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.film-list__suggestion-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #F0EEF2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.film-list__suggestion-year {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  color: #8B8B9E;
+}
+
 /* --- Grille de cartes --- */
 .film-list__grid {
   display: grid;
