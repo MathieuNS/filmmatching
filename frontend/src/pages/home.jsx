@@ -528,7 +528,6 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
-        <TmdbAttribution />
       </div>
     );
   }
@@ -553,7 +552,6 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
-        <TmdbAttribution />
       </div>
     );
   }
@@ -687,7 +685,6 @@ function Home() {
         availablePlateforms={availablePlateforms}
       />
 
-      <TmdbAttribution />
 
       {/* === Overlay d'animation de match === */}
       {/* S'affiche quand on like un film qu'un ami a aussi liké */}
