@@ -9,6 +9,7 @@ from api.views import (
     DeleteAccountView,
     UpdateAvatarView,
     UserSearchView,
+    FilmSearchView,
     FilmListCreateView,
     RandomFilmView,
     GenreListView,
@@ -60,6 +61,8 @@ urlpatterns = [
 
     # --- Films ---
     path('api/films/', FilmListCreateView.as_view(), name='film-list-create'),
+    # Recherche de films par titre (autocomplétion sur la page Home)
+    path('api/films/search/', FilmSearchView.as_view(), name='film-search'),
     path('api/films/random/', RandomFilmView.as_view(), name='film-random'),
 
     # --- Genres et Plateformes (pour les filtres) ---

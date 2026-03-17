@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
+import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/Home.css";
@@ -40,6 +41,16 @@ function Home() {
   // --- State pour le menu de navigation ---
   // true = le menu hamburger est ouvert, false = fermé
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- State pour la recherche de films ---
+  // isSearchOpen : contrôle l'affichage de l'overlay de recherche
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // searchQuery : le texte tapé par l'utilisateur dans le champ
+  const [searchQuery, setSearchQuery] = useState("");
+  // searchResults : les films renvoyés par l'API de recherche
+  const [searchResults, setSearchResults] = useState([]);
+  // searchLoading : true pendant qu'on attend la réponse de l'API
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // --- State pour l'animation de match ---
   // Contient les données du match à afficher (film + amis), ou null si pas de match
@@ -248,6 +259,54 @@ function Home() {
     }
   }
 
+  // --- Recherche de films avec debounce ---
+  // useEffect surveille searchQuery : à chaque changement, on attend 300ms
+  // avant d'appeler l'API. Si l'utilisateur tape une autre lettre avant 300ms,
+  // le timer précédent est annulé (clearTimeout) → on n'envoie qu'une requête
+  // pour le texte final, pas une par lettre.
+  useEffect(() => {
+    // Pas de recherche si moins de 2 caractères
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    // setTimeout renvoie un ID qu'on peut annuler avec clearTimeout
+    const timer = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await api.get(`/api/films/search/?q=${encodeURIComponent(searchQuery)}`);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error("Erreur lors de la recherche :", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    // Cleanup : si searchQuery change avant 300ms, on annule le timer précédent
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  /**
+   * Quand l'utilisateur clique sur un film dans les suggestions :
+   * on injecte ce film dans le state "film" (celui affiché sur la carte)
+   * pour que l'utilisateur puisse le swiper normalement.
+   *
+   * @param {Object} selectedFilm - Le film choisi dans les résultats de recherche
+   */
+  function handleSearchSelect(selectedFilm) {
+    // On remplace le film affiché par celui sélectionné
+    setFilm(selectedFilm);
+    // On ferme l'overlay de recherche et on remet tout à zéro
+    setIsSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    // On reset l'état "plus de films" au cas où il était actif
+    setNoMoreFilms(false);
+  }
+
   /**
    * Appelée quand l'utilisateur clique "Appliquer" dans le bottom sheet.
    * Met à jour les filtres actifs, ce qui déclenche le useEffect
@@ -440,8 +499,21 @@ function Home() {
         FilmMatching
       </div>
 
-      {/* Groupe de boutons à droite : filtres + menu hamburger */}
+      {/* Groupe de boutons à droite : recherche + filtres + menu hamburger */}
       <div className="home__header-actions">
+        {/* Bouton loupe — ouvre l'overlay de recherche de films */}
+        <button
+          className="home__search-btn"
+          onClick={() => setIsSearchOpen(true)}
+          aria-label="Rechercher un film"
+        >
+          {/* SVG loupe — plus net qu'un emoji */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+
         <button
           className="home__filter-btn"
           onClick={() => setIsFilterOpen(true)}
@@ -514,6 +586,87 @@ function Home() {
     </div>
   );
 
+  // --- Overlay de recherche réutilisable (comme filterButton) ---
+  // On le définit ici pour ne pas le dupliquer dans chaque return.
+  const searchOverlay = isSearchOpen && (
+    <div className="home__search-overlay">
+      <div
+        className="home__search-overlay-backdrop"
+        onClick={() => {
+          setIsSearchOpen(false);
+          setSearchQuery("");
+          setSearchResults([]);
+        }}
+      />
+      <div className="home__search-overlay-content">
+        <div className="home__search-input-wrapper">
+          <span className="home__search-input-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            className="home__search-input"
+            placeholder="Rechercher un film..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoFocus
+          />
+          <button
+            className="home__search-close"
+            onClick={() => {
+              setIsSearchOpen(false);
+              setSearchQuery("");
+              setSearchResults([]);
+            }}
+            aria-label="Fermer la recherche"
+          >
+            ✕
+          </button>
+        </div>
+
+        {searchLoading && (
+          <div className="home__search-loading">Recherche...</div>
+        )}
+
+        {!searchLoading && searchResults.length > 0 && (
+          <ul className="home__search-results">
+            {searchResults.map((result) => (
+              <li key={result.id}>
+                <button
+                  className="home__search-result-item"
+                  onClick={() => handleSearchSelect(result)}
+                >
+                  <img
+                    className="home__search-result-img"
+                    src={result.img}
+                    alt={result.title}
+                  />
+                  <div className="home__search-result-info">
+                    <span className="home__search-result-title">
+                      {result.title}
+                    </span>
+                    <span className="home__search-result-year">
+                      {result.release_year}
+                    </span>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
+          <div className="home__search-no-results">
+            Aucun film trouvé pour « {searchQuery} »
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   // --- Affichage pendant le chargement ---
   if (loading) {
     return (
@@ -528,6 +681,7 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
+        {searchOverlay}
       </div>
     );
   }
@@ -552,6 +706,7 @@ function Home() {
           availableGenres={availableGenres}
           availablePlateforms={availablePlateforms}
         />
+        {searchOverlay}
       </div>
     );
   }
@@ -674,6 +829,9 @@ function Home() {
           </span>
         </div>
       </div>
+
+      {/* Overlay de recherche (variable réutilisable définie plus haut) */}
+      {searchOverlay}
 
       {/* Bottom sheet de filtres */}
       <FilterBottomSheet
