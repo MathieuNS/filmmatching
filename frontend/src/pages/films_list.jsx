@@ -52,6 +52,13 @@ function FilmList() {
   // --- State pour le menu de navigation (hamburger) ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // --- State pour la barre de recherche ---
+  // searchQuery : le texte tapé par l'utilisateur dans le champ
+  const [searchQuery, setSearchQuery] = useState("");
+  // showSuggestions : contrôle l'affichage de la liste d'autocomplétion.
+  // On la masque quand l'utilisateur clique sur une suggestion ou ailleurs.
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   // Ferme le menu contextuel d'une carte quand on clique n'importe où sur la page.
   // Le backdrop en position: fixed ne fonctionne pas car la carte a overflow: hidden,
   // donc on utilise un listener global sur le document à la place.
@@ -232,6 +239,14 @@ function FilmList() {
     return swipeList.filter((swipe) => {
       const film = swipe.film;
 
+      // Filtre par recherche : si l'utilisateur a tapé quelque chose,
+      // on ne garde que les films dont le titre contient le texte
+      if (searchQuery.length >= 2) {
+        if (!film.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+      }
+
       // Filtre par type (Film ou Serie)
       if (activeFilters.type && film.type !== activeFilters.type) {
         return false;
@@ -268,6 +283,28 @@ function FilmList() {
       return true;
     });
   }
+
+  // Quand l'utilisateur change d'onglet, on vide la recherche
+  // pour éviter de garder un filtre qui ne correspond pas au nouvel onglet
+  useEffect(() => {
+    setSearchQuery("");
+    setShowSuggestions(false);
+  }, [activeTab]);
+
+  /**
+   * Calcule les suggestions d'autocomplétion.
+   * On cherche les films dont le titre contient le texte tapé (insensible à la casse).
+   * On limite à 5 suggestions pour ne pas surcharger l'écran.
+   *
+   * @type {Array} Liste des swipes dont le titre matche la recherche
+   */
+  const suggestions = searchQuery.length >= 2
+    ? swipes[activeTab]
+        .filter((swipe) =>
+          swipe.film.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .slice(0, 5)
+    : [];
 
   // Nombre de filtres actifs (pour le badge sur le bouton)
   const filterCount =
@@ -411,6 +448,80 @@ function FilmList() {
             </span>
           </button>
         ))}
+      </div>
+
+      {/* --- Barre de recherche avec autocomplétion ---
+           Le conteneur a position: relative pour que la liste de suggestions
+           se positionne juste en dessous du champ (position: absolute). */}
+      <div className="film-list__search-container">
+        <div className="film-list__search-input-wrapper">
+          <span className="film-list__search-icon">🔍</span>
+          <input
+            type="text"
+            className="film-list__search-input"
+            placeholder="Rechercher un titre..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              // On affiche les suggestions dès que l'utilisateur tape
+              setShowSuggestions(true);
+            }}
+            // onFocus : si le champ a déjà du texte et qu'on clique dessus,
+            // on réaffiche les suggestions (utile si elles ont été fermées)
+            onFocus={() => {
+              if (searchQuery.length >= 2) setShowSuggestions(true);
+            }}
+          />
+          {/* Bouton "x" pour effacer la recherche — visible seulement s'il y a du texte */}
+          {searchQuery && (
+            <button
+              className="film-list__search-clear"
+              onClick={() => {
+                setSearchQuery("");
+                setShowSuggestions(false);
+              }}
+              aria-label="Effacer la recherche"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Liste de suggestions — visible seulement si :
+            - showSuggestions est true (pas cliqué ailleurs)
+            - il y a au moins 2 caractères tapés
+            - il y a des résultats */}
+        {showSuggestions && suggestions.length > 0 && (
+          <ul className="film-list__suggestions">
+            {suggestions.map((swipe) => (
+              <li key={swipe.id}>
+                <button
+                  className="film-list__suggestion-item"
+                  onClick={() => {
+                    // On remplit le champ avec le titre exact du film
+                    setSearchQuery(swipe.film.title);
+                    // On ferme les suggestions
+                    setShowSuggestions(false);
+                  }}
+                >
+                  <img
+                    className="film-list__suggestion-img"
+                    src={swipe.film.img}
+                    alt={swipe.film.title}
+                  />
+                  <div className="film-list__suggestion-info">
+                    <span className="film-list__suggestion-title">
+                      {swipe.film.title}
+                    </span>
+                    <span className="film-list__suggestion-year">
+                      {swipe.film.release_year}
+                    </span>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Contenu : chargement / liste vide / grille de films */}
