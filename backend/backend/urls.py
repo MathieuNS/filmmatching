@@ -20,6 +20,7 @@ from api.views import (
     FriendshipAcceptView,
     FriendshipDeleteView,
     MatchListView,
+    GroupMatchListView,
     FriendsLikesView,
     ContactView,
     ForgotPasswordView,
@@ -77,6 +78,8 @@ urlpatterns = [
     # IMPORTANT : cette route doit être AVANT les routes avec <int:pk>
     # sinon Django essaierait d'interpréter "common-likes" comme un nombre
     path('api/friends/common-likes/', FriendsLikesView.as_view(), name='friends-common-likes'),
+    # Matchs de groupe : films likés en commun avec plusieurs amis (soirée cinéma)
+    path('api/friends/group-matches/', GroupMatchListView.as_view(), name='group-match-list'),
     path('api/friends/<int:pk>/accept/', FriendshipAcceptView.as_view(), name='friendship-accept'),
     # Supprimer une amitié ou annuler une demande en attente
     path('api/friends/<int:pk>/delete/', FriendshipDeleteView.as_view(), name='friendship-delete'),

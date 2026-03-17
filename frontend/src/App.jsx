@@ -42,6 +42,9 @@ function App() {
         <Route path="/amis" element={<ProtectedRoute>
           <Friends />
           </ProtectedRoute>} />
+        <Route path="/amis/groupe/matchs" element={<ProtectedRoute>
+          <MatchList />
+          </ProtectedRoute>} />
         <Route path="/amis/:friendshipId/matchs" element={<ProtectedRoute>
           <MatchList />
           </ProtectedRoute>} />

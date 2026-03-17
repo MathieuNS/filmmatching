@@ -157,6 +157,61 @@
   box-shadow: 0 4px 16px rgba(46, 224, 161, 0.3);
 }
 
+/* --- Barre d'avatars du groupe (mode soirée cinéma) --- */
+.match-list__group-members {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  background-color: #16161A;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  /* Scroll horizontal si beaucoup d'amis */
+  overflow-x: auto;
+}
+
+.match-list__group-label {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: #8B8B9E;
+  flex-shrink: 0;
+}
+
+/* Chaque membre du groupe : avatar + pseudo */
+.match-list__group-member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.match-list__group-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7B5CFF, #FF4D6A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.match-list__group-avatar-img {
+  width: 18px;
+  height: 18px;
+}
+
+.match-list__group-name {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #F0EEF2;
+  white-space: nowrap;
+}
+
 /* --- Compteur de matchs dans le header --- */
 .match-list__count {
   font-family: 'Sora', sans-serif;
