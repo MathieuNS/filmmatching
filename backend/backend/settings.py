@@ -265,6 +265,17 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'INFO',
         },
+        # Handler dédié aux scripts (get_films.py, get_genres.py).
+        # Fichier séparé pour pouvoir vérifier facilement si les scripts
+        # hebdomadaires ont bien tourné sur le VPS.
+        'scripts_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'scripts.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 Mo
+            'backupCount': 3,
+            'formatter': 'verbose',
+            'level': 'DEBUG',
+        },
         # Handler séparé pour les erreurs uniquement
         # Permet de retrouver rapidement les problèmes critiques
         # sans chercher dans des centaines de lignes INFO
@@ -286,6 +297,15 @@ LOGGING = {
             'handlers': ['console', 'file', 'error_file'],
             # DEBUG en dev pour tout voir, à passer en INFO en production
             'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        # Logger pour les scripts autonomes (get_films.py, get_genres.py).
+        # Écrit dans logs/scripts.log + console + errors.log si erreur.
+        # Niveau DEBUG pour tout capturer (les détails film par film sont en DEBUG,
+        # les résumés en INFO, les problèmes en ERROR).
+        'scripts': {
+            'handlers': ['console', 'scripts_file', 'error_file'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         # Logger Django : capture les erreurs internes de Django
