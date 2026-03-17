@@ -572,6 +572,47 @@ class PlateformListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
 
+class FilmSearchView(APIView):
+    """
+    Recherche de films par titre (partiel ou exact).
+
+    - GET /api/films/search/?q=incep  → liste jusqu'à 8 films dont le titre contient "incep"
+    - Accessible uniquement aux utilisateurs connectés.
+
+    Utilisé par la page Home pour chercher un film précis à swiper.
+    L'utilisateur tape quelques lettres et voit des suggestions.
+
+    icontains = "case-insensitive contains" → "incep" trouve "Inception", "INCEPTION"...
+    On limite à 8 résultats pour garder la liste courte et rapide.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Cherche des films dont le titre contient la query.
+
+        Renvoie une liste sérialisée avec tous les champs du film
+        (titre, image, genres, etc.) pour l'affichage et le swipe.
+        """
+        query = request.query_params.get('q', '').strip()
+        if not query or len(query) < 2:
+            return Response(
+                {"error": "Le paramètre 'q' doit contenir au moins 2 caractères."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # title__icontains : recherche partielle insensible à la casse
+        # [:8] limite à 8 résultats (LIMIT 8 en SQL)
+        films = Films.objects.filter(
+            title__icontains=query
+        )[:8]
+
+        # On utilise le FilmsSerializer pour renvoyer tous les champs du film
+        serializer = FilmsSerializer(films, many=True)
+        return Response(serializer.data)
+
+
 class FilmListCreateView(generics.ListCreateAPIView):
     """
     Vue pour lister tous les films et en ajouter de nouveaux.

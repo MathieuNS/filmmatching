@@ -363,9 +363,7 @@ function MatchList() {
           <div className="film-list__empty-icon">🎬</div>
           <h2 className="film-list__empty-title">Aucun match pour l'instant</h2>
           <p className="film-list__empty-text">
-            {isGroupMode
-              ? "Aucun film n'a été liké par tout le groupe. Continuez tous à swiper !"
-              : "Continuez à swiper tous les deux pour trouver des films en commun !"}
+              Aucun film en commun. Continuez tous à swiper !
           </p>
         </div>
       ) : (
