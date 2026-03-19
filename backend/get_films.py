@@ -6,6 +6,8 @@ Ce module contient les fonctions pour récupérer les films et séries ainsi que
 from calendar import monthrange
 
 import sys
+import argparse
+import re
 import requests
 from dotenv import load_dotenv
 import os
@@ -229,14 +231,62 @@ def get_films_and_series(url,
     return list_films
 
 
+def parse_start_date(value):
+    """Convertit l'argument --start-date en objet datetime.
+
+    Accepte deux formats :
+    - Relatif : "7d" → 7 jours avant aujourd'hui, "30d" → 30 jours avant
+    - Absolu : "1950-01-01" → date exacte au format AAAA-MM-JJ
+
+    Args:
+        value (str): La valeur passée en argument (ex: "7d" ou "1950-01-01")
+
+    Returns:
+        datetime: La date de début calculée
+
+    Raises:
+        argparse.ArgumentTypeError: Si le format n'est ni relatif ni une date valide
+    """
+    # Format relatif : un nombre suivi de "d" (pour "days")
+    # re.match cherche le pattern au début de la chaîne
+    match = re.match(r"^(\d+)d$", value)
+    if match:
+        days = int(match.group(1))
+        return datetime.now() - relativedelta(days=days)
+
+    # Format absolu : une date au format AAAA-MM-JJ
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Format invalide : '{value}'. Utilise '7d' (relatif) ou '1950-01-01' (absolu)."
+        )
+
+
 if __name__ == "__main__":
 
-    logger.info("=== Début de la récupération des films et séries depuis TMDB ===")
+    # --- Parsing des arguments en ligne de commande ---
+    # argparse permet de passer des options au script depuis le terminal.
+    # Exemple : python get_films.py --start-date 7d
+    parser = argparse.ArgumentParser(
+        description="Récupère les films et séries depuis l'API TMDB et les enregistre en BDD."
+    )
+    parser.add_argument(
+        "--start-date",
+        type=parse_start_date,
+        default=datetime(1950, 1, 1),
+        help="Date de début. Relatif : '7d' (7 jours en arrière). Absolu : '1950-01-01'. Par défaut : 1950-01-01."
+    )
+    args = parser.parse_args()
 
-    #start_date = datetime.now() - relativedelta(month=1)  # On récupère les films et séries sortis depuis le mois dernier
-    start_date = datetime(1950, 1, 1)
+    start_date = args.start_date
     end_date = datetime.now()
     month_delta = relativedelta(months=1)
+
+    logger.info(
+        "=== Début de la récupération des films et séries depuis TMDB (depuis %s) ===",
+        start_date.strftime('%Y-%m-%d')
+    )
 
     # Compteurs globaux pour le résumé final
     total_films_ajoutes = 0
