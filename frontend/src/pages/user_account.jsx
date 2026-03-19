@@ -46,6 +46,8 @@ function UserAccount() {
   // Objet contenant les erreurs de validation renvoyées par l'API
   // ex: { username: "Ce pseudo est déjà utilisé." }
   const [errors, setErrors] = useState({});
+  // Préférence de notifications email (true/false)
+  const [editEmailNotifications, setEditEmailNotifications] = useState(false);
 
   // La liste des avatars est importée depuis utils/avatars.js
   // Elle se met à jour automatiquement quand on ajoute des SVG dans src/assets/avatars/
@@ -65,6 +67,7 @@ function UserAccount() {
         // pour que l'utilisateur voie ses infos et ne modifie que ce qu'il veut
         setEditUsername(response.data.username || "");
         setEditEmail(response.data.email || "");
+        setEditEmailNotifications(response.data.email_notifications || false);
       } catch (error) {
         console.error("Erreur lors du chargement du profil :", error);
       } finally {
@@ -148,6 +151,10 @@ function UserAccount() {
     if (editPassword) {
       data.password = editPassword;
       data.password_confirm = editPasswordConfirm;
+    }
+    // On compare avec la valeur actuelle pour ne pas envoyer si rien n'a changé
+    if (editEmailNotifications !== user.email_notifications) {
+      data.email_notifications = editEmailNotifications;
     }
 
     // Si rien n'a changé, on ne fait pas de requête
@@ -375,6 +382,23 @@ function UserAccount() {
                 )}
               </div>
             )}
+
+            {/* Toggle switch notifications email */}
+            <div className="account__toggle-row">
+              <span className="account__toggle-label">
+                Notifications email
+              </span>
+              <button
+                type="button"
+                className={`account__toggle ${editEmailNotifications ? "account__toggle--active" : ""}`}
+                onClick={() => setEditEmailNotifications(!editEmailNotifications)}
+                role="switch"
+                aria-checked={editEmailNotifications}
+                aria-label="Notifications email"
+              >
+                <span className="account__toggle-thumb" />
+              </button>
+            </div>
           </div>
 
           {/* Message de succès après sauvegarde */}

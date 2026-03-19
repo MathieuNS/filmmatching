@@ -49,6 +49,7 @@ function FilmDetailModal({ film, onClose, friends = [] }) {
             main_actors={film.main_actors ? film.main_actors.join(", ") : ""}
             release_year={film.release_year}
             director={film.director}
+            trailer_url={film.trailer_url}
           />
         </div>
 

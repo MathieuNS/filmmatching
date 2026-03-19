@@ -108,6 +108,9 @@
 }
 
 .home__menu-btn {
+  /* position: relative pour que le badge de notification (position: absolute)
+     se positionne par rapport au bouton */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -157,6 +160,29 @@
 
 .home__menu-icon--open span:nth-child(3) {
   transform: translateY(-6px) rotate(-45deg);
+}
+
+/* --- Badge de notification sur le menu hamburger ---
+   Rond rouge avec le nombre de demandes d'ami en attente */
+.home__menu-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 100px;
+  background-color: #FF4D6A;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bordure pour décoller visuellement du bouton */
+  border: 2px solid #0D0D0F;
+  line-height: 1;
 }
 
 /* --- Fond transparent derrière le menu (pour fermer en cliquant ailleurs) --- */
@@ -230,6 +256,24 @@
 
 .home__menu-item-icon {
   font-size: 1.1rem;
+}
+
+/* Badge de notification dans un élément du menu (ex: "Mes Amis") */
+.home__menu-item-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background-color: #FF4D6A;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* --- Zone qui contient la carte du film (draggable) --- */

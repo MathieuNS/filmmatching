@@ -56,6 +56,10 @@ function Home() {
   // Contient les données du match à afficher (film + amis), ou null si pas de match
   const [matchData, setMatchData] = useState(null);
 
+  // --- State pour les notifications de demandes d'ami ---
+  // Nombre de demandes d'ami reçues en attente de réponse
+  const [pendingCount, setPendingCount] = useState(0);
+
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -103,6 +107,20 @@ function Home() {
       }
     }
     loadFilterOptions();
+  }, []);
+
+  // Au montage, on charge le nombre de demandes d'ami en attente
+  // pour afficher un badge de notification sur le menu hamburger.
+  useEffect(() => {
+    async function loadPendingCount() {
+      try {
+        const response = await api.get("/api/friends/pending-count/");
+        setPendingCount(response.data.count);
+      } catch (error) {
+        console.error("Erreur chargement demandes en attente :", error);
+      }
+    }
+    loadPendingCount();
   }, []);
 
   // Quand les filtres changent, on recharge les films depuis zéro
@@ -539,6 +557,10 @@ function Home() {
               <span></span>
               <span></span>
             </span>
+            {/* Badge rouge — nombre de demandes d'ami en attente */}
+            {pendingCount > 0 && (
+              <span className="home__menu-badge">{pendingCount}</span>
+            )}
           </button>
 
           {/* Menu déroulant — visible uniquement quand isMenuOpen est true */}
@@ -563,6 +585,9 @@ function Home() {
                 >
                   <span className="home__menu-item-icon">👥</span>
                   Mes Amis
+                  {pendingCount > 0 && (
+                    <span className="home__menu-item-badge">{pendingCount}</span>
+                  )}
                 </button>
                 <button
                   className="home__menu-item"
@@ -575,7 +600,13 @@ function Home() {
                   className="home__menu-item"
                   onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
                 >
-                  <span className="home__menu-item-icon">⏻</span>
+                  <span className="home__menu-item-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </span>
                   Déconnexion
                 </button>
               </nav>
@@ -774,6 +805,7 @@ function Home() {
           main_actors={film.main_actors ? film.main_actors.join(", ") : ""}
           release_year={film.release_year}
           director={film.director}
+          trailer_url={film.trailer_url}
         />
       </div>
 

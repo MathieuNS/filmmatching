@@ -22,6 +22,8 @@ from api.views import (
     FriendshipDeleteView,
     MatchListView,
     GroupMatchListView,
+    PendingFriendRequestCountView,
+    UnsubscribeEmailView,
     FriendsLikesView,
     ContactView,
     ForgotPasswordView,
@@ -47,6 +49,8 @@ urlpatterns = [
     path('api/users/me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
     # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
     path('api/users/search/', UserSearchView.as_view(), name='user-search'),
+    # Désinscription des notifications email (lien dans les emails)
+    path('api/users/unsubscribe/<str:uidb64>/', UnsubscribeEmailView.as_view(), name='unsubscribe-email'),
     # Mot de passe oublié : envoie un email avec un lien de réinitialisation
     path('api/users/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     # Réinitialisation du mot de passe via le lien reçu par email
@@ -77,6 +81,9 @@ urlpatterns = [
 
     # --- Amitiés ---
     path('api/friends/', FriendshipView.as_view(), name='friendship-list-create'),
+    # Nombre de demandes d'ami en attente (pour le badge de notification)
+    # IMPORTANT : cette route doit être AVANT les routes avec <int:pk>
+    path('api/friends/pending-count/', PendingFriendRequestCountView.as_view(), name='pending-friend-count'),
     # Pour chaque film liké, quels amis l'ont aussi liké
     # IMPORTANT : cette route doit être AVANT les routes avec <int:pk>
     # sinon Django essaierait d'interpréter "common-likes" comme un nombre

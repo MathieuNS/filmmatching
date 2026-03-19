@@ -259,6 +259,62 @@
   margin-bottom: 12px;
 }
 
+/* --- Toggle switch notifications email --- */
+
+/* Ligne qui contient le label à gauche et le toggle à droite */
+.account__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.account__toggle-label {
+  font-size: 0.85rem;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-weight: 500;
+}
+
+/* Le rail du toggle (fond gris quand inactif) */
+.account__toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 100px;
+  border: none;
+  background-color: #2A2A32;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease;
+}
+
+/* Rail actif → vert match */
+.account__toggle--active {
+  background-color: #2EE0A1;
+}
+
+/* Le cercle blanc qui glisse */
+.account__toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #F0EEF2;
+  transition: transform 0.25s ease;
+  /* Petite ombre pour donner du relief */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Quand le toggle est actif, le cercle glisse à droite */
+.account__toggle--active .account__toggle-thumb {
+  /* 44px (largeur) - 18px (cercle) - 3px (padding) * 2 = 20px */
+  transform: translateX(20px);
+}
+
 /* --- Bouton Sauvegarder --- */
 .account__save-btn {
   width: 100%;
