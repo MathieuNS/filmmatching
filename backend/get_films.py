@@ -234,7 +234,7 @@ if __name__ == "__main__":
     logger.info("=== Début de la récupération des films et séries depuis TMDB ===")
 
     #start_date = datetime.now() - relativedelta(month=1)  # On récupère les films et séries sortis depuis le mois dernier
-    start_date = datetime(2020, 3, 1)
+    start_date = datetime(1950, 1, 1)
     end_date = datetime.now()
     month_delta = relativedelta(months=1)
 
