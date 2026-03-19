@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+// createPortal permet de rendre un élément React en dehors de son parent DOM.
+// Ici, on l'utilise pour afficher la modale du trailer directement dans le <body>,
+// afin d'éviter les conflits d'événements avec la carte film (swipe, clics, etc.).
+import { createPortal } from "react-dom";
 // Import du fichier CSS associé au composant
 import "../styles/Films.css";
 
@@ -35,7 +39,11 @@ function Film({
   main_actors,
   release_year,
   director,
+  trailer_url,
 }) {
+  // --- State pour afficher/masquer le lecteur de bande-annonce ---
+  const [showTrailer, setShowTrailer] = useState(false);
+
   // --- States pour savoir si chaque section est dépliée ---
   const [expanded, setExpanded] = useState({
     synopsis: false,
@@ -145,6 +153,17 @@ function Film({
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
 
+        {/* Bouton bande-annonce — visible uniquement si trailer_url existe */}
+        {trailer_url && (
+          <button
+            className="film-card__trailer-btn"
+            onClick={() => setShowTrailer(true)}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            ▶ Bande-annonce
+          </button>
+        )}
+
         {/* Synopsis — tronqué à 3 lignes par défaut, dépliable */}
         {synopsis && (
           <div className="film-card__section">
@@ -253,6 +272,41 @@ function Film({
           </div>
         )}
       </div>
+
+      {/* Modale du lecteur YouTube — rendue dans le <body> via createPortal
+          pour éviter les conflits d'événements avec le swipe de la carte */}
+      {showTrailer && createPortal(
+        <div
+          className="film-card__trailer-backdrop"
+          onClick={() => setShowTrailer(false)}
+        >
+          <div
+            className="film-card__trailer-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton pour fermer la modale */}
+            <button
+              className="film-card__trailer-close"
+              onClick={() => setShowTrailer(false)}
+            >
+              ✕
+            </button>
+
+            {/* Lecteur YouTube intégré via iframe.
+                L'URL est déjà au format embed (ex: https://www.youtube.com/embed/xxxxx).
+                allowFullScreen permet au lecteur de passer en plein écran. */}
+            <iframe
+              className="film-card__trailer-iframe"
+              src={trailer_url}
+              title={`Bande-annonce de ${title}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>,
+        document.body
+
+      )}
     </div>
   );
 }

@@ -247,11 +247,15 @@ LOGGING = {
 
     # --- Handlers : où envoyer les logs ---
     'handlers': {
-        # Handler console : affiche les logs dans le terminal (utile en dev)
+        # Handler console : affiche les logs dans le terminal (utile en dev).
+        # On force l'encodage UTF-8 via sys.stdout reconfiguré, car sur Windows
+        # la console utilise cp1252 par défaut, ce qui plante sur les caractères
+        # spéciaux (accents, lettres d'autres langues comme ō, ś, etc.).
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
             'level': 'DEBUG',
+            'stream': 'ext://sys.stdout',
         },
         # Handler fichier : écrit les logs dans un fichier logs/app.log
         # RotatingFileHandler évite que le fichier grossisse à l'infini :

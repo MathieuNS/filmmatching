@@ -17,6 +17,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Contact from './pages/contact'
 import ForgotPassword from './pages/forgot_password'
 import ResetPassword from './pages/reset_password'
+import Unsubscribe from './pages/unsbscribe'
 
 function Lougout() {
   localStorage.clear()
@@ -61,6 +62,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+        <Route path="/unsubscribe/:uid" element={<Unsubscribe />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

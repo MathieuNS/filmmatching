@@ -69,7 +69,17 @@ class CreateUserView(generics.CreateAPIView):
         le token devient invalide automatiquement — pas besoin de le stocker en BDD.
         """
         # Créer l'utilisateur avec le compte désactivé
+        # Le Profile est créé automatiquement par le signal post_save (voir signals.py)
         user = serializer.save(is_active=False)
+
+        # Mettre à jour la préférence de notifications email
+        # La valeur vient du formulaire d'inscription (checkbox)
+        # On utilise self.request.data car email_notifications n'est pas
+        # un champ du modèle User (il est sur le Profile)
+        if self.request.data.get('email_notifications'):
+            user.profile.email_notifications = True
+            user.profile.save()
+
         logger.info("Nouveau compte créé : %s (email: %s)", user.username, user.email)
 
         # Générer le token d'activation
@@ -84,6 +94,8 @@ class CreateUserView(generics.CreateAPIView):
         # dev (localhost:5173) et production (filmmatching.com) sans modifier le code
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         activation_link = f"{frontend_url}/activate/{uid}/{token}"
+        # Lien de désinscription des notifications email
+        unsubscribe_link = f"{frontend_url}/unsubscribe/{uid}"
 
         # Envoyer l'email de confirmation
         logger.info("Envoi de l'email d'activation à %s", user.email)
@@ -98,7 +110,9 @@ class CreateUserView(generics.CreateAPIView):
             f"Clique sur ce lien pour activer ton compte :\n"
             f"{activation_link}\n\n"
             f"Ce lien est à usage unique.\n\n"
-            f"À bientôt sur FilmMatching !"
+            f"À bientôt sur FilmMatching !\n\n"
+            f"---\n"
+            f"Se désinscrire des notifications email : {unsubscribe_link}"
         )
 
         # Version HTML stylisée de l'email
@@ -164,9 +178,15 @@ class CreateUserView(generics.CreateAPIView):
                   <!-- Footer -->
                   <tr>
                     <td align="center" style="padding:20px 28px; border-top:1px solid #2A2A32;">
-                      <p style="margin:0; font-size:12px; color:#8B8B9E;">
+                      <p style="margin:0 0 8px; font-size:12px; color:#8B8B9E;">
                         &copy; FilmMatching — Tu reçois cet email car un compte
                         a été créé avec cette adresse.
+                      </p>
+                      <p style="margin:0; font-size:11px; color:#8B8B9E;">
+                        Se désinscrire des notifications email :
+                        <a href="{unsubscribe_link}" style="color:#7B5CFF; text-decoration:underline;">
+                          Unsubscribe
+                        </a>
                       </p>
                     </td>
                   </tr>
@@ -406,6 +426,11 @@ class UpdateProfileView(APIView):
             user.set_password(validated['password'])
 
         user.save()
+
+        # Mise à jour de la préférence de notifications email sur le Profile
+        if 'email_notifications' in validated:
+            user.profile.email_notifications = validated['email_notifications']
+            user.profile.save()
         logger.info("Profil mis à jour : %s (champs: %s)", user.username, list(validated.keys()))
 
         # On renvoie les données mises à jour avec UserSerializer
@@ -762,20 +787,40 @@ class SwipeCreateView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         """
-        Surcharge de create() pour ajouter les matchs d'amis dans la réponse
-        quand le swipe est un "like".
+        Surcharge de create() pour gérer deux cas :
+        1. Le film n'a jamais été swipé → on crée un nouveau swipe (cas normal)
+        2. Le film a déjà été swipé → on met à jour le statut existant
+           (cas de la recherche : l'utilisateur retrouve un film déjà swipé
+           et veut changer son avis, par ex. passer de "like" à "seen")
 
-        On vérifie quels amis confirmés ont aussi liké ce film,
-        et on retourne leurs noms + avatars dans matched_friends.
+        Si le swipe est un "like", la réponse inclut aussi les matchs d'amis.
         """
-        # Appel de la méthode create() de base pour enregistrer le swipe
-        response = super().create(request, *args, **kwargs)
-        logger.info("Swipe : %s → film %s (%s)", request.user.username, request.data.get('film'), request.data.get('status'))
+        user = request.user
+        film_id = request.data.get('film')
+        new_status = request.data.get('status')
+        new_rating = request.data.get('rating')
+
+        # Vérifier si un swipe existe déjà pour ce film
+        existing_swipe = Swipe.objects.filter(user=user, film_id=film_id).first()
+
+        if existing_swipe:
+            # Le swipe existe déjà → on met à jour le statut
+            existing_swipe.status = new_status
+            # La note n'est valable que pour "seen", sinon on la retire
+            existing_swipe.rating = new_rating if new_status == 'seen' else None
+            existing_swipe.save()
+            logger.info("Swipe mis à jour : %s - film %s (%s)", user.username, film_id, new_status)
+            # On sérialise le swipe mis à jour pour la réponse
+            response_data = SwipeSerializer(existing_swipe).data
+            response = Response(response_data, status=status.HTTP_200_OK)
+        else:
+            # Pas de swipe existant → création normale
+            response = super().create(request, *args, **kwargs)
+        if not existing_swipe:
+            logger.info("Swipe : %s - film %s (%s)", user.username, film_id, new_status)
 
         # Si c'est un "like", on cherche les amis qui ont aussi liké ce film
-        if request.data.get('status') == 'like':
-            user = request.user
-            film_id = request.data.get('film')
+        if new_status == 'like':
 
             # Récupérer tous les amis confirmés
             friendships = Friendship.objects.filter(
@@ -887,6 +932,65 @@ class SwipeUpdateView(generics.UpdateAPIView):
         return Swipe.objects.filter(user=self.request.user)
 
 
+class UnsubscribeEmailView(APIView):
+    """
+    Désabonne un utilisateur des notifications email.
+
+    - POST /api/users/unsubscribe/<uidb64>/
+    - Accessible sans authentification (le lien est dans l'email).
+
+    L'uid est encodé en base64 dans le lien de désinscription.
+    On le décode pour retrouver l'utilisateur et mettre
+    email_notifications à False sur son Profile.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, uidb64):
+        """Désactive les notifications email pour l'utilisateur identifié par l'uid."""
+        try:
+            # Décoder l'uid base64 pour retrouver l'ID de l'utilisateur
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response(
+                {"error": "Lien de désinscription invalide."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Désactiver les notifications email
+        user.profile.email_notifications = False
+        user.profile.save()
+        logger.info("Désinscription email : %s", user.username)
+
+        return Response({"message": "Tu ne recevras plus de notifications par email."})
+
+
+class PendingFriendRequestCountView(APIView):
+    """
+    Renvoie le nombre de demandes d'ami reçues en attente.
+
+    - GET /api/friends/pending-count/
+    - Réponse : { "count": 3 }
+
+    Endpoint léger utilisé par la page Home pour afficher
+    un badge de notification sur le menu hamburger.
+    On ne compte que les demandes REÇUES (receiver=user)
+    et non acceptées (accepted=False).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Compte les demandes d'ami reçues en attente."""
+        count = Friendship.objects.filter(
+            receiver=request.user,
+            accepted=False,
+        ).count()
+        return Response({"count": count})
+
+
 class FriendshipView(generics.ListCreateAPIView):
     """
     Gère les amitiés : lister ses amis et envoyer des demandes.
@@ -951,6 +1055,122 @@ class FriendshipView(generics.ListCreateAPIView):
 
         serializer.save(sender=user)
         logger.info("Demande d'ami envoyée : %s → %s", user.username, receiver.username)
+
+        # Envoyer un email de notification au receiver s'il a activé les notifications
+        if hasattr(receiver, 'profile') and receiver.profile.email_notifications:
+            self._send_friend_request_email(sender=user, receiver=receiver)
+
+    def _send_friend_request_email(self, sender, receiver):
+        """
+        Envoie un email au receiver pour l'informer d'une nouvelle demande d'ami.
+
+        Le design de l'email reprend le même template que l'email d'activation
+        (fond sombre, carte arrondie, bouton CTA violet).
+
+        Args:
+            sender: L'utilisateur qui envoie la demande
+            receiver: L'utilisateur qui reçoit la demande
+        """
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        friends_link = f"{frontend_url}/amis"
+
+        # Lien de désinscription — contient l'uid encodé en base64
+        # pour identifier l'utilisateur sans qu'il soit connecté
+        uid = urlsafe_base64_encode(force_bytes(receiver.pk))
+        unsubscribe_link = f"{frontend_url}/unsubscribe/{uid}"
+
+        # Version texte brut
+        text_message = (
+            f"Salut {receiver.username} !\n\n"
+            f"{sender.username} t'a envoyé une demande d'ami sur FilmMatching !\n\n"
+            f"Connecte-toi pour accepter sa demande :\n"
+            f"{friends_link}\n\n"
+            f"À bientôt sur FilmMatching !\n\n"
+            f"---\n"
+            f"Se désinscrire des notifications email : {unsubscribe_link}"
+        )
+
+        # Version HTML
+        html_message = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head><meta charset="UTF-8"></head>
+        <body style="margin:0; padding:0; background-color:#0D0D0F; font-family:Arial, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D0D0F; padding:40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#16161A; border-radius:20px; overflow:hidden;">
+
+                  <!-- En-tête -->
+                  <tr>
+                    <td align="center" style="background-color:#16161A; padding:32px 20px 24px;">
+                      <h1 style="margin:0; font-size:28px; color:#FF4D6A; font-weight:700;">
+                        &#127916; FilmMatching
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Corps du message -->
+                  <tr>
+                    <td style="padding:32px 28px;">
+                      <h2 style="margin:0 0 16px; font-size:20px; color:#F0EEF2;">
+                        Salut {receiver.username} !
+                      </h2>
+                      <p style="margin:0 0 20px; font-size:15px; color:#8B8B9E; line-height:1.6;">
+                        <strong style="color:#F0EEF2;">{sender.username}</strong>
+                        t'a envoyé une demande d'ami sur FilmMatching !
+                        Accepte sa demande pour découvrir vos films en commun.
+                      </p>
+
+                      <!-- Bouton CTA -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center" style="padding:8px 0 24px;">
+                            <a href="{friends_link}"
+                               style="display:inline-block; padding:14px 36px; background-color:#7B5CFF; color:#ffffff; font-size:16px; font-weight:600; text-decoration:none; border-radius:14px;">
+                              Voir la demande
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td align="center" style="padding:20px 28px; border-top:1px solid #2A2A32;">
+                      <p style="margin:0 0 8px; font-size:12px; color:#8B8B9E;">
+                        &copy; FilmMatching
+                      </p>
+                      <p style="margin:0; font-size:11px; color:#8B8B9E;">
+                        Se désinscrire des notifications email :
+                        <a href="{unsubscribe_link}" style="color:#7B5CFF; text-decoration:underline;">
+                          Unsubscribe
+                        </a>
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """
+
+        try:
+            send_mail(
+                subject=f"{sender.username} t'a envoyé une demande d'ami 👥",
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[receiver.email],
+                html_message=html_message,
+            )
+            logger.info("Email de demande d'ami envoyé à %s", receiver.email)
+        except Exception as e:
+            # On ne fait pas planter la demande d'ami si l'email échoue
+            logger.error("Erreur envoi email demande d'ami à %s : %s", receiver.email, e)
 
 
 class FriendshipAcceptView(APIView):

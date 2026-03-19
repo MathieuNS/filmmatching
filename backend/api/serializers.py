@@ -14,12 +14,13 @@ class UserSerializer(serializers.ModelSerializer):
     directement sur le modèle User, mais qu'on va chercher ailleurs (ici, sur le Profile).
     """
 
-    # Champ calculé : on va chercher l'avatar dans le Profile lié au User
+    # Champs calculés : on va chercher ces valeurs dans le Profile lié au User
     avatar = serializers.SerializerMethodField()
+    email_notifications = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'avatar']
+        fields = ['id', 'username', 'email', 'password', 'avatar', 'email_notifications']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_avatar(self, obj):
@@ -39,6 +40,20 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'profile'):
             return obj.profile.avatar
         return None
+
+    def get_email_notifications(self, obj):
+        """
+        Récupère la préférence de notifications email depuis le Profile.
+
+        Args:
+            obj: L'objet User
+
+        Returns:
+            True si l'utilisateur accepte les notifications, False sinon
+        """
+        if hasattr(obj, 'profile'):
+            return obj.profile.email_notifications
+        return False
 
     def validate_email(self, value):
         """
@@ -89,6 +104,8 @@ class UpdateProfileSerializer(serializers.Serializer):
     # required=False : le champ n'est pas obligatoire dans la requête
     username = serializers.CharField(required=False, max_length=150)
     email = serializers.EmailField(required=False)
+    # Préférence de notifications email (true/false)
+    email_notifications = serializers.BooleanField(required=False)
     # write_only=True : ces champs ne seront jamais renvoyés dans la réponse
     password = serializers.CharField(required=False, write_only=True)
     password_confirm = serializers.CharField(required=False, write_only=True)

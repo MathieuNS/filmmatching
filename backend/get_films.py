@@ -5,10 +5,17 @@ Ce module contient les fonctions pour récupérer les films et séries ainsi que
 
 from calendar import monthrange
 
+import sys
 import requests
 from dotenv import load_dotenv
 import os
 import logging
+
+# Sur Windows, la console utilise l'encodage cp1252 par défaut.
+# Certains titres de films contiennent des caractères spéciaux (ō, ś, etc.)
+# qui ne sont pas supportés par cp1252. On force UTF-8 pour éviter les erreurs.
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import django
@@ -33,14 +40,15 @@ HEADERS = {
     'Authorization': f'Bearer {TMDB_ACCESS_TOKEN}',
 }
 
-def get_casting(movie_id, headers=HEADERS):
+def get_casting(movie_id, type_field="Film", headers=HEADERS):
 
     """get actors and director
 
     Returns:
         tuple: a tuple containing the list of actors and the director's name
     """
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?language=fr-FR"
+    tv_or_movie = "movie" if type_field == "Film" else "tv"
+    url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/credits?language=fr-FR"
 
     response = requests.get(url, headers=headers)
 
@@ -62,7 +70,7 @@ def get_casting(movie_id, headers=HEADERS):
     return cast_list, director
 
 
-def get_plateforms(movie_id, headers=HEADERS):
+def get_plateforms(movie_id, type_field="Film", headers=HEADERS):
     """get all the plateforms where the film is available with a subcription (netflix, prime video...)
         and add the plateforms to the film in the database
 
@@ -74,8 +82,10 @@ def get_plateforms(movie_id, headers=HEADERS):
     Returns:
         list: list of plateform names where the film is available
     """
-    plateform_urs = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers"
-    response_plateform = requests.get(plateform_urs, headers=headers)
+
+    tv_or_movie = "movie" if type_field == "Film" else "tv"
+    plateform_url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/watch/providers"
+    response_plateform = requests.get(plateform_url, headers=headers)
     
     plateforms = response_plateform.json()["results"]["FR"]["flatrate"]
 
@@ -87,6 +97,30 @@ def get_plateforms(movie_id, headers=HEADERS):
 
     return list_plateforms
 
+def get_trailer(movie_id, type_field="Film", headers=HEADERS):
+
+    """get the trailer url for a film or a serie
+
+    Args:
+        movie_id (integer): id of the movie or serie you want to get the trailer
+        type_field (str, optional): type of content (Film or Série). Defaults to "Film".
+        headers (dictionnary, optional): headers to use for the request. Defaults to HEADERS.
+
+    Returns:
+        string: url of the trailer on youtube, or None if no trailer is available
+    """
+
+    tv_or_movie = "movie" if type_field == "Film" else "tv"
+    url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/videos"
+    response = requests.get(url, headers=headers).json()["results"]
+
+    embedded_url = None
+    if response:
+        trailer_key = [trailer["key"] for trailer in response if ("Trailer" in trailer["name"]) and (trailer["site"] == "YouTube")]
+        embedded_url = f"https://www.youtube.com/embed/{trailer_key[0]}" if trailer_key else None
+    
+    return embedded_url
+
 def create_dico(film,
                 genres=None, 
                 plateforme=None,
@@ -96,7 +130,8 @@ def create_dico(film,
                 img_field="poster_path", 
                 release_date_field="release_date", 
                 synopsis_field="overview",
-                type_field="Film"
+                type_field="Film",
+                trailer_url=None
                 ):
     
     """create a dictionnary with all the details needed
@@ -128,7 +163,8 @@ def create_dico(film,
             'genres' : genres,
             'plateforms': plateforme,
             'type': type_field,
-            'popularity': film["popularity"]
+            'popularity': film["popularity"],
+            'trailer_url': trailer_url
         }
 
 def get_films_and_series(url,
@@ -167,11 +203,13 @@ def get_films_and_series(url,
 
         # S'il n'y a pas de plateformes disponibles pour le film, on ne récupère pas les détails du film pour éviter d'avoir des films sans plateforme dans la base de données
         try:
-            plateforms = get_plateforms(movie_id=film["id"], headers=headers)
+            plateforms = get_plateforms(movie_id=film["id"], type_field=type_field, headers=headers)
         except KeyError:
             continue
 
-        actors, director = get_casting(movie_id=film["id"], headers=headers)
+        actors, director = get_casting(movie_id=film["id"], type_field=type_field, headers=headers)
+
+        trailer_url = get_trailer(movie_id=film["id"], type_field=type_field, headers=headers)
 
         dico = create_dico(film, 
                            list_genres, 
@@ -182,7 +220,9 @@ def get_films_and_series(url,
                            img_field=img_field,
                            release_date_field= release_date_field,
                            synopsis_field=synopsis_field,
-                           type_field=type_field)
+                           type_field=type_field,
+                           trailer_url=trailer_url
+                           )
         
         list_films.append(dico)
 
@@ -193,7 +233,8 @@ if __name__ == "__main__":
 
     logger.info("=== Début de la récupération des films et séries depuis TMDB ===")
 
-    start_date = datetime.now() - relativedelta(month=1)  # On récupère les films et séries sortis depuis le mois dernier
+    #start_date = datetime.now() - relativedelta(month=1)  # On récupère les films et séries sortis depuis le mois dernier
+    start_date = datetime(2020, 3, 1)
     end_date = datetime.now()
     month_delta = relativedelta(months=1)
 
@@ -205,14 +246,14 @@ if __name__ == "__main__":
 
     # On boucle mois par mois pour récupérer les films et séries sortis chaque mois pour éviter de dépasser la limite de 500 pages maximum de TMDB
     while start_date < end_date:
-        #end_of_month = start_date.replace(day=monthrange(start_date.year, start_date.month)[1])
+        end_of_month = start_date.replace(day=monthrange(start_date.year, start_date.month)[1])
 
-        logger.info("Période : %s - %s", start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+        logger.info("Période : %s - %s", start_date.strftime('%Y-%m-%d'), end_of_month.strftime('%Y-%m-%d'))
 
         for i in range(1, 501):  # TMDB ne retourne que les 500 premières pages, on boucle donc pour récupérer les films et séries mois par mois
             logger.debug("Page %d", i)
-            film_url = f"https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=fr-FR&page={i}&primary_release_date.gte={start_date.strftime('%Y-%m-%d')}&primary_release_date.lte={end_date.strftime('%Y-%m-%d')}&sort_by=popularity.desc&watch_region=FR"
-            tv_url = f"https://api.themoviedb.org/3/discover/tv?first_air_date.gte={start_date.strftime('%Y-%m-%d')}&first_air_date.lte={end_date.strftime('%Y-%m-%d')}&include_adult=false&include_null_first_air_dates=false&language=fr-FR&page={i}&sort_by=popularity.desc&watch_region=FR"
+            film_url = f"https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=fr-FR&page={i}&primary_release_date.gte={start_date.strftime('%Y-%m-%d')}&primary_release_date.lte={end_of_month.strftime('%Y-%m-%d')}&sort_by=popularity.desc&watch_region=FR"
+            tv_url = f"https://api.themoviedb.org/3/discover/tv?first_air_date.gte={start_date.strftime('%Y-%m-%d')}&first_air_date.lte={end_of_month.strftime('%Y-%m-%d')}&include_adult=false&include_null_first_air_dates=false&language=fr-FR&page={i}&sort_by=popularity.desc&watch_region=FR"
 
             films = get_films_and_series(url=film_url)
             series = get_films_and_series(url=tv_url,
@@ -243,6 +284,7 @@ if __name__ == "__main__":
                             "release_year": film["release_year"],
                             "synopsis": film["synopsis"],
                             "popularity": film["popularity"],
+                            "trailer_url": film["trailer_url"]
                         }
                     )
 
@@ -254,6 +296,8 @@ if __name__ == "__main__":
                         total_films_existants += 1
 
                     #Ajout des relations ManyToMany après la création du film, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
+                    new_film[0].trailer_url = film["trailer_url"]
+                    new_film[0].popularity = film["popularity"] 
                     new_film[0].main_actors.set(film["main_actors"])
                     new_film[0].director_id = film["director"]
                     new_film[0].save()
@@ -272,6 +316,7 @@ if __name__ == "__main__":
                             "release_year": serie["release_year"],
                             "synopsis": serie["synopsis"],
                             "popularity": serie["popularity"],
+                            "trailer_url": serie["trailer_url"]
                         }
                     )
 
@@ -282,6 +327,8 @@ if __name__ == "__main__":
                         total_series_existantes += 1
 
                     #Ajout des relations ManyToMany après la création de la série, en utilisant les IDs des acteurs, genres et plateforms pour éviter les doublons dans la base de données
+                    new_serie[0].trailer_url = serie["trailer_url"]
+                    new_serie[0].popularity = serie["popularity"]
                     new_serie[0].main_actors.set(serie["main_actors"])
                     new_serie[0].director_id = serie["director"]
                     new_serie[0].save()

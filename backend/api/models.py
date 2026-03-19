@@ -42,6 +42,12 @@ class Profile(models.Model):
         default='avatar-popcorn.svg',
     )
 
+    # Préférence de l'utilisateur pour recevoir des notifications par email
+    # (nouveaux matchs, nouvelles demandes d'ami, etc.)
+    # True par défaut si l'utilisateur a coché la case à l'inscription,
+    # False sinon. Modifiable à tout moment dans "Mon compte".
+    email_notifications = models.BooleanField(default=False)
+
     class Meta:
         verbose_name = "Profile"
         verbose_name_plural = "Profiles"
@@ -106,6 +112,7 @@ class Films(models.Model):
                             choices=TYPE_CHOICES,
                             default='Film')
     popularity = models.FloatField(default=0.0)
+    trailer_url = models.URLField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Film"

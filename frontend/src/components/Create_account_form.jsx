@@ -22,6 +22,8 @@ function CreateAccountForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   // Case à cocher pour le consentement (politique de confidentialité + CGU)
   const [accepted, setAccepted] = useState(false);
+  // Case à cocher pour accepter les notifications par email
+  const [emailNotifications, setEmailNotifications] = useState(false);
   // Message d'erreur affiché sous le formulaire (null = pas d'erreur)
   const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
@@ -40,7 +42,12 @@ function CreateAccountForm() {
     setLoading(true);
 
     try {
-      await api.post("api/users/create/", { email, username, password });
+      await api.post("api/users/create/", {
+        email,
+        username,
+        password,
+        email_notifications: emailNotifications,
+      });
       // Redirige vers la page "Vérifie ta boîte mail" au lieu de /login
       // car le compte n'est pas encore actif (il faut cliquer sur le lien)
       navigate("/check-email");
@@ -164,6 +171,18 @@ function CreateAccountForm() {
             <Link to="/mentions-legales" className="form-checkbox__link">
               mentions légales
             </Link>
+          </span>
+        </label>
+
+        {/* Case à cocher pour les notifications par email (optionnelle) */}
+        <label className="form-checkbox">
+          <input
+            type="checkbox"
+            checked={emailNotifications}
+            onChange={(e) => setEmailNotifications(e.target.checked)}
+          />
+          <span className="form-checkbox__text">
+            J'accepte de recevoir des notifications par email
           </span>
         </label>
 

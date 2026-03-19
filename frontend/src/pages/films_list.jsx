@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 // useNavigate pour le bouton retour vers /home
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -58,6 +58,15 @@ function FilmList() {
   // showSuggestions : contrôle l'affichage de la liste d'autocomplétion.
   // On la masque quand l'utilisateur clique sur une suggestion ou ailleurs.
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // --- Tri différé pour l'onglet "Déjà vu" ---
+  // Quand l'utilisateur change une note, on bloque le tri pendant 2 secondes
+  // pour qu'il puisse corriger sa note sans que la carte se déplace immédiatement.
+  const [sortEnabled, setSortEnabled] = useState(true);
+  // Ref pour stocker le timer du tri différé (useRef persiste entre les rendus sans déclencher de re-rendu)
+  const sortTimerRef = useRef(null);
+  // Ref pour mémoriser l'ordre d'affichage actuel pendant que le tri est bloqué
+  const sortedOrderRef = useRef(null);
 
   // Ferme le menu contextuel d'une carte quand on clique n'importe où sur la page.
   // Le backdrop en position: fixed ne fonctionne pas car la carte a overflow: hidden,
@@ -149,6 +158,12 @@ function FilmList() {
     fetchFriendsLikes();
   }, []);
 
+  // Nettoyage du timer de tri différé quand le composant se démonte
+  // (sinon le setTimeout essaierait de mettre à jour un state qui n'existe plus)
+  useEffect(() => {
+    return () => clearTimeout(sortTimerRef.current);
+  }, []);
+
   /**
    * Change le statut d'un swipe (ex: like → seen).
    *
@@ -212,6 +227,15 @@ function FilmList() {
           s.id === swipeId ? { ...s, rating: newRating } : s
         ),
       }));
+
+      // Bloquer le tri pendant 2 secondes pour laisser le temps de corriger la note.
+      // On annule le timer précédent (si l'utilisateur note plusieurs films d'affilée,
+      // le délai repart à zéro à chaque note).
+      setSortEnabled(false);
+      clearTimeout(sortTimerRef.current);
+      sortTimerRef.current = setTimeout(() => {
+        setSortEnabled(true);
+      }, 2000);
     } catch (error) {
       console.error("Erreur lors de la notation :", error);
     }
@@ -316,14 +340,42 @@ function FilmList() {
 
   // Films filtrés pour l'onglet actif.
   // Pour l'onglet "Déjà vu", on trie par note décroissante (5 étoiles en premier).
-  // Les films sans note (null) sont placés à la fin grâce au "|| 0" :
-  // null devient 0, donc ils passent après les films notés.
-  const filteredSwipes = filterSwipes(swipes[activeTab]).sort((a, b) => {
-    if (activeTab !== "seen") return 0;
-    const ratingA = a.rating ? parseFloat(a.rating) : 0;
-    const ratingB = b.rating ? parseFloat(b.rating) : 0;
-    return ratingB - ratingA;
-  });
+  // Le tri est différé de 2 secondes après un changement de note pour que
+  // la carte ne se déplace pas immédiatement (meilleure UX).
+  const filteredSwipes = (() => {
+    const filtered = filterSwipes(swipes[activeTab]);
+
+    // Les onglets "À voir" et "Pas intéressé" ne sont pas triés
+    if (activeTab !== "seen") return filtered;
+
+    if (sortEnabled) {
+      // Tri actif : on trie par note décroissante et on sauvegarde l'ordre
+      const sorted = [...filtered].sort((a, b) => {
+        const ratingA = a.rating ? parseFloat(a.rating) : 0;
+        const ratingB = b.rating ? parseFloat(b.rating) : 0;
+        return ratingB - ratingA;
+      });
+      // On mémorise l'ordre des IDs pour le conserver pendant le blocage du tri
+      sortedOrderRef.current = sorted.map((s) => s.id);
+      return sorted;
+    }
+
+    // Tri bloqué : on conserve l'ordre précédent grâce aux IDs mémorisés.
+    // Chaque ID est associé à sa position dans l'ancien tri (Map pour accès O(1)).
+    if (sortedOrderRef.current) {
+      const orderMap = new Map(
+        sortedOrderRef.current.map((id, index) => [id, index])
+      );
+      return [...filtered].sort((a, b) => {
+        // Les films inconnus (nouveaux) vont à la fin (Infinity)
+        const posA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+        const posB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+        return posA - posB;
+      });
+    }
+
+    return filtered;
+  })();
 
   // Configuration des onglets : label, statut, icône
   const tabs = [
