@@ -256,6 +256,11 @@
 
 .home__menu-item-icon {
   font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
 }
 
 /* Badge de notification dans un élément du menu (ex: "Mes Amis") */

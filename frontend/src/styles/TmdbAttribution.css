@@ -63,3 +63,14 @@
   color: var(--blanc-doux, #F0EEF2);
   text-decoration: underline;
 }
+
+/* Lien "Soutenir" légèrement mis en avant avec la couleur corail */
+.tmdb-attribution__link--donation {
+  color: var(--corail-vif, #FF4D6A);
+  font-weight: 500;
+}
+
+.tmdb-attribution__link--donation:hover {
+  color: var(--corail-vif, #FF4D6A);
+  opacity: 0.8;
+}

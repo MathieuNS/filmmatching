@@ -18,6 +18,7 @@ import Contact from './pages/contact'
 import ForgotPassword from './pages/forgot_password'
 import ResetPassword from './pages/reset_password'
 import Unsubscribe from './pages/unsbscribe'
+import Donation from './pages/donation'
 
 function Lougout() {
   localStorage.clear()
@@ -65,6 +66,7 @@ function App() {
         <Route path="/unsubscribe/:uid" element={<Unsubscribe />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="/donation" element={<Donation />} />
       </Routes>
     </BrowserRouter>
   )

@@ -391,7 +391,7 @@ function LandingPage() {
         <div className="landing__stat">
           <span className="landing__stat-icon">🎬</span>
           <span>
-            <span className="landing__stat-value">10 000+</span> films et séries
+            <span className="landing__stat-value">21 000+</span> films et séries
           </span>
         </div>
         <div className="landing__stat">

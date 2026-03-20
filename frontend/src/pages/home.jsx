@@ -63,13 +63,20 @@ function Home() {
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  // Les filtres actuellement appliqués (envoyés à l'API)
-  const [activeFilters, setActiveFilters] = useState({
-    type: "",
-    genres: [],
-    plateforms: [],
-    yearMin: "",
-    yearMax: "",
+  // Les filtres actuellement appliqués (envoyés à l'API).
+  // On initialise depuis localStorage pour garder les filtres entre les pages.
+  // JSON.parse convertit la string stockée en objet JavaScript.
+  // Si rien n'est stocké (première visite), on utilise les valeurs par défaut.
+  const [activeFilters, setActiveFilters] = useState(() => {
+    const saved = localStorage.getItem("filmmatching_filters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { type: "", genres: [], plateforms: [], yearMin: "", yearMax: "" };
+      }
+    }
+    return { type: "", genres: [], plateforms: [], yearMin: "", yearMax: "" };
   });
   // Listes de genres et plateformes récupérées depuis l'API (pour les chips)
   const [availableGenres, setAvailableGenres] = useState([]);
@@ -334,24 +341,21 @@ function Home() {
    */
   function handleApplyFilters(newFilters) {
     setActiveFilters(newFilters);
+    // On sauvegarde les filtres dans localStorage pour les retrouver
+    // quand l'utilisateur revient sur cette page ou va sur /liste.
+    // JSON.stringify convertit l'objet en string (localStorage ne stocke que des strings).
+    localStorage.setItem("filmmatching_filters", JSON.stringify(newFilters));
   }
 
-  /**
-   * Compte le nombre de filtres actifs pour afficher un badge.
-   * Chaque critère rempli compte pour 1 (type, genres, plateformes, année).
-   *
-   * @returns {number} Le nombre de filtres actifs
-   */
-  function getActiveFilterCount() {
-    let count = 0;
-    if (activeFilters.type) count++;
-    if (activeFilters.genres.length > 0) count++;
-    if (activeFilters.plateforms.length > 0) count++;
-    if (activeFilters.yearMin || activeFilters.yearMax) count++;
-    return count;
-  }
-
-  const filterCount = getActiveFilterCount();
+  // Nombre de filtres actifs (pour le badge sur le bouton).
+  // On compte chaque filtre individuellement : chaque genre, chaque plateforme, etc.
+  // Même calcul que dans films_list.jsx pour que le badge affiche le même nombre.
+  const filterCount =
+    (activeFilters.type ? 1 : 0) +
+    activeFilters.genres.length +
+    activeFilters.plateforms.length +
+    (activeFilters.yearMin ? 1 : 0) +
+    (activeFilters.yearMax ? 1 : 0);
 
   // =============================================
   // Gestion du drag (souris + tactile)
@@ -595,6 +599,21 @@ function Home() {
                 >
                   <span className="home__menu-item-icon">👤</span>
                   Mon compte
+                </button>
+                <button
+                  className="home__menu-item"
+                  onClick={() => { navigate("/donation"); setIsMenuOpen(false); }}
+                >
+                  <span className="home__menu-item-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
+                      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
+                      <line x1="6" y1="2" x2="6" y2="4" />
+                      <line x1="10" y1="2" x2="10" y2="4" />
+                      <line x1="14" y1="2" x2="14" y2="4" />
+                    </svg>
+                  </span>
+                  Un café?
                 </button>
                 <button
                   className="home__menu-item"
