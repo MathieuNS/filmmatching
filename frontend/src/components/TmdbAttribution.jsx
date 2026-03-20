@@ -38,6 +38,10 @@ function TmdbAttribution() {
       <Link to="/contact" className="tmdb-attribution__link">
         Contact
       </Link>
+      <span className="tmdb-attribution__separator">·</span>
+      <Link to="/donation" className="tmdb-attribution__link tmdb-attribution__link--donation">
+        Soutenir le projet
+      </Link>
     </footer>
   );
 }

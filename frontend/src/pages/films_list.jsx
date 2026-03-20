@@ -86,12 +86,18 @@ function FilmList() {
 
   // --- States pour les filtres (même structure que dans Home) ---
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState({
-    type: "",
-    genres: [],
-    plateforms: [],
-    yearMin: "",
-    yearMax: "",
+  // On initialise depuis localStorage pour garder les filtres entre les pages.
+  // Même clé que dans Home → les filtres sont partagés entre les 2 pages.
+  const [activeFilters, setActiveFilters] = useState(() => {
+    const saved = localStorage.getItem("filmmatching_filters");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { type: "", genres: [], plateforms: [], yearMin: "", yearMax: "" };
+      }
+    }
+    return { type: "", genres: [], plateforms: [], yearMin: "", yearMax: "" };
   });
   const [availableGenres, setAvailableGenres] = useState([]);
   const [availablePlateforms, setAvailablePlateforms] = useState([]);
@@ -250,6 +256,8 @@ function FilmList() {
   function handleApplyFilters(newFilters) {
     setActiveFilters(newFilters);
     setIsFilterOpen(false);
+    // Sauvegarde dans localStorage pour retrouver les filtres en changeant de page
+    localStorage.setItem("filmmatching_filters", JSON.stringify(newFilters));
   }
 
   /**
@@ -469,6 +477,21 @@ function FilmList() {
                   >
                     <span className="home__menu-item-icon">👤</span>
                     Mon compte
+                  </button>
+                  <button
+                    className="home__menu-item"
+                    onClick={() => { navigate("/donation"); setIsMenuOpen(false); }}
+                  >
+                    <span className="home__menu-item-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
+                        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
+                        <line x1="6" y1="2" x2="6" y2="4" />
+                        <line x1="10" y1="2" x2="10" y2="4" />
+                        <line x1="14" y1="2" x2="14" y2="4" />
+                      </svg>
+                    </span>
+                    Un café?
                   </button>
                   <button
                     className="home__menu-item"

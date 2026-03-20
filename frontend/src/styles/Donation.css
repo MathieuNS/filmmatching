@@ -1,0 +1,212 @@
+/* ==============================================
+   Donation — Page de soutien / don via Ko-fi
+   ============================================== */
+
+/* --- Page entière --- */
+.donation-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 60px 20px 40px;
+  background-color: var(--noir-cinema, #0D0D0F);
+  color: var(--blanc-doux, #F0EEF2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Halo décoratif en arrière-plan (même style que la landing page) */
+.donation-page::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    rgba(46, 224, 161, 0.1) 0%,
+    rgba(123, 92, 255, 0.06) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* --- Bouton retour --- */
+.donation-page__back {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--gris-texte, #8B8B9E);
+  text-decoration: none;
+  transition: color 0.25s ease;
+  z-index: 1;
+}
+
+.donation-page__back:hover {
+  color: var(--blanc-doux, #F0EEF2);
+}
+
+/* --- En-tête (emoji + titre + sous-titre) --- */
+.donation-page__header {
+  text-align: center;
+  max-width: 480px;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Emoji coeur en grand au-dessus du titre */
+.donation-page__emoji {
+  display: block;
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+  color: var(--corail-vif, #FF4D6A);
+}
+
+.donation-page__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+  background: linear-gradient(135deg, var(--vert-match, #2EE0A1), var(--violet-nuit, #7B5CFF));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.donation-page__subtitle {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--gris-texte, #8B8B9E);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Les mots importants en blanc (via <strong>) */
+.donation-page__subtitle strong {
+  color: var(--blanc-doux, #F0EEF2);
+  font-weight: 600;
+}
+
+/* --- Les 3 cartes "raisons de soutenir" --- */
+.donation-page__reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 440px;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.donation-page__reason-card {
+  background-color: var(--noir-carte, #16161A);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.25s ease;
+}
+
+.donation-page__reason-card:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.donation-page__reason-icon {
+  display: block;
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+}
+
+.donation-page__reason-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--blanc-doux, #F0EEF2);
+  margin: 0 0 8px;
+}
+
+.donation-page__reason-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--gris-texte, #8B8B9E);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* --- Bouton Ko-fi (CTA principal) --- */
+.donation-page__tipeee-button {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--vert-match, #2EE0A1), var(--violet-nuit, #7B5CFF));
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.25);
+  text-decoration: none;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.donation-page__tipeee-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(46, 224, 161, 0.4);
+}
+
+.donation-page__tipeee-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 12px rgba(46, 224, 161, 0.15);
+}
+
+/* --- Message de remerciement --- */
+.donation-page__thanks {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--gris-texte, #8B8B9E);
+  text-align: center;
+  max-width: 360px;
+  line-height: 1.6;
+  margin-top: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==============================================
+   Responsive — Adaptation mobile
+   ============================================== */
+
+@media (max-width: 480px) {
+  .donation-page {
+    padding: 48px 16px 32px;
+  }
+
+  .donation-page__title {
+    font-size: 1.6rem;
+  }
+
+  .donation-page__subtitle {
+    font-size: 0.9rem;
+  }
+
+  .donation-page__reason-card {
+    padding: 20px;
+  }
+}
