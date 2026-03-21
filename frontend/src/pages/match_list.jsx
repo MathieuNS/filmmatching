@@ -6,8 +6,8 @@ import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import "../styles/FilmList.css";
 import TmdbAttribution from "../components/TmdbAttribution";
+import HamburgerMenu from "../components/HamburgerMenu";
 import "../styles/MatchList.css";
-import "../styles/Home.css";
 
 /**
  * Page "Matchs" — Affiche les films likés en commun avec un ou plusieurs amis.
@@ -46,9 +46,6 @@ function MatchList() {
   const [friendName, setFriendName] = useState("");
   const [groupFriends, setGroupFriends] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // --- Menu hamburger ---
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // --- Filtres (même structure que FilmList et Home) ---
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -255,83 +252,8 @@ function MatchList() {
             )}
           </button>
 
-          {/* Menu hamburger */}
-          <div className="home__menu-container">
-            <button
-              className="home__menu-btn"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Menu de navigation"
-            >
-              <span
-                className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}
-              >
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </button>
-
-            {isMenuOpen && (
-              <>
-                <div
-                  className="home__menu-backdrop"
-                  onClick={() => setIsMenuOpen(false)}
-                />
-                <nav className="home__menu-dropdown">
-                  <button
-                    className="home__menu-item"
-                    onClick={() => {
-                      navigate("/home");
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <span className="home__menu-item-icon">👆</span>
-                    Swiper
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => {
-                      navigate("/liste");
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <span className="home__menu-item-icon">📋</span>
-                    Ma liste
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => {
-                      navigate("/amis");
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <span className="home__menu-item-icon">👥</span>
-                    Mes Amis
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => {
-                      navigate("/compte");
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <span className="home__menu-item-icon">👤</span>
-                    Mon compte
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => {
-                      navigate("/logout");
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <span className="home__menu-item-icon">⏻</span>
-                    Déconnexion
-                  </button>
-                </nav>
-              </>
-            )}
-          </div>
+          {/* Menu hamburger — composant réutilisable */}
+          <HamburgerMenu currentPage="matchs" />
         </div>
       </div>
 

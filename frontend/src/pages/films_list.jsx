@@ -6,11 +6,10 @@ import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
 import StarRating from "../components/StarRating";
+import HamburgerMenu from "../components/HamburgerMenu";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FilmList.css";
 import "../styles/FriendAvatars.css";
-// On importe Home.css pour réutiliser les styles du menu hamburger
-import "../styles/Home.css";
 
 /**
  * Page "Ma liste" — Affiche les films swipés par l'utilisateur.
@@ -48,9 +47,6 @@ function FilmList() {
 
   // Dictionnaire { filmId: [{username, avatar}, ...] } — quels amis ont aussi liké chaque film
   const [friendsLikes, setFriendsLikes] = useState({});
-
-  // --- State pour le menu de navigation (hamburger) ---
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // --- State pour la barre de recherche ---
   // searchQuery : le texte tapé par l'utilisateur dans le champ
@@ -436,74 +432,8 @@ function FilmList() {
             )}
           </button>
 
-          {/* Menu hamburger — même composant que sur la page Home */}
-          <div className="home__menu-container">
-            <button
-              className="home__menu-btn"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Menu de navigation"
-            >
-              <span className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}>
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </button>
-
-            {isMenuOpen && (
-              <>
-                <div
-                  className="home__menu-backdrop"
-                  onClick={() => setIsMenuOpen(false)}
-                />
-                <nav className="home__menu-dropdown">
-                  <button
-                    className="home__menu-item"
-                    onClick={() => { navigate("/home"); setIsMenuOpen(false); }}
-                  >
-                    <span className="home__menu-item-icon">👆</span>
-                    Swiper
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => { navigate("/amis"); setIsMenuOpen(false); }}
-                  >
-                    <span className="home__menu-item-icon">👥</span>
-                    Mes Amis
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => { navigate("/compte"); setIsMenuOpen(false); }}
-                  >
-                    <span className="home__menu-item-icon">👤</span>
-                    Mon compte
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => { navigate("/donation"); setIsMenuOpen(false); }}
-                  >
-                    <span className="home__menu-item-icon">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
-                        <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
-                        <line x1="6" y1="2" x2="6" y2="4" />
-                        <line x1="10" y1="2" x2="10" y2="4" />
-                        <line x1="14" y1="2" x2="14" y2="4" />
-                      </svg>
-                    </span>
-                    Un café?
-                  </button>
-                  <button
-                    className="home__menu-item"
-                    onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
-                  >
-                    <span className="home__menu-item-icon">⏻</span>
-                    Déconnexion
-                  </button>
-                </nav>
-              </>
-            )}
-          </div>
+          {/* Menu hamburger — composant réutilisable */}
+          <HamburgerMenu currentPage="liste" />
         </div>
       </div>
 
