@@ -6,6 +6,7 @@ import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
+import HamburgerMenu from "../components/HamburgerMenu";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/Home.css";
 import "../styles/MatchAnimation.css";
@@ -38,10 +39,6 @@ function Home() {
   // true quand il n'y a plus de films à proposer
   const [noMoreFilms, setNoMoreFilms] = useState(false);
 
-  // --- State pour le menu de navigation ---
-  // true = le menu hamburger est ouvert, false = fermé
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   // --- State pour la recherche de films ---
   // isSearchOpen : contrôle l'affichage de l'overlay de recherche
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -55,10 +52,6 @@ function Home() {
   // --- State pour l'animation de match ---
   // Contient les données du match à afficher (film + amis), ou null si pas de match
   const [matchData, setMatchData] = useState(null);
-
-  // --- State pour les notifications de demandes d'ami ---
-  // Nombre de demandes d'ami reçues en attente de réponse
-  const [pendingCount, setPendingCount] = useState(0);
 
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
@@ -114,20 +107,6 @@ function Home() {
       }
     }
     loadFilterOptions();
-  }, []);
-
-  // Au montage, on charge le nombre de demandes d'ami en attente
-  // pour afficher un badge de notification sur le menu hamburger.
-  useEffect(() => {
-    async function loadPendingCount() {
-      try {
-        const response = await api.get("/api/friends/pending-count/");
-        setPendingCount(response.data.count);
-      } catch (error) {
-        console.error("Erreur chargement demandes en attente :", error);
-      }
-    }
-    loadPendingCount();
   }, []);
 
   // Quand les filtres changent, on recharge les films depuis zéro
@@ -548,90 +527,8 @@ function Home() {
           )}
         </button>
 
-        {/* Bouton hamburger — ouvre/ferme le menu de navigation */}
-        <div className="home__menu-container">
-          <button
-            className="home__menu-btn"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Menu de navigation"
-          >
-            {/* 3 barres horizontales = icône hamburger classique */}
-            <span className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-            {/* Badge rouge — nombre de demandes d'ami en attente */}
-            {pendingCount > 0 && (
-              <span className="home__menu-badge">{pendingCount}</span>
-            )}
-          </button>
-
-          {/* Menu déroulant — visible uniquement quand isMenuOpen est true */}
-          {isMenuOpen && (
-            <>
-              {/* Fond transparent cliquable pour fermer le menu */}
-              <div
-                className="home__menu-backdrop"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <nav className="home__menu-dropdown">
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/liste"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">🎬</span>
-                  Ma liste
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/amis"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👥</span>
-                  Mes Amis
-                  {pendingCount > 0 && (
-                    <span className="home__menu-item-badge">{pendingCount}</span>
-                  )}
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/compte"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👤</span>
-                  Mon compte
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/donation"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 8h1a4 4 0 0 1 0 8h-1" />
-                      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z" />
-                      <line x1="6" y1="2" x2="6" y2="4" />
-                      <line x1="10" y1="2" x2="10" y2="4" />
-                      <line x1="14" y1="2" x2="14" y2="4" />
-                    </svg>
-                  </span>
-                  Un café?
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <polyline points="16 17 21 12 16 7" />
-                      <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                  </span>
-                  Déconnexion
-                </button>
-              </nav>
-            </>
-          )}
-        </div>
+        {/* Menu hamburger — composant réutilisable partagé entre toutes les pages */}
+        <HamburgerMenu currentPage="home" />
       </div>
     </div>
   );

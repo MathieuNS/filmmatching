@@ -189,6 +189,20 @@ class UpdateProfileSerializer(serializers.Serializer):
         return data
 
 
+class PlateformNestedSerializer(serializers.ModelSerializer):
+    """
+    Serializer imbriqué pour afficher les détails d'une plateforme dans un film.
+
+    Contrairement à PlateformSerializer (utilisé pour les filtres, qui ne renvoie
+    que l'ID et le nom), celui-ci renvoie aussi le logo et le lien vers le site.
+    C'est nécessaire pour le bouton "Où regarder" sur la carte film.
+    """
+
+    class Meta:
+        model = Plateform
+        fields = ['tmdb_id', 'plateform', 'logo', 'link']
+
+
 class FilmsSerializer(serializers.ModelSerializer):
     """
     Serializer complet pour le modèle Films.
@@ -201,7 +215,11 @@ class FilmsSerializer(serializers.ModelSerializer):
 
     # Au lieu de renvoyer des IDs (ex: [1, 3]), on renvoie les noms (ex: ["Action", "Drame"])
     genres = serializers.StringRelatedField(many=True, read_only=True)
-    plateforms = serializers.StringRelatedField(many=True, read_only=True)
+    # On utilise un serializer imbriqué pour les plateformes afin d'envoyer
+    # le nom, le logo et le lien (pas juste le nom en string).
+    # Avant : plateforms: ["Netflix", "Disney+"]
+    # Maintenant : plateforms: [{plateform: "Netflix", logo: "...", link: "..."}, ...]
+    plateforms = PlateformNestedSerializer(many=True, read_only=True)
     main_actors = serializers.StringRelatedField(many=True, read_only=True)
     # Pour le réalisateur (ForeignKey, pas ManyToMany), pas besoin de many=True
     director = serializers.StringRelatedField(read_only=True)

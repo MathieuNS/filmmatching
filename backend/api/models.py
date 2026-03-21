@@ -68,6 +68,8 @@ class Genres(models.Model):
 class Plateform(models.Model):
     tmdb_id = models.IntegerField(unique=True, primary_key=True)  # ID de la plateforme dans TMDB, pour éviter les doublons
     plateform = models.CharField(max_length=100)
+    link = models.URLField(null=True, blank=True)  # Lien vers la page de la plateforme
+    logo = models.URLField(null=True, blank=True)  # URL du logo de la plateforme (optionnel)
     class Meta:
         verbose_name = "Plateform"
         verbose_name_plural = "Plateforms"

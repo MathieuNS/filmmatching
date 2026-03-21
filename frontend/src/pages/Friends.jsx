@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { getAvatarUrl } from "../utils/avatars";
 import TmdbAttribution from "../components/TmdbAttribution";
+import HamburgerMenu from "../components/HamburgerMenu";
 import "../styles/Friends.css";
-// On importe Home.css pour réutiliser les styles du menu hamburger
-import "../styles/Home.css";
 
 /**
  * Page "Mes Amis" — Gère les relations d'amitié entre utilisateurs.
@@ -23,9 +22,6 @@ import "../styles/Home.css";
  */
 function Friends() {
   const navigate = useNavigate();
-
-  // --- State pour le menu hamburger ---
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // --- Données ---
   // L'ID de l'utilisateur connecté (pour savoir si on est sender ou receiver)
@@ -362,59 +358,8 @@ function Friends() {
           <h1 className="friends__title">Mes Amis</h1>
         </div>
 
-        {/* Menu hamburger — même composant que sur les autres pages */}
-        <div className="home__menu-container">
-          <button
-            className="home__menu-btn"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Menu de navigation"
-          >
-            <span className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
-
-          {isMenuOpen && (
-            <>
-              <div
-                className="home__menu-backdrop"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <nav className="home__menu-dropdown">
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/home"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👆</span>
-                  Swiper
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/liste"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">📋</span>
-                  Ma liste
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/compte"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👤</span>
-                  Mon compte
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">⏻</span>
-                  Déconnexion
-                </button>
-              </nav>
-            </>
-          )}
-        </div>
+        {/* Menu hamburger — composant réutilisable */}
+        <HamburgerMenu currentPage="amis" />
       </div>
 
       {/* Contenu principal */}

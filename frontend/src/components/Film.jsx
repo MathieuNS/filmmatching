@@ -43,6 +43,8 @@ function Film({
 }) {
   // --- State pour afficher/masquer le lecteur de bande-annonce ---
   const [showTrailer, setShowTrailer] = useState(false);
+  // --- State pour afficher/masquer l'overlay des plateformes ---
+  const [showPlatforms, setShowPlatforms] = useState(false);
 
   // --- States pour savoir si chaque section est dépliée ---
   const [expanded, setExpanded] = useState({
@@ -153,16 +155,30 @@ function Film({
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
 
-        {/* Bouton bande-annonce — visible uniquement si trailer_url existe */}
-        {trailer_url && (
-          <button
-            className="film-card__trailer-btn"
-            onClick={() => setShowTrailer(true)}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            ▶ Bande-annonce
-          </button>
-        )}
+        {/* Boutons d'action : bande-annonce + où regarder */}
+        <div className="film-card__action-buttons">
+          {/* Bouton bande-annonce — visible uniquement si trailer_url existe */}
+          {trailer_url && (
+            <button
+              className="film-card__trailer-btn"
+              onClick={() => setShowTrailer(true)}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              ▶ Bande-annonce
+            </button>
+          )}
+
+          {/* Bouton "Où regarder" — visible uniquement si des plateformes existent */}
+          {plateform && plateform.length > 0 && (
+            <button
+              className="film-card__platforms-btn"
+              onClick={() => setShowPlatforms(true)}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              📺 Regarder
+            </button>
+          )}
+        </div>
 
         {/* Synopsis — tronqué à 3 lignes par défaut, dépliable */}
         {synopsis && (
@@ -254,9 +270,11 @@ function Film({
               ref={platformsRef}
             >
               <span className="film-card__label">Disponible sur :</span>
+              {/* plateform est maintenant un tableau d'objets {plateform, logo, link}
+                  au lieu de simples strings. On affiche le nom de la plateforme. */}
               {plateform.map((plat, index) => (
                 <span key={index} className="film-card__platform">
-                  {plat}
+                  {plat.plateform}
                 </span>
               ))}
             </div>
@@ -305,7 +323,62 @@ function Film({
           </div>
         </div>,
         document.body
+      )}
 
+      {/* Overlay des plateformes — liste des plateformes avec logo et lien.
+          Rendu dans le <body> via createPortal (même raison que le trailer). */}
+      {showPlatforms && createPortal(
+        <div
+          className="film-card__trailer-backdrop"
+          onClick={() => setShowPlatforms(false)}
+        >
+          <div
+            className="film-card__platforms-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton fermer */}
+            <button
+              className="film-card__trailer-close"
+              onClick={() => setShowPlatforms(false)}
+            >
+              ✕
+            </button>
+
+            <h3 className="film-card__platforms-modal-title">Où regarder</h3>
+
+            {/* Liste des plateformes cliquables */}
+            <div className="film-card__platforms-list">
+              {plateform.map((plat, index) => (
+                <a
+                  key={index}
+                  href={plat.link || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`film-card__platform-link ${!plat.link ? "film-card__platform-link--disabled" : ""}`}
+                  onClick={(e) => {
+                    // Si pas de lien disponible, on empeche la navigation
+                    if (!plat.link) e.preventDefault();
+                  }}
+                >
+                  {/* Logo de la plateforme (ou placeholder si pas de logo) */}
+                  {plat.logo ? (
+                    <img
+                      className="film-card__platform-logo"
+                      src={plat.logo}
+                      alt={plat.plateform}
+                    />
+                  ) : (
+                    <div className="film-card__platform-logo-placeholder">
+                      {plat.plateform.charAt(0)}
+                    </div>
+                  )}
+                  <span className="film-card__platform-name">{plat.plateform}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -138,9 +138,15 @@
   overflow: hidden;
 }
 
+/* --- Conteneur des boutons d'action (bande-annonce + où regarder) --- */
+.film-card__action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* --- Bouton bande-annonce --- */
 .film-card__trailer-btn {
-  align-self: flex-start;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -159,6 +165,28 @@
 .film-card__trailer-btn:hover {
   background-color: rgba(255, 77, 106, 0.25);
   box-shadow: 0 4px 24px rgba(255, 77, 106, 0.15);
+}
+
+/* --- Bouton "Où regarder" --- */
+.film-card__platforms-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgba(46, 224, 161, 0.4);
+  border-radius: 100px;
+  background-color: rgba(46, 224, 161, 0.12);
+  color: #2EE0A1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.film-card__platforms-btn:hover {
+  background-color: rgba(46, 224, 161, 0.25);
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.15);
 }
 
 /* --- Modale bande-annonce (backdrop sombre + lecteur centré) --- */
@@ -320,6 +348,94 @@
   padding: 3px 10px;
   border-radius: 100px;
   font-size: 0.7rem;
+  font-weight: 500;
+  font-family: 'Sora', sans-serif;
+}
+
+/* --- Overlay "Où regarder" (modale plateformes) --- */
+.film-card__platforms-modal {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: #16161A;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 24px;
+}
+
+.film-card__platforms-modal-title {
+  margin: 0 0 16px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  text-align: center;
+}
+
+/* Liste des plateformes dans l'overlay */
+.film-card__platforms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Chaque plateforme est un lien cliquable */
+.film-card__platform-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background-color: #1E1E24;
+  text-decoration: none;
+  color: #F0EEF2;
+  transition: all 0.25s ease;
+}
+
+.film-card__platform-link:hover {
+  background-color: #2A2A32;
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.1);
+}
+
+/* Plateforme sans lien disponible — grisée */
+.film-card__platform-link--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.film-card__platform-link--disabled:hover {
+  background-color: #1E1E24;
+  box-shadow: none;
+}
+
+/* Logo de la plateforme */
+.film-card__platform-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+/* Placeholder quand il n'y a pas de logo (première lettre du nom) */
+.film-card__platform-logo-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: rgba(46, 224, 161, 0.15);
+  color: #2EE0A1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Nom de la plateforme */
+.film-card__platform-name {
+  font-size: 0.9rem;
   font-weight: 500;
   font-family: 'Sora', sans-serif;
 }

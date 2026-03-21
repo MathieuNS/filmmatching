@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import TmdbAttribution from "../components/TmdbAttribution";
+import HamburgerMenu from "../components/HamburgerMenu";
 import { AVATARS, getAvatarUrl } from "../utils/avatars";
 import "../styles/UserAccount.css";
-// On importe Home.css pour réutiliser les styles du menu hamburger
-import "../styles/Home.css";
 
 /**
  * Page "Mon compte" — Affiche les informations personnelles de l'utilisateur.
@@ -27,8 +26,6 @@ function UserAccount() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   // true pendant que la requête de suppression est en cours
   const [deleting, setDeleting] = useState(false);
-  // --- State pour le menu de navigation (hamburger) ---
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   // --- State pour le sélecteur d'avatar ---
   // true quand le sélecteur d'avatar est visible
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -209,59 +206,8 @@ function UserAccount() {
           <h1 className="account__title">Mon Compte</h1>
         </div>
 
-        {/* Menu hamburger — même composant que sur Home et FilmList */}
-        <div className="home__menu-container">
-          <button
-            className="home__menu-btn"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Menu de navigation"
-          >
-            <span className={`home__menu-icon ${isMenuOpen ? "home__menu-icon--open" : ""}`}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
-
-          {isMenuOpen && (
-            <>
-              <div
-                className="home__menu-backdrop"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <nav className="home__menu-dropdown">
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/home"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👆</span>
-                  Swiper
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/liste"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">📋</span>
-                  Ma liste
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/amis"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">👥</span>
-                  Mes Amis
-                </button>
-                <button
-                  className="home__menu-item"
-                  onClick={() => { navigate("/logout"); setIsMenuOpen(false); }}
-                >
-                  <span className="home__menu-item-icon">⏻</span>
-                  Déconnexion
-                </button>
-              </nav>
-            </>
-          )}
-        </div>
+        {/* Menu hamburger — composant réutilisable */}
+        <HamburgerMenu currentPage="compte" />
       </div>
 
       {/* Contenu principal */}

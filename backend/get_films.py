@@ -88,14 +88,24 @@ def get_plateforms(movie_id, type_field="Film", headers=HEADERS):
     tv_or_movie = "movie" if type_field == "Film" else "tv"
     plateform_url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/watch/providers"
     response_plateform = requests.get(plateform_url, headers=headers)
-    
-    plateforms = response_plateform.json()["results"]["FR"]["flatrate"]
+
+    # On récupère les données pour la France
+    fr_data = response_plateform.json()["results"]["FR"]
+
+    all_plateforms = fr_data.get("flatrate", []) + fr_data.get("rent", []) + fr_data.get("buy", [])
 
     list_plateforms = []
-    for plateform in plateforms:
+    for plateform in all_plateforms:
         # On utilise get_or_create pour éviter les doublons de plateforms dans la base de données
-        Plateform.objects.get_or_create(tmdb_id=plateform["provider_id"], plateform=plateform["provider_name"])
-        list_plateforms.append(plateform["provider_id"])
+        # Si la plateforme est nouvelle (created=True), on lui ajoute son logo TMDB
+        logo_url = f"https://image.tmdb.org/t/p/w200{plateform['logo_path']}" if plateform.get("logo_path") else None
+        obj, created = Plateform.objects.get_or_create(tmdb_id=plateform["provider_id"], plateform=plateform["provider_name"])
+        if created and logo_url:
+            obj.logo = logo_url
+            obj.save()
+        # On évite les doublons dans la liste (une même plateforme peut être dans flatrate ET buy, ex: Apple TV)
+        if plateform["provider_id"] not in list_plateforms:
+            list_plateforms.append(plateform["provider_id"])
 
     return list_plateforms
 
