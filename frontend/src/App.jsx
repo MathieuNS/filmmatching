@@ -19,6 +19,7 @@ import ForgotPassword from './pages/forgot_password'
 import ResetPassword from './pages/reset_password'
 import Unsubscribe from './pages/unsbscribe'
 import Donation from './pages/donation'
+import AlAffiche from './pages/a_l_affiche'
 
 function Lougout() {
   localStorage.clear()
@@ -52,6 +53,9 @@ function App() {
           </ProtectedRoute>} />
         <Route path="/compte" element={<ProtectedRoute>
           <UserAccount />
+          </ProtectedRoute>} />
+          <Route path="/a-l-affiche" element={<ProtectedRoute>
+          <AlAffiche />
           </ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Lougout />} />
