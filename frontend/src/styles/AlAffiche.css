@@ -1,0 +1,554 @@
+/* ============================================
+   AlAffiche.css — Styles spécifiques à la page "À l'affiche"
+   Éléments propres à cette page : badges de statut sur les cartes,
+   boutons d'action (like/dislike/seen), bouton "charger plus".
+   La grille et les cartes réutilisent les classes de FilmList.css.
+   ============================================ */
+
+/* --- Badge de statut sur la carte (coin supérieur gauche) ---
+   Indique si l'utilisateur a déjà swipé ce film. */
+.affiche__card-status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  z-index: 5;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Couleur selon le statut */
+.affiche__card-status--like {
+  background-color: rgba(255, 77, 106, 0.85);
+}
+
+.affiche__card-status--dislike {
+  background-color: rgba(139, 139, 158, 0.85);
+}
+
+.affiche__card-status--seen {
+  background-color: rgba(255, 170, 43, 0.85);
+}
+
+/* --- Note TMDB sur la carte (coin supérieur droit) --- */
+.affiche__card-rating {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 100px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #FFAA2B;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* --- Modale immersive (même layout que Film.jsx) ---
+   Image en fond plein + dégradé sombre + infos superposées en bas */
+
+/* Fond sombre derrière la modale */
+.affiche__modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: afficheFadeIn 0.2s ease;
+}
+
+/* Conteneur de la modale — même structure que .film-card */
+.affiche__modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  height: 85vh;
+  max-height: 680px;
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: #0D0D0F;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: afficheSlideUp 0.3s ease;
+}
+
+@keyframes afficheSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bouton fermer en haut à droite */
+.affiche__modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #F0EEF2;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.25s ease;
+}
+
+.affiche__modal-close:hover {
+  background-color: rgba(0, 0, 0, 0.85);
+  transform: scale(1.1);
+}
+
+/* Image en fond plein (comme film-card__image) */
+.affiche__modal-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Dégradé sombre superposé sur l'image (comme film-card__gradient) */
+.affiche__modal-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 20%,
+    rgba(13, 13, 15, 0.6) 45%,
+    rgba(13, 13, 15, 0.95) 70%,
+    #0D0D0F 100%
+  );
+  pointer-events: none;
+}
+
+/* Infos superposées en bas (comme film-card__overlay) */
+.affiche__modal-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Titre du film */
+.affiche__modal-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Année + note TMDB */
+.affiche__modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.affiche__modal-year {
+  color: rgba(240, 238, 242, 0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'Sora', sans-serif;
+}
+
+.affiche__modal-rating {
+  color: #FFAA2B;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+}
+
+/* Genres sous forme de pills */
+.affiche__modal-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.affiche__modal-genre {
+  background-color: rgba(123, 92, 255, 0.15);
+  color: #a5b4fc;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: 'Sora', sans-serif;
+}
+
+/* Section dépliable (synopsis + bouton voir plus) */
+.affiche__modal-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Synopsis — tronqué à 3 lignes par défaut */
+.affiche__modal-synopsis {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(240, 238, 242, 0.65);
+  font-family: 'Sora', sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Synopsis déplié — on retire la troncature */
+.affiche__modal-synopsis--expanded {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
+/* Bouton "voir plus" / "voir moins" */
+.affiche__modal-see-more {
+  background: none;
+  border: none;
+  color: #7B5CFF;
+  font-size: 0.7rem;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  align-self: flex-start;
+  transition: color 0.25s ease;
+}
+
+.affiche__modal-see-more:hover {
+  color: #a58aff;
+}
+
+/* --- Bouton bande-annonce dans la modale --- */
+.affiche__modal-trailer-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 77, 106, 0.4);
+  border-radius: 100px;
+  background-color: rgba(255, 77, 106, 0.12);
+  color: #FF4D6A;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.affiche__modal-trailer-btn:hover {
+  background-color: rgba(255, 77, 106, 0.25);
+  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.15);
+}
+
+/* --- Labels (Réalisateur, Casting) --- */
+.affiche__modal-label {
+  color: rgba(240, 238, 242, 0.5);
+  font-weight: 600;
+  font-size: 0.7rem;
+  font-family: 'Sora', sans-serif;
+}
+
+/* Réalisateur */
+.affiche__modal-director {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+  font-family: 'Sora', sans-serif;
+}
+
+/* Casting */
+.affiche__modal-actors {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+  font-family: 'Sora', sans-serif;
+}
+
+/* Indicateur de chargement des détails */
+.affiche__modal-loading-details {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-style: italic;
+}
+
+/* --- Boutons d'action dans la modale (like / dislike / seen) --- */
+.affiche__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.affiche__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #1E1E24;
+  color: #F0EEF2;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.affiche__action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.affiche__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Bouton "À voir" — corail */
+.affiche__action-btn--like {
+  color: #FF4D6A;
+  border-color: rgba(255, 77, 106, 0.3);
+  background-color: rgba(255, 77, 106, 0.1);
+}
+
+.affiche__action-btn--like:hover:not(:disabled) {
+  background-color: rgba(255, 77, 106, 0.2);
+  box-shadow: 0 4px 16px rgba(255, 77, 106, 0.2);
+}
+
+/* Bouton actif (statut déjà choisi) — fond plein */
+.affiche__action-btn--like.affiche__action-btn--active {
+  background-color: #FF4D6A;
+  color: #fff;
+  border-color: #FF4D6A;
+}
+
+/* Bouton "Déjà vu" — ambre */
+.affiche__action-btn--seen {
+  color: #FFAA2B;
+  border-color: rgba(255, 170, 43, 0.3);
+  background-color: rgba(255, 170, 43, 0.1);
+}
+
+.affiche__action-btn--seen:hover:not(:disabled) {
+  background-color: rgba(255, 170, 43, 0.2);
+  box-shadow: 0 4px 16px rgba(255, 170, 43, 0.2);
+}
+
+.affiche__action-btn--seen.affiche__action-btn--active {
+  background-color: #FFAA2B;
+  color: #fff;
+  border-color: #FFAA2B;
+}
+
+/* Bouton "Pas intéressé" — gris */
+.affiche__action-btn--dislike {
+  color: #8B8B9E;
+  border-color: rgba(139, 139, 158, 0.3);
+  background-color: rgba(139, 139, 158, 0.1);
+}
+
+.affiche__action-btn--dislike:hover:not(:disabled) {
+  background-color: rgba(139, 139, 158, 0.2);
+  box-shadow: 0 4px 16px rgba(139, 139, 158, 0.15);
+}
+
+.affiche__action-btn--dislike.affiche__action-btn--active {
+  background-color: #8B8B9E;
+  color: #fff;
+  border-color: #8B8B9E;
+}
+
+/* --- Bouton "Charger plus" --- */
+.affiche__load-more {
+  display: block;
+  margin: 20px auto 24px;
+  padding: 12px 32px;
+  border-radius: 14px;
+  border: 1px solid rgba(123, 92, 255, 0.3);
+  background-color: rgba(123, 92, 255, 0.1);
+  color: #7B5CFF;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.affiche__load-more:hover {
+  background-color: rgba(123, 92, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(123, 92, 255, 0.2);
+}
+
+.affiche__load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Compteur de films --- */
+.affiche__count {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 16px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: #8B8B9E;
+}
+
+.affiche__count strong {
+  color: #F0EEF2;
+}
+
+/* --- Animation de match (overlay de notification) --- */
+.affiche__match-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: afficheFadeIn 0.3s ease;
+}
+
+@keyframes afficheFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.affiche__match-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 8px;
+}
+
+.affiche__match-subtitle {
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: #8B8B9E;
+  margin: 0 0 24px;
+}
+
+.affiche__match-friends {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.affiche__match-friend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.affiche__match-friend-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #2EE0A1;
+}
+
+.affiche__match-friend-name {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  color: #F0EEF2;
+}
+
+.affiche__match-close {
+  padding: 10px 28px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #2EE0A1, #7B5CFF);
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.affiche__match-close:hover {
+  box-shadow: 0 4px 24px rgba(46, 224, 161, 0.3);
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .affiche__modal-backdrop {
+    padding: 12px;
+  }
+
+  .affiche__modal {
+    max-width: 100%;
+    height: 90vh;
+    max-height: none;
+  }
+
+  .affiche__modal-overlay {
+    padding: 16px;
+    gap: 4px;
+  }
+
+  .affiche__modal-title {
+    font-size: 1.2rem;
+  }
+
+  .affiche__modal-synopsis {
+    -webkit-line-clamp: 3;
+    font-size: 0.75rem;
+  }
+
+  .affiche__action-btn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+}

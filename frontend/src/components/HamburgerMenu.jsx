@@ -17,7 +17,7 @@ import "../styles/HamburgerMenu.css";
  * @param {Object} props
  * @param {string} props.currentPage - Identifiant de la page actuelle
  *   pour l'exclure du menu. Valeurs possibles :
- *   "home", "liste", "amis", "compte", "donation"
+ *   "home", "liste", "amis", "affiche", "compte", "donation"
  * @returns {JSX.Element} Le bouton hamburger et son menu déroulant
  */
 function HamburgerMenu({ currentPage }) {
@@ -48,6 +48,7 @@ function HamburgerMenu({ currentPage }) {
     { id: "home", label: "Swiper", icon: "👆", path: "/home" },
     { id: "liste", label: "Ma liste", icon: "📋", path: "/liste" },
     { id: "amis", label: "Mes Amis", icon: "👥", path: "/amis", showBadge: true },
+    { id: "affiche", label: "À l'affiche", icon: "🎬", path: "/a-l-affiche" },
     { id: "compte", label: "Mon compte", icon: "👤", path: "/compte" },
     {
       id: "donation",
