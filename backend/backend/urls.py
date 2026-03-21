@@ -29,8 +29,6 @@ from api.views import (
     ForgotPasswordView,
     ResetPasswordView,
     NowPlayingView,
-    NowPlayingDetailView,
-    NowPlayingSwipeView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -71,13 +69,8 @@ urlpatterns = [
     # Recherche de films par titre (autocomplétion sur la page Home)
     path('api/films/search/', FilmSearchView.as_view(), name='film-search'),
     path('api/films/random/', RandomFilmView.as_view(), name='film-random'),
-    # Films actuellement au cinéma (via TMDB /movie/now_playing)
+    # Films actuellement au cinéma en France (pré-chargés en base par get_now_playing)
     path('api/films/now-playing/', NowPlayingView.as_view(), name='film-now-playing'),
-    # Détails enrichis d'un film au cinéma (casting + bande-annonce)
-    # IMPORTANT : cette route avec <int:tmdb_id> doit être AVANT swipe/
-    # sinon Django essaierait d'interpréter "swipe" comme un tmdb_id
-    path('api/films/now-playing/swipe/', NowPlayingSwipeView.as_view(), name='film-now-playing-swipe'),
-    path('api/films/now-playing/<int:tmdb_id>/', NowPlayingDetailView.as_view(), name='film-now-playing-detail'),
 
     # --- Genres et Plateformes (pour les filtres) ---
     path('api/genres/', GenreListView.as_view(), name='genre-list'),

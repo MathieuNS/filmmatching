@@ -115,6 +115,9 @@ class Films(models.Model):
                             default='Film')
     popularity = models.FloatField(default=0.0)
     trailer_url = models.URLField(blank=True, null=True)
+    # True si le film est actuellement à l'affiche au cinéma en France.
+    # Mis à jour quotidiennement par la commande get_now_playing.
+    now_playing = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Film"

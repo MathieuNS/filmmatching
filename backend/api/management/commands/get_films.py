@@ -8,8 +8,6 @@ from calendar import monthrange
 import sys
 import re
 import requests
-from dotenv import load_dotenv
-import os
 import logging
 
 # Sur Windows, la console utilise l'encodage cp1252 par défaut.
@@ -21,22 +19,18 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django.core.management.base import BaseCommand
-from api.models import Plateform, Casting, Director, Films
-
-load_dotenv()
+from api.models import Films
+from api.tmdb_utils import get_casting, get_plateforms, get_trailer, TMDB_HEADERS
 
 # On récupère le logger "scripts" configuré dans settings.py.
 # Tous les messages passés à ce logger seront écrits dans logs/scripts.log
 # et affichés dans la console.
 logger = logging.getLogger("scripts")
 
-TMDB_ACCESS_TOKEN = os.getenv("TMDB_ACCESS_TOKEN")
 
-
-HEADERS = {
-    'accept': 'application/json',
-    'Authorization': f'Bearer {TMDB_ACCESS_TOKEN}',
-}
+# HEADERS est importé depuis tmdb_utils sous le nom TMDB_HEADERS
+# pour centraliser la configuration d'authentification TMDB.
+HEADERS = TMDB_HEADERS
 
 
 class Command(BaseCommand):
@@ -187,96 +181,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(msg_fin))
         logger.info(msg_fin)
 
-    def get_casting(self,movie_id, type_field="Film", headers=HEADERS):
-
-        """get actors and director
-
-        Returns:
-            tuple: a tuple containing the list of actors and the director's name
-        """
-        tv_or_movie = "movie" if type_field == "Film" else "tv"
-        url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/credits?language=fr-FR"
-
-        response = requests.get(url, headers=headers)
-
-        actors = response.json()["cast"]
-
-        # Get only the 5 most popular actors
-        nb_actors = min(5, len(actors))  # On prend le minimum entre 5 et le nombre d'acteurs disponibles
-        popular_actors = sorted(actors, key=lambda x: x["popularity"], reverse=True)[:nb_actors]
-
-        cast_list = []
-        for actor in popular_actors:
-            # On utilise get_or_create pour éviter les doublons d'acteurs dans la base de données
-            cast = Casting.objects.get_or_create(name=actor["name"])
-            cast_list.append(cast[0].id)  # cast[0] est l'instance de l'acteur, cast[1] est un booléen indiquant si l'acteur a été créé ou non, on ajoute l'id de l'acteur à la liste des acteurs pour le film dans la base de données
-
-        # Creation du réalisateur s'il n'existe pas déjà dans la base de données, et récupération de son id pour l'ajouter au film dans la base de données
-        director = next((Director.objects.get_or_create(name=crew_member['name'])[0].id for crew_member in response.json()["crew"] if crew_member['job'] == 'Director'), None)
-
-        return cast_list, director
-
-    def get_plateforms(self,movie_id, type_field="Film", headers=HEADERS):
-        """get all the plateforms where the film is available with a subcription (netflix, prime video...)
-            and add the plateforms to the film in the database
-
-
-        Args:
-            movie_id (integer): id of the movie you want to get the plateforms
-            headers (dictionnary, optional): headers to use for the request. Defaults to HEADERS.
-
-        Returns:
-            list: list of plateform names where the film is available
-        """
-
-        tv_or_movie = "movie" if type_field == "Film" else "tv"
-        plateform_url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/watch/providers"
-        response_plateform = requests.get(plateform_url, headers=headers)
-
-        # On récupère les données pour la France
-        fr_data = response_plateform.json()["results"]["FR"]
-
-        all_plateforms = fr_data.get("flatrate", []) + fr_data.get("rent", []) + fr_data.get("buy", [])
-
-        list_plateforms = []
-        for plateform in all_plateforms:
-            # On utilise get_or_create pour éviter les doublons de plateforms dans la base de données
-            # Si la plateforme est nouvelle (created=True), on lui ajoute son logo TMDB
-            logo_url = f"https://image.tmdb.org/t/p/w200{plateform['logo_path']}" if plateform.get("logo_path") else None
-            obj, created = Plateform.objects.get_or_create(tmdb_id=plateform["provider_id"], plateform=plateform["provider_name"])
-            if created and logo_url:
-                obj.logo = logo_url
-                obj.save()
-            # On évite les doublons dans la liste (une même plateforme peut être dans flatrate ET buy, ex: Apple TV)
-            if plateform["provider_id"] not in list_plateforms:
-                list_plateforms.append(plateform["provider_id"])
-
-        return list_plateforms
-
-    def get_trailer(self,movie_id, type_field="Film", headers=HEADERS):
-
-        """get the trailer url for a film or a serie
-
-        Args:
-            movie_id (integer): id of the movie or serie you want to get the trailer
-            type_field (str, optional): type of content (Film or Série). Defaults to "Film".
-            headers (dictionnary, optional): headers to use for the request. Defaults to HEADERS.
-
-        Returns:
-            string: url of the trailer on youtube, or None if no trailer is available
-        """
-
-        tv_or_movie = "movie" if type_field == "Film" else "tv"
-        url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/videos"
-        response = requests.get(url, headers=headers).json()["results"]
-
-        embedded_url = None
-        if response:
-            trailer_key = [trailer["key"] for trailer in response if ("Trailer" in trailer["name"]) and (trailer["site"] == "YouTube")]
-            embedded_url = f"https://www.youtube.com/embed/{trailer_key[0]}" if trailer_key else None
-        
-        return embedded_url
-
     def create_dico(self, film,
                     genres=None, 
                     plateforme=None,
@@ -361,13 +265,13 @@ class Command(BaseCommand):
 
             # S'il n'y a pas de plateformes disponibles pour le film, on ne récupère pas les détails du film pour éviter d'avoir des films sans plateforme dans la base de données
             try:
-                plateforms = self.get_plateforms(movie_id=film["id"], type_field=type_field, headers=headers)
+                plateforms = get_plateforms(movie_id=film["id"], type_field=type_field)
             except KeyError:
                 continue
 
-            actors, director = self.get_casting(movie_id=film["id"], type_field=type_field, headers=headers)
+            actors, director = get_casting(movie_id=film["id"], type_field=type_field)
 
-            trailer_url = self.get_trailer(movie_id=film["id"], type_field=type_field, headers=headers)
+            trailer_url = get_trailer(movie_id=film["id"], type_field=type_field)
 
             dico = self.create_dico(film, 
                             list_genres, 

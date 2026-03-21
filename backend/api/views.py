@@ -1,6 +1,5 @@
 import os
 import logging
-import requests as http_requests
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
@@ -14,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Films, Genres, Plateform, Casting, Director, Swipe, Friendship, Profile, AVATAR_CHOICES
+from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
     UpdateProfileSerializer,
@@ -1698,528 +1697,56 @@ class FriendsLikesView(APIView):
         return Response(result)
 
 
-# --- Token TMDB pour les appels API ---
-# On le charge une seule fois au démarrage du module (pas à chaque requête).
-TMDB_ACCESS_TOKEN = os.getenv("TMDB_ACCESS_TOKEN")
-TMDB_HEADERS = {
-    'accept': 'application/json',
-    'Authorization': f'Bearer {TMDB_ACCESS_TOKEN}',
-}
-
-
-class NowPlayingView(APIView):
+class NowPlayingView(generics.ListAPIView):
     """
     Renvoie les films actuellement au cinéma en France.
 
     - GET /api/films/now-playing/
-    - GET /api/films/now-playing/?page=2
 
-    Appelle l'API TMDB /movie/now_playing avec region=FR.
-    Pour chaque film, on vérifie si l'utilisateur connecté l'a déjà
-    swipé (like, dislike ou seen) pour afficher un indicateur côté frontend.
+    Les films sont pré-chargés en base de données par la commande
+    de management ``get_now_playing`` (exécutée quotidiennement via cron).
+    Cette vue ne fait aucun appel à l'API TMDB — elle requête simplement
+    la base de données avec ``now_playing=True``.
 
-    La réponse inclut :
-    - results : la liste des films avec leurs infos TMDB + user_status
-    - page : la page actuelle
-    - total_pages : le nombre total de pages disponibles
+    Chaque film inclut un champ ``user_status`` qui indique si l'utilisateur
+    connecté a déjà swipé ce film (like, dislike ou seen).
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = FilmsSerializer
 
-    def get(self, request):
-        """Récupère les films au cinéma depuis TMDB et enrichit avec le statut utilisateur."""
-        page = request.query_params.get("page", "1")
-
-        # Appel à l'API TMDB — /movie/now_playing renvoie les films
-        # actuellement en salle dans la région spécifiée (FR = France).
-        tmdb_url = (
-            f"https://api.themoviedb.org/3/movie/now_playing"
-            f"?language=fr-FR&region=FR&page={page}"
-        )
-        tmdb_response = http_requests.get(tmdb_url, headers=TMDB_HEADERS)
-
-        if tmdb_response.status_code != 200:
-            logger.error("Erreur TMDB now_playing : %s", tmdb_response.text)
-            return Response(
-                {"error": "Impossible de récupérer les films à l'affiche."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        tmdb_data = tmdb_response.json()
-
-        # Récupérer les films TMDB qui existent déjà dans notre base.
-        # Pour ceux-là, on a déjà toutes les infos (casting, réalisateur,
-        # bande-annonce, plateformes) → pas besoin d'appeler TMDB au clic.
-        tmdb_ids = [film["id"] for film in tmdb_data.get("results", [])]
-        existing_films = Films.objects.filter(
-            tmdb_id__in=tmdb_ids, type="Film"
+    def get_queryset(self):
+        """
+        Renvoie tous les films marqués now_playing=True,
+        triés par popularité décroissante.
+        """
+        return Films.objects.filter(
+            now_playing=True
         ).select_related("director").prefetch_related(
             "main_actors", "genres", "plateforms"
-        )
-        # Dictionnaire { tmdb_id: objet Films } pour accès rapide
-        existing_by_tmdb = {film.tmdb_id: film for film in existing_films}
+        ).order_by("-popularity")
 
-        # Récupérer les swipes de l'utilisateur pour les films en base
-        film_ids = [f.id for f in existing_films]
-        user_swipes = {}
-        if film_ids:
-            swipes = Swipe.objects.filter(
+    def list(self, request, *args, **kwargs):
+        """
+        Surcharge de list() pour ajouter le user_status à chaque film.
+
+        Le user_status permet au frontend d'afficher un badge (coeur, oeil, croix)
+        sur les films que l'utilisateur a déjà swipés.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+
+        # Récupérer les swipes de l'utilisateur connecté pour ces films
+        film_ids = [film.id for film in queryset]
+        user_swipes = dict(
+            Swipe.objects.filter(
                 user=request.user, film_id__in=film_ids
             ).values_list("film_id", "status")
-            user_swipes = {film_id: swipe_status for film_id, swipe_status in swipes}
-
-        # Récupérer les noms des genres TMDB depuis notre base
-        # (pour les films PAS encore en base, on a besoin de convertir les IDs)
-        all_genre_ids = set()
-        for film in tmdb_data.get("results", []):
-            all_genre_ids.update(film.get("genre_ids", []))
-        genres_map = dict(
-            Genres.objects.filter(tmdb_id__in=all_genre_ids).values_list("tmdb_id", "genre")
         )
 
-        # Construire la liste de résultats enrichie
-        results = []
-        for film in tmdb_data.get("results", []):
-            if not film.get("poster_path"):
-                continue
-
-            db_film = existing_by_tmdb.get(film["id"])
-
-            if db_film:
-                # Le film existe en base → on renvoie les infos complètes
-                # directement, sans appel TMDB supplémentaire au clic.
-                user_status = user_swipes.get(db_film.id)
-                results.append({
-                    "tmdb_id": film["id"],
-                    "title": db_film.title,
-                    "img": db_film.img,
-                    "synopsis": db_film.synopsis,
-                    "release_year": db_film.release_year,
-                    "genres": [g.genre for g in db_film.genres.all()],
-                    "vote_average": film.get("vote_average", 0),
-                    "user_status": user_status,
-                    # Infos enrichies déjà disponibles
-                    "director": str(db_film.director) if db_film.director else None,
-                    "main_actors": [str(a) for a in db_film.main_actors.all()],
-                    "trailer_url": db_film.trailer_url,
-                    "plateforms": [
-                        {"tmdb_id": p.tmdb_id, "plateform": p.plateform, "logo": p.logo, "link": p.link}
-                        for p in db_film.plateforms.all()
-                    ],
-                    # Indique au frontend que les détails sont déjà complets
-                    "has_details": True,
-                })
-            else:
-                # Film pas encore en base → infos de base TMDB uniquement,
-                # les détails seront chargés au clic via NowPlayingDetailView.
-                genre_names = [
-                    genres_map[gid] for gid in film.get("genre_ids", [])
-                    if gid in genres_map
-                ]
-                results.append({
-                    "tmdb_id": film["id"],
-                    "title": film.get("title", ""),
-                    "img": f"https://image.tmdb.org/t/p/w500{film['poster_path']}",
-                    "synopsis": film.get("overview", ""),
-                    "release_year": film.get("release_date", "")[:4] if film.get("release_date") else "",
-                    "genres": genre_names,
-                    "vote_average": film.get("vote_average", 0),
-                    "user_status": None,
-                    "has_details": False,
-                })
-
-        return Response({
-            "results": results,
-            "page": tmdb_data.get("page", 1),
-            "total_pages": tmdb_data.get("total_pages", 1),
-        })
-
-
-class NowPlayingDetailView(APIView):
-    """
-    Renvoie les détails enrichis d'un film au cinéma (casting, réalisateur, bande-annonce).
-
-    - GET /api/films/now-playing/<tmdb_id>/
-
-    Appelle 2 endpoints TMDB à la volée :
-    - /movie/{id}/credits → 5 acteurs principaux + réalisateur
-    - /movie/{id}/videos → bande-annonce YouTube
-
-    Ces appels ne sont faits que quand l'utilisateur clique sur un film,
-    pas pour toute la liste (ce qui serait trop lent : 20 films × 2 appels).
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, tmdb_id):
-        """
-        Récupère le casting et la bande-annonce d'un film.
-
-        Vérifie d'abord si le film existe en base de données.
-        Si oui, renvoie les infos directement (0 appel TMDB).
-        Si non, appelle TMDB credits + videos à la volée.
-        """
-        # --- Étape 1 : Chercher le film en base ---
-        db_film = Films.objects.filter(
-            tmdb_id=tmdb_id, type="Film"
-        ).select_related("director").prefetch_related("main_actors").first()
-
-        if db_film:
-            # Le film existe en base → on renvoie les infos sans appeler TMDB
-            return Response({
-                "tmdb_id": tmdb_id,
-                "main_actors": [str(a) for a in db_film.main_actors.all()],
-                "director": str(db_film.director) if db_film.director else None,
-                "trailer_url": db_film.trailer_url,
-            })
-
-        # --- Étape 2 : Film pas en base → appeler TMDB ---
-        try:
-            # Casting (acteurs + réalisateur)
-            credits_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?language=fr-FR"
-            credits_res = http_requests.get(credits_url, headers=TMDB_HEADERS)
-            credits_data = credits_res.json() if credits_res.status_code == 200 else {}
-
-            # 5 acteurs les plus populaires
-            actors = credits_data.get("cast", [])
-            nb_actors = min(5, len(actors))
-            popular_actors = sorted(
-                actors, key=lambda x: x.get("popularity", 0), reverse=True
-            )[:nb_actors]
-            actor_names = [a["name"] for a in popular_actors]
-
-            # Réalisateur : premier membre d'équipe avec job="Director"
-            director_name = None
-            for crew_member in credits_data.get("crew", []):
-                if crew_member.get("job") == "Director":
-                    director_name = crew_member["name"]
-                    break
-
-            # Bande-annonce YouTube
-            videos_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/videos"
-            videos_res = http_requests.get(videos_url, headers=TMDB_HEADERS)
-            videos_data = videos_res.json().get("results", []) if videos_res.status_code == 200 else []
-
-            trailer_url = None
-            for video in videos_data:
-                if "Trailer" in video.get("name", "") and video.get("site") == "YouTube":
-                    trailer_url = f"https://www.youtube.com/embed/{video['key']}"
-                    break
-
-            return Response({
-                "tmdb_id": tmdb_id,
-                "main_actors": actor_names,
-                "director": director_name,
-                "trailer_url": trailer_url,
-            })
-
-        except Exception as e:
-            logger.error("Erreur détails TMDB pour tmdb_id=%s : %s", tmdb_id, e)
-            return Response(
-                {"error": "Impossible de récupérer les détails du film."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-
-class NowPlayingSwipeView(APIView):
-    """
-    Enregistre un swipe sur un film au cinéma.
-
-    - POST /api/films/now-playing/swipe/
-    - Body : { "tmdb_id": 12345, "status": "like" }
-
-    Si le film n'existe pas encore dans notre base, il est créé
-    automatiquement avec un enrichissement à la volée :
-    - Casting (5 acteurs principaux + réalisateur)
-    - Plateformes de streaming (si disponibles)
-    - Bande-annonce YouTube (si disponible)
-
-    Contrairement à get_films qui ignore les films sans plateforme,
-    ici on crée le film même sans plateforme car il est au cinéma.
-
-    Après la création/récupération du film, le swipe est enregistré
-    avec la même logique que SwipeCreateView (détection de matchs incluse).
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        """Crée le film en base si nécessaire, puis enregistre le swipe."""
-        tmdb_id = request.data.get("tmdb_id")
-        swipe_status = request.data.get("status")
-
-        # Validation des données reçues
-        if not tmdb_id or not swipe_status:
-            return Response(
-                {"error": "Les champs 'tmdb_id' et 'status' sont requis."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if swipe_status not in ("like", "dislike", "seen"):
-            return Response(
-                {"error": "Le statut doit être 'like', 'dislike' ou 'seen'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Étape 1 : Chercher le film dans notre base par tmdb_id + type="Film"
-        film = Films.objects.filter(tmdb_id=tmdb_id, type="Film").first()
-
-        # Étape 2 : Si le film n'existe pas, le créer avec enrichissement
-        if not film:
-            film = self._create_film_from_tmdb(tmdb_id)
-            if not film:
-                return Response(
-                    {"error": "Impossible de récupérer les informations du film depuis TMDB."},
-                    status=status.HTTP_502_BAD_GATEWAY,
-                )
-
-        # Étape 3 : Enregistrer le swipe (ou mettre à jour s'il existe déjà)
-        user = request.user
-        existing_swipe = Swipe.objects.filter(user=user, film=film).first()
-
-        if existing_swipe:
-            # Le swipe existe déjà → on met à jour le statut
-            existing_swipe.status = swipe_status
-            existing_swipe.rating = None  # Pas de note depuis cette page
-            existing_swipe.save()
-            logger.info(
-                "Swipe mis à jour (cinéma) : %s - %s (%s)",
-                user.username, film.title, swipe_status
-            )
-            response_data = SwipeSerializer(existing_swipe).data
-        else:
-            # Nouveau swipe
-            swipe = Swipe.objects.create(user=user, film=film, status=swipe_status)
-            logger.info(
-                "Swipe (cinéma) : %s - %s (%s)",
-                user.username, film.title, swipe_status
-            )
-            response_data = SwipeSerializer(swipe).data
-
-        # Étape 4 : Si c'est un "like", chercher les matchs avec les amis
-        # (même logique que SwipeCreateView)
-        matched_friends = []
-        if swipe_status == "like":
-            friendships = Friendship.objects.filter(
-                Q(sender=user) | Q(receiver=user),
-                accepted=True,
-            )
-            friends = [
-                f.receiver if f.sender == user else f.sender
-                for f in friendships
-            ]
-            matched_swipes = Swipe.objects.filter(
-                user__in=friends,
-                film=film,
-                status="like",
-            ).select_related("user", "user__profile")
-
-            for swipe_obj in matched_swipes:
-                profile = getattr(swipe_obj.user, "profile", None)
-                avatar_name = profile.avatar if profile else "avatar-popcorn.svg"
-                matched_friends.append({
-                    "username": swipe_obj.user.username,
-                    "avatar": avatar_name,
-                })
-
-            if matched_friends:
-                friend_names = [f["username"] for f in matched_friends]
-                logger.info(
-                    "Match trouvé (cinéma) ! %s et %s ont liké %s",
-                    user.username, friend_names, film.title
-                )
-
-        response_data["matched_friends"] = matched_friends
-        return Response(response_data, status=status.HTTP_200_OK)
-
-    def _create_film_from_tmdb(self, tmdb_id):
-        """
-        Crée un film en base à partir de son ID TMDB, avec enrichissement complet.
-
-        Fait 4 appels à l'API TMDB :
-        1. /movie/{id} → titre, poster, synopsis, date, genres, popularité
-        2. /movie/{id}/credits → casting (5 acteurs) + réalisateur
-        3. /movie/{id}/watch/providers → plateformes de streaming en France
-        4. /movie/{id}/videos → bande-annonce YouTube
-
-        Le film est créé même si aucune plateforme n'est disponible
-        (car il est au cinéma, c'est sa "plateforme" principale).
-
-        Args:
-            tmdb_id (int): L'ID TMDB du film
-
-        Returns:
-            Films: L'instance du film créé, ou None en cas d'erreur
-        """
-        try:
-            # --- 1. Infos de base du film ---
-            detail_url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?language=fr-FR"
-            detail_res = http_requests.get(detail_url, headers=TMDB_HEADERS)
-            if detail_res.status_code != 200:
-                logger.error("TMDB detail erreur pour tmdb_id=%s : %s", tmdb_id, detail_res.text)
-                return None
-            detail = detail_res.json()
-
-            # --- 2. Casting (acteurs + réalisateur) ---
-            cast_list, director_id = self._get_casting(tmdb_id)
-
-            # --- 3. Plateformes de streaming ---
-            plateform_ids = self._get_plateforms(tmdb_id)
-
-            # --- 4. Bande-annonce YouTube ---
-            trailer_url = self._get_trailer(tmdb_id)
-
-            # --- 5. Genres ---
-            # Les genres dans /movie/{id} sont des objets {id, name},
-            # on extrait les IDs pour les lier au modèle Genres.
-            genre_ids = [g["id"] for g in detail.get("genres", [])]
-
-            # --- Création du film en base ---
-            poster_path = detail.get("poster_path", "")
-            img_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else ""
-            release_date = detail.get("release_date", "")
-            release_year = int(release_date[:4]) if release_date and len(release_date) >= 4 else 0
-
-            film = Films.objects.create(
-                tmdb_id=tmdb_id,
-                type="Film",
-                title=detail.get("title", ""),
-                img=img_url,
-                release_year=release_year,
-                synopsis=detail.get("overview", ""),
-                popularity=detail.get("popularity", 0),
-                trailer_url=trailer_url,
-                director_id=director_id,
-            )
-
-            # Ajout des relations ManyToMany (acteurs, genres, plateformes)
-            film.main_actors.set(cast_list)
-            film.genres.set(genre_ids)
-            if plateform_ids:
-                film.plateforms.set(plateform_ids)
-
-            logger.info("Film cinéma créé en base : %s (tmdb_id=%s)", film.title, tmdb_id)
-            return film
-
-        except Exception as e:
-            logger.error("Erreur création film cinéma tmdb_id=%s : %s", tmdb_id, e)
-            return None
-
-    def _get_casting(self, movie_id):
-        """
-        Récupère les 5 acteurs principaux et le réalisateur depuis TMDB.
-
-        Même logique que get_films.py > get_casting(), mais en méthode
-        de la vue plutôt qu'en méthode de la commande de management.
-
-        Args:
-            movie_id (int): L'ID TMDB du film
-
-        Returns:
-            tuple: (liste d'IDs d'acteurs en base, ID du réalisateur en base ou None)
-        """
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}/credits?language=fr-FR"
-        response = http_requests.get(url, headers=TMDB_HEADERS)
-        data = response.json()
-
-        # Acteurs : on prend les 5 plus populaires
-        actors = data.get("cast", [])
-        nb_actors = min(5, len(actors))
-        popular_actors = sorted(actors, key=lambda x: x.get("popularity", 0), reverse=True)[:nb_actors]
-
-        cast_list = []
-        for actor in popular_actors:
-            obj, _ = Casting.objects.get_or_create(name=actor["name"])
-            cast_list.append(obj.id)
-
-        # Réalisateur : on cherche le premier membre d'équipe avec job="Director"
-        director_id = None
-        for crew_member in data.get("crew", []):
-            if crew_member.get("job") == "Director":
-                obj, _ = Director.objects.get_or_create(name=crew_member["name"])
-                director_id = obj.id
-                break
-
-        return cast_list, director_id
-
-    def _get_plateforms(self, movie_id):
-        """
-        Récupère les plateformes de streaming disponibles en France.
-
-        Contrairement à get_films.py qui ignore les films sans plateforme FR,
-        ici on renvoie une liste vide si aucune plateforme n'est disponible
-        (le film est au cinéma, donc c'est normal).
-
-        Args:
-            movie_id (int): L'ID TMDB du film
-
-        Returns:
-            list: Liste d'IDs TMDB de plateformes (peut être vide)
-        """
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers"
-        response = http_requests.get(url, headers=TMDB_HEADERS)
-        data = response.json()
-
-        # Vérifier si des données existent pour la France
-        fr_data = data.get("results", {}).get("FR")
-        if not fr_data:
-            return []
-
-        # Combiner les plateformes par abonnement, location et achat
-        all_plateforms = (
-            fr_data.get("flatrate", [])
-            + fr_data.get("rent", [])
-            + fr_data.get("buy", [])
-        )
-
-        list_plateforms = []
-        seen_ids = set()  # Pour éviter les doublons
-        for plateform in all_plateforms:
-            provider_id = plateform["provider_id"]
-            if provider_id in seen_ids:
-                continue
-            seen_ids.add(provider_id)
-
-            logo_url = (
-                f"https://image.tmdb.org/t/p/w200{plateform['logo_path']}"
-                if plateform.get("logo_path") else None
-            )
-            obj, created = Plateform.objects.get_or_create(
-                tmdb_id=provider_id,
-                defaults={"plateform": plateform["provider_name"]},
-            )
-            if created and logo_url:
-                obj.logo = logo_url
-                obj.save()
-            list_plateforms.append(provider_id)
-
-        return list_plateforms
-
-    def _get_trailer(self, movie_id):
-        """
-        Récupère l'URL de la bande-annonce YouTube du film.
-
-        Cherche une vidéo dont le nom contient "Trailer" sur YouTube.
-        Renvoie un lien embed pour l'intégration dans le frontend.
-
-        Args:
-            movie_id (int): L'ID TMDB du film
-
-        Returns:
-            str|None: URL embed YouTube ou None si pas de bande-annonce
-        """
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}/videos"
-        response = http_requests.get(url, headers=TMDB_HEADERS)
-        results = response.json().get("results", [])
-
-        if not results:
-            return None
-
-        # Chercher un trailer YouTube
-        trailer_keys = [
-            video["key"] for video in results
-            if "Trailer" in video.get("name", "") and video.get("site") == "YouTube"
-        ]
-        if trailer_keys:
-            return f"https://www.youtube.com/embed/{trailer_keys[0]}"
-
-        return None
+        # Ajouter user_status à chaque film sérialisé
+        results = serializer.data
+        for film_data in results:
+            film_data["user_status"] = user_swipes.get(film_data["id"])
+
+        return Response(results)
