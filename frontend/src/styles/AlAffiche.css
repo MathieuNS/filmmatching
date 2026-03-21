@@ -5,6 +5,13 @@
    La grille et les cartes réutilisent les classes de FilmList.css.
    ============================================ */
 
+/* --- Header gauche (bouton retour + titre) --- */
+.film-list__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* --- Badge de statut sur la carte (coin supérieur gauche) ---
    Indique si l'utilisateur a déjà swipé ce film. */
 .affiche__card-status {

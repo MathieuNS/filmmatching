@@ -12,20 +12,17 @@ import "../styles/AlAffiche.css";
 /**
  * Page "À l'affiche" — Affiche les films actuellement au cinéma en France.
  *
- * Les films sont récupérés depuis l'API TMDB via notre backend
- * (endpoint /api/films/now-playing/). Pour chaque film, on sait
- * si l'utilisateur l'a déjà swipé (like, dislike, seen) grâce
- * au champ user_status renvoyé par l'API.
+ * Les films sont pré-chargés en base de données par une commande cron
+ * quotidienne (get_now_playing). L'API renvoie directement tous les films
+ * avec leurs infos complètes (casting, réalisateur, bande-annonce, plateformes).
  *
  * L'utilisateur peut :
- * - Cliquer sur un film pour voir ses détails (modale)
+ * - Cliquer sur un film pour voir ses détails (modale immersive)
  * - Ajouter le film à sa liste (like), le marquer comme vu (seen)
- *   ou pas intéressé (dislike) via les boutons d'action dans la modale
- * - Charger plus de films (pagination TMDB)
+ *   ou pas intéressé (dislike) via les boutons d'action
  *
- * Quand l'utilisateur swipe un film qui n'est pas encore dans notre base,
- * le backend le crée automatiquement avec toutes les infos enrichies
- * (casting, réalisateur, plateformes, bande-annonce).
+ * Les swipes utilisent le même endpoint que le reste de l'app (/api/swipes/)
+ * avec l'ID en base du film (pas le tmdb_id).
  *
  * @returns {JSX.Element} La page des films à l'affiche
  */
@@ -35,14 +32,8 @@ function AlAffiche() {
   // --- Données ---
   // Liste des films à l'affiche renvoyés par l'API
   const [films, setFilms] = useState([]);
-  // Page actuelle de la pagination TMDB
-  const [page, setPage] = useState(1);
-  // Nombre total de pages disponibles sur TMDB
-  const [totalPages, setTotalPages] = useState(1);
   // true pendant le chargement initial
   const [loading, setLoading] = useState(true);
-  // true pendant le chargement d'une page supplémentaire
-  const [loadingMore, setLoadingMore] = useState(false);
 
   // --- Modale ---
   // Film sélectionné pour afficher ses détails
@@ -53,11 +44,6 @@ function AlAffiche() {
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   // true quand le lecteur de bande-annonce est visible
   const [showTrailer, setShowTrailer] = useState(false);
-  // Détails enrichis du film sélectionné (casting, réalisateur, bande-annonce)
-  // Chargés à la volée quand on clique sur un film
-  const [filmDetails, setFilmDetails] = useState(null);
-  // true pendant le chargement des détails
-  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // --- Notification de match ---
   // Données du match à afficher (film + amis), ou null si pas de match
@@ -65,85 +51,44 @@ function AlAffiche() {
 
   /**
    * Charge les films à l'affiche au montage du composant.
-   * On ne charge que la première page au départ.
+   * Tous les films sont renvoyés d'un coup (pas de pagination).
    */
   useEffect(() => {
-    fetchFilms(1);
+    fetchFilms();
   }, []);
 
   /**
-   * Récupère une page de films à l'affiche depuis notre API.
-   *
-   * Si c'est la première page (pageNum === 1), on remplace la liste.
-   * Sinon, on ajoute les nouveaux films à la suite (pagination).
-   *
-   * @param {number} pageNum - Le numéro de page TMDB à charger
+   * Récupère les films à l'affiche depuis notre API.
+   * Les films sont déjà en base avec toutes leurs infos complètes
+   * (casting, réalisateur, bande-annonce, plateformes).
    */
-  async function fetchFilms(pageNum) {
-    if (pageNum === 1) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
-
+  async function fetchFilms() {
+    setLoading(true);
     try {
-      const response = await api.get(`/api/films/now-playing/?page=${pageNum}`);
-      const data = response.data;
-
-      if (pageNum === 1) {
-        // Première page : on remplace toute la liste
-        setFilms(data.results);
-      } else {
-        // Pages suivantes : on ajoute à la suite
-        // On filtre les doublons éventuels (même tmdb_id)
-        setFilms((prev) => {
-          const existingIds = new Set(prev.map((f) => f.tmdb_id));
-          const newFilms = data.results.filter(
-            (f) => !existingIds.has(f.tmdb_id)
-          );
-          return [...prev, ...newFilms];
-        });
-      }
-
-      setPage(data.page);
-      setTotalPages(data.total_pages);
+      const response = await api.get("/api/films/now-playing/");
+      setFilms(response.data);
     } catch (error) {
       console.error("Erreur chargement films à l'affiche :", error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
-    }
-  }
-
-  /**
-   * Charge la page suivante de films.
-   * Appelée quand l'utilisateur clique sur "Charger plus".
-   */
-  function handleLoadMore() {
-    if (page < totalPages && !loadingMore) {
-      fetchFilms(page + 1);
     }
   }
 
   /**
    * Enregistre un swipe sur un film à l'affiche.
    *
-   * Envoie le tmdb_id et le statut au backend, qui se charge de :
-   * 1. Créer le film en base s'il n'existe pas (enrichissement à la volée)
-   * 2. Enregistrer le swipe
-   * 3. Détecter les matchs avec les amis
+   * Utilise le même endpoint /api/swipes/ que le reste de l'application.
+   * Le film est identifié par son ID en base (pas le tmdb_id),
+   * car tous les films à l'affiche sont déjà en base.
    *
-   * Après le swipe, on met à jour le statut du film dans la liste locale
-   * pour que le badge s'affiche immédiatement sans recharger la page.
-   *
-   * @param {number} tmdbId - L'ID TMDB du film
+   * @param {Object} film - Le film sur lequel l'utilisateur swipe
    * @param {string} swipeStatus - "like", "dislike" ou "seen"
    */
-  async function handleSwipe(tmdbId, swipeStatus) {
+  async function handleSwipe(film, swipeStatus) {
     setSwiping(true);
     try {
-      const response = await api.post("/api/films/now-playing/swipe/", {
-        tmdb_id: tmdbId,
+      const response = await api.post("/api/swipes/", {
+        film: film.id,
         status: swipeStatus,
       });
 
@@ -151,19 +96,18 @@ function AlAffiche() {
       // pour que le badge s'affiche immédiatement
       setFilms((prev) =>
         prev.map((f) =>
-          f.tmdb_id === tmdbId ? { ...f, user_status: swipeStatus } : f
+          f.id === film.id ? { ...f, user_status: swipeStatus } : f
         )
       );
 
       // Mettre à jour aussi le film sélectionné dans la modale
-      if (selectedFilm && selectedFilm.tmdb_id === tmdbId) {
+      if (selectedFilm && selectedFilm.id === film.id) {
         setSelectedFilm((prev) => ({ ...prev, user_status: swipeStatus }));
       }
 
       // Si des matchs sont trouvés, afficher la notification
       const matchedFriends = response.data.matched_friends || [];
       if (matchedFriends.length > 0) {
-        const film = films.find((f) => f.tmdb_id === tmdbId);
         setMatchData({
           film: film,
           friends: matchedFriends,
@@ -177,46 +121,15 @@ function AlAffiche() {
   }
 
   /**
-   * Ouvre la modale et charge les détails enrichis (casting, bande-annonce).
-   *
-   * Si le film existe déjà dans notre base (has_details === true),
-   * les infos complètes sont déjà incluses dans l'objet film
-   * → on les utilise directement, aucun appel API supplémentaire.
-   *
-   * Si le film n'est pas en base (has_details === false),
-   * on appelle /api/films/now-playing/<tmdb_id>/ qui va chercher
-   * le casting et la bande-annonce sur TMDB à la volée.
+   * Ouvre la modale avec les détails du film.
+   * Toutes les infos sont déjà dans l'objet film (pas d'appel API).
    *
    * @param {Object} film - Le film sur lequel l'utilisateur a cliqué
    */
-  async function handleOpenFilm(film) {
+  function handleOpenFilm(film) {
     setSelectedFilm(film);
     setSynopsisExpanded(false);
     setShowTrailer(false);
-
-    if (film.has_details) {
-      // Le film existe en base → les détails sont déjà dans l'objet film
-      setFilmDetails({
-        main_actors: film.main_actors || [],
-        director: film.director || null,
-        trailer_url: film.trailer_url || null,
-      });
-      setLoadingDetails(false);
-      return;
-    }
-
-    // Le film n'est pas en base → appel API pour récupérer les détails
-    setFilmDetails(null);
-    setLoadingDetails(true);
-
-    try {
-      const response = await api.get(`/api/films/now-playing/${film.tmdb_id}/`);
-      setFilmDetails(response.data);
-    } catch (error) {
-      console.error("Erreur chargement détails film :", error);
-    } finally {
-      setLoadingDetails(false);
-    }
   }
 
   /**
@@ -242,7 +155,7 @@ function AlAffiche() {
     <div className="film-list">
       {/* Header : retour + titre + hamburger */}
       <div className="film-list__header">
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div className="film-list__header-left">
           <button
             className="film-list__back-btn"
             onClick={() => navigate("/home")}
@@ -281,7 +194,7 @@ function AlAffiche() {
           <div className="film-list__grid">
             {films.map((film) => (
               <div
-                key={film.tmdb_id}
+                key={film.id}
                 className="film-list__card"
                 onClick={() => handleOpenFilm(film)}
               >
@@ -291,13 +204,6 @@ function AlAffiche() {
                     className={`affiche__card-status affiche__card-status--${film.user_status}`}
                   >
                     {getStatusIcon(film.user_status)}
-                  </div>
-                )}
-
-                {/* Note TMDB */}
-                {film.vote_average > 0 && (
-                  <div className="affiche__card-rating">
-                    ★ {film.vote_average.toFixed(1)}
                   </div>
                 )}
 
@@ -315,17 +221,6 @@ function AlAffiche() {
               </div>
             ))}
           </div>
-
-          {/* Bouton "Charger plus" si d'autres pages sont disponibles */}
-          {page < totalPages && (
-            <button
-              className="affiche__load-more"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-            >
-              {loadingMore ? "Chargement..." : "Charger plus"}
-            </button>
-          )}
         </>
       )}
 
@@ -362,16 +257,11 @@ function AlAffiche() {
 
             {/* Infos superposées en bas de l'image (comme film-card__overlay) */}
             <div className="affiche__modal-overlay">
-              {/* Année + note TMDB */}
+              {/* Année */}
               <div className="affiche__modal-meta">
                 <span className="affiche__modal-year">
                   {selectedFilm.release_year}
                 </span>
-                {selectedFilm.vote_average > 0 && (
-                  <span className="affiche__modal-rating">
-                    ★ {selectedFilm.vote_average.toFixed(1)}
-                  </span>
-                )}
               </div>
 
               {/* Titre */}
@@ -388,8 +278,8 @@ function AlAffiche() {
                 </div>
               )}
 
-              {/* Bande-annonce — visible quand les détails sont chargés */}
-              {filmDetails?.trailer_url && (
+              {/* Bande-annonce */}
+              {selectedFilm.trailer_url && (
                 <button
                   className="affiche__modal-trailer-btn"
                   onClick={() => setShowTrailer(true)}
@@ -398,27 +288,22 @@ function AlAffiche() {
                 </button>
               )}
 
-              {/* Réalisateur — visible quand les détails sont chargés */}
-              {filmDetails?.director && (
+              {/* Réalisateur */}
+              {selectedFilm.director && (
                 <div className="affiche__modal-section">
                   <span className="affiche__modal-label">Réalisateur</span>
-                  <p className="affiche__modal-director">{filmDetails.director}</p>
+                  <p className="affiche__modal-director">{selectedFilm.director}</p>
                 </div>
               )}
 
-              {/* Casting — visible quand les détails sont chargés */}
-              {filmDetails?.main_actors && filmDetails.main_actors.length > 0 && (
+              {/* Casting */}
+              {selectedFilm.main_actors && selectedFilm.main_actors.length > 0 && (
                 <div className="affiche__modal-section">
                   <span className="affiche__modal-label">Casting</span>
                   <p className="affiche__modal-actors">
-                    {filmDetails.main_actors.join(", ")}
+                    {selectedFilm.main_actors.join(", ")}
                   </p>
                 </div>
-              )}
-
-              {/* Indicateur de chargement des détails */}
-              {loadingDetails && (
-                <p className="affiche__modal-loading-details">Chargement...</p>
               )}
 
               {/* Synopsis avec "voir plus / voir moins" */}
@@ -448,7 +333,7 @@ function AlAffiche() {
                       ? "affiche__action-btn--active"
                       : ""
                   }`}
-                  onClick={() => handleSwipe(selectedFilm.tmdb_id, "like")}
+                  onClick={() => handleSwipe(selectedFilm, "like")}
                   disabled={swiping}
                 >
                   ❤️ À voir
@@ -459,7 +344,7 @@ function AlAffiche() {
                       ? "affiche__action-btn--active"
                       : ""
                   }`}
-                  onClick={() => handleSwipe(selectedFilm.tmdb_id, "seen")}
+                  onClick={() => handleSwipe(selectedFilm, "seen")}
                   disabled={swiping}
                 >
                   👁 Déjà vu
@@ -470,7 +355,7 @@ function AlAffiche() {
                       ? "affiche__action-btn--active"
                       : ""
                   }`}
-                  onClick={() => handleSwipe(selectedFilm.tmdb_id, "dislike")}
+                  onClick={() => handleSwipe(selectedFilm, "dislike")}
                   disabled={swiping}
                 >
                   ✕ Pas intéressé
@@ -484,7 +369,7 @@ function AlAffiche() {
       {/* Modale bande-annonce — rendue dans le <body> via createPortal
           pour éviter les conflits de z-index avec la modale du film */}
       {showTrailer &&
-        filmDetails?.trailer_url &&
+        selectedFilm?.trailer_url &&
         createPortal(
           <div
             className="film-card__trailer-backdrop"
@@ -503,7 +388,7 @@ function AlAffiche() {
               </button>
               <iframe
                 className="film-card__trailer-iframe"
-                src={filmDetails.trailer_url}
+                src={selectedFilm.trailer_url}
                 title="Bande-annonce"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
