@@ -289,9 +289,12 @@ function FilmList() {
         if (!hasMatchingGenre) return false;
       }
 
-      // Filtre par plateformes : le film doit être sur AU MOINS une plateforme sélectionnée
+      // Filtre par plateformes : le film doit être sur AU MOINS une plateforme sélectionnée.
+      // film.plateforms est un tableau d'objets ({ plateform: "Netflix", logo: "...", ... }),
+      // alors que activeFilters.plateforms contient des strings ("Netflix").
+      // On extrait donc le nom de chaque plateforme avant de comparer.
       if (activeFilters.plateforms.length > 0) {
-        const filmPlateforms = film.plateforms || [];
+        const filmPlateforms = (film.plateforms || []).map((p) => p.plateform);
         const hasMatchingPlateform = activeFilters.plateforms.some((p) =>
           filmPlateforms.includes(p)
         );
