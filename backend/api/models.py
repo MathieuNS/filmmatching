@@ -48,6 +48,13 @@ class Profile(models.Model):
     # False sinon. Modifiable à tout moment dans "Mon compte".
     email_notifications = models.BooleanField(default=False)
 
+    # Préférence de partage de la "filmothèque" (films marqués déjà vu).
+    # Quand True, les amis peuvent voir la liste complète des films vus
+    # de cet utilisateur sur la page /amis/:friendshipId/matchs (onglet "Sa filmothèque").
+    # Quand False, les amis voient un message "Cette filmothèque est privée".
+    # Public par défaut : on assume que partager ses films vus est normal entre amis.
+    share_seen_with_friends = models.BooleanField(default=True)
+
     class Meta:
         verbose_name = "Profile"
         verbose_name_plural = "Profiles"

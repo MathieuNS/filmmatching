@@ -17,10 +17,11 @@ class UserSerializer(serializers.ModelSerializer):
     # Champs calculés : on va chercher ces valeurs dans le Profile lié au User
     avatar = serializers.SerializerMethodField()
     email_notifications = serializers.SerializerMethodField()
+    share_seen_with_friends = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'avatar', 'email_notifications']
+        fields = ['id', 'username', 'email', 'password', 'avatar', 'email_notifications', 'share_seen_with_friends']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_avatar(self, obj):
@@ -54,6 +55,24 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'profile'):
             return obj.profile.email_notifications
         return False
+
+    def get_share_seen_with_friends(self, obj):
+        """
+        Récupère la préférence de partage de la filmothèque depuis le Profile.
+
+        Permet aux amis de voir la liste complète des films marqués "déjà vu".
+        Public par défaut : la valeur True est appliquée même si l'utilisateur
+        n'a pas encore de Profile (cas marginal des comptes très anciens).
+
+        Args:
+            obj: L'objet User
+
+        Returns:
+            True si l'utilisateur partage sa filmothèque, False sinon
+        """
+        if hasattr(obj, 'profile'):
+            return obj.profile.share_seen_with_friends
+        return True
 
     def validate_email(self, value):
         """
@@ -106,6 +125,8 @@ class UpdateProfileSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     # Préférence de notifications email (true/false)
     email_notifications = serializers.BooleanField(required=False)
+    # Préférence de partage de la filmothèque avec les amis (true/false)
+    share_seen_with_friends = serializers.BooleanField(required=False)
     # write_only=True : ces champs ne seront jamais renvoyés dans la réponse
     password = serializers.CharField(required=False, write_only=True)
     password_confirm = serializers.CharField(required=False, write_only=True)
@@ -344,6 +365,41 @@ class SwipeDetailSerializer(serializers.ModelSerializer):
         model = Swipe
         fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
         read_only_fields = ['created_at']
+
+
+class FriendSeenFilmSerializer(serializers.Serializer):
+    """
+    Serializer pour la "filmothèque" d'un ami : un film que l'ami a marqué
+    comme déjà vu, enrichi avec :
+    - sa note (si l'ami a noté le film)
+    - la date à laquelle il l'a vu
+    - mon propre statut de swipe sur ce film (like/dislike/seen ou null)
+    - ma propre note si je l'ai aussi vu
+
+    On utilise serializers.Serializer (pas ModelSerializer) car on ne sérialise
+    pas un modèle existant : on construit une vue agrégée qui combine
+    deux Swipe (le mien et celui de l'ami) plus le Film. Les données sont
+    préparées dans la vue (FriendSeenListView) sous forme de dictionnaires.
+
+    Format renvoyé pour chaque film :
+    {
+        "film": { ... données complètes du film ... },
+        "friend_rating": 4.5 | null,
+        "friend_seen_at": "2026-04-15T10:30:00Z",
+        "my_status": "like" | "dislike" | "seen" | null,
+        "my_rating": 3.0 | null
+    }
+    """
+
+    film = FilmsSerializer(read_only=True)
+    friend_rating = serializers.DecimalField(
+        max_digits=2, decimal_places=1, allow_null=True, read_only=True,
+    )
+    friend_seen_at = serializers.DateTimeField(read_only=True)
+    my_status = serializers.CharField(allow_null=True, read_only=True)
+    my_rating = serializers.DecimalField(
+        max_digits=2, decimal_places=1, allow_null=True, read_only=True,
+    )
 
 
 class FriendshipSerializer(serializers.ModelSerializer):

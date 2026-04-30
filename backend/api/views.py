@@ -23,6 +23,7 @@ from .serializers import (
     SwipeSerializer,
     SwipeDetailSerializer,
     FriendshipSerializer,
+    FriendSeenFilmSerializer,
 )
 
 # On crée un logger pour ce fichier.
@@ -427,9 +428,17 @@ class UpdateProfileView(APIView):
 
         user.save()
 
-        # Mise à jour de la préférence de notifications email sur le Profile
+        # Mise à jour des préférences sur le Profile
+        # On regroupe les deux flags du Profile en un seul save() pour éviter
+        # un INSERT inutile si les deux sont modifiés en même temps.
+        profile_dirty = False
         if 'email_notifications' in validated:
             user.profile.email_notifications = validated['email_notifications']
+            profile_dirty = True
+        if 'share_seen_with_friends' in validated:
+            user.profile.share_seen_with_friends = validated['share_seen_with_friends']
+            profile_dirty = True
+        if profile_dirty:
             user.profile.save()
         logger.info("Profil mis à jour : %s (champs: %s)", user.username, list(validated.keys()))
 
@@ -1301,6 +1310,102 @@ class MatchListView(APIView):
         )
 
         serializer = FilmsSerializer(matched_films, many=True)
+        return Response(serializer.data)
+
+
+class FriendSeenListView(APIView):
+    """
+    Renvoie la "filmothèque" d'un ami : tous les films qu'il a marqués
+    comme déjà vu, dans l'ordre antéchronologique (plus récents en premier).
+
+    - GET /api/friends/<id>/seen/
+
+    <id> est l'ID de la relation d'amitié (Friendship), comme pour MatchListView.
+
+    Logique :
+    1. Vérifier que l'amitié existe et est acceptée
+    2. Vérifier que l'utilisateur fait partie de cette amitié
+    3. Vérifier que l'ami autorise le partage (share_seen_with_friends=True)
+    4. Récupérer tous les Swipe(user=ami, status='seen')
+    5. Pour chaque film vu par l'ami, joindre mon propre Swipe sur ce film
+       (s'il existe) pour pouvoir afficher un badge "tu l'as déjà liké/vu/disliké"
+       et empêcher le bouton d'ajout si j'ai déjà swipé
+
+    Si l'ami a désactivé le partage, on renvoie 403 avec un code d'erreur
+    spécifique pour que le frontend affiche "Cette filmothèque est privée".
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        """Renvoie la filmothèque d'un ami avec annotations sur mes propres swipes."""
+        try:
+            friendship = Friendship.objects.get(pk=pk, accepted=True)
+        except Friendship.DoesNotExist:
+            return Response(
+                {"error": "Amitié introuvable ou pas encore acceptée."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        user = request.user
+        if user != friendship.sender and user != friendship.receiver:
+            return Response(
+                {"error": "Vous ne faites pas partie de cette amitié."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Déterminer qui est l'ami (l'autre personne dans la relation)
+        friend = friendship.receiver if user == friendship.sender else friendship.sender
+
+        # Vérifier que l'ami autorise le partage de sa filmothèque.
+        # On utilise un code 403 avec un payload spécifique : le frontend
+        # distingue ce cas d'un vrai 403 d'autorisation pour afficher
+        # le bon message ("Cette filmothèque est privée").
+        if not friend.profile.share_seen_with_friends:
+            return Response(
+                {
+                    "error": "private",
+                    "detail": f"{friend.username} a choisi de garder sa filmothèque privée.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Récupérer tous les films marqués "seen" par l'ami, triés par date
+        # de visionnage décroissante (les plus récents en premier).
+        # select_related('film') évite N+1 requêtes en chargeant le film en JOIN.
+        # prefetch_related charge les ManyToMany (genres, plateformes, acteurs)
+        # qui sont utilisés par FilmsSerializer.
+        friend_seen_swipes = (
+            Swipe.objects
+            .filter(user=friend, status='seen')
+            .select_related('film', 'film__director')
+            .prefetch_related('film__genres', 'film__plateforms', 'film__main_actors')
+            .order_by('-created_at')
+        )
+
+        # Récupérer mes propres swipes sur les mêmes films (dans une seule
+        # requête supplémentaire) et les indexer par film_id pour O(1) lookup.
+        # Sans ça, on ferait une requête par film de l'ami → catastrophique
+        # quand l'ami a vu beaucoup de films.
+        film_ids = [s.film_id for s in friend_seen_swipes]
+        my_swipes_by_film = {
+            s.film_id: s
+            for s in Swipe.objects.filter(user=user, film_id__in=film_ids)
+        }
+
+        # Construire la liste agrégée pour le serializer
+        items = []
+        for swipe in friend_seen_swipes:
+            my_swipe = my_swipes_by_film.get(swipe.film_id)
+            items.append({
+                'film': swipe.film,
+                'friend_rating': swipe.rating,
+                'friend_seen_at': swipe.created_at,
+                'my_status': my_swipe.status if my_swipe else None,
+                'my_rating': my_swipe.rating if my_swipe else None,
+            })
+
+        serializer = FriendSeenFilmSerializer(items, many=True)
         return Response(serializer.data)
 
 

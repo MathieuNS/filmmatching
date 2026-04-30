@@ -45,6 +45,10 @@ function UserAccount() {
   const [errors, setErrors] = useState({});
   // Préférence de notifications email (true/false)
   const [editEmailNotifications, setEditEmailNotifications] = useState(false);
+  // Préférence de partage de la "filmothèque" (films marqués déjà vu) avec les amis.
+  // Quand ce toggle est OFF, les amis verront un message "Filmothèque privée"
+  // au lieu de la liste des films vus, sur la page d'un ami.
+  const [editShareSeen, setEditShareSeen] = useState(true);
 
   // La liste des avatars est importée depuis utils/avatars.js
   // Elle se met à jour automatiquement quand on ajoute des SVG dans src/assets/avatars/
@@ -65,6 +69,13 @@ function UserAccount() {
         setEditUsername(response.data.username || "");
         setEditEmail(response.data.email || "");
         setEditEmailNotifications(response.data.email_notifications || false);
+        // share_seen_with_friends est public par défaut côté backend (true),
+        // donc on tombe sur true si la prop est absente. C'est le comportement voulu.
+        setEditShareSeen(
+          response.data.share_seen_with_friends !== undefined
+            ? response.data.share_seen_with_friends
+            : true
+        );
       } catch (error) {
         console.error("Erreur lors du chargement du profil :", error);
       } finally {
@@ -152,6 +163,9 @@ function UserAccount() {
     // On compare avec la valeur actuelle pour ne pas envoyer si rien n'a changé
     if (editEmailNotifications !== user.email_notifications) {
       data.email_notifications = editEmailNotifications;
+    }
+    if (editShareSeen !== user.share_seen_with_friends) {
+      data.share_seen_with_friends = editShareSeen;
     }
 
     // Si rien n'a changé, on ne fait pas de requête
@@ -341,6 +355,27 @@ function UserAccount() {
                 role="switch"
                 aria-checked={editEmailNotifications}
                 aria-label="Notifications email"
+              >
+                <span className="account__toggle-thumb" />
+              </button>
+            </div>
+
+            {/* Toggle switch partage de la filmothèque entre amis.
+                Quand ce toggle est OFF, mes amis verront un message
+                "Filmothèque privée" au lieu de la liste des films
+                que j'ai marqués déjà vu. Réglage symétrique : il
+                ne bloque pas mon accès aux filmothèques de mes amis. */}
+            <div className="account__toggle-row">
+              <span className="account__toggle-label">
+                Partager ma filmothèque avec mes amis
+              </span>
+              <button
+                type="button"
+                className={`account__toggle ${editShareSeen ? "account__toggle--active" : ""}`}
+                onClick={() => setEditShareSeen(!editShareSeen)}
+                role="switch"
+                aria-checked={editShareSeen}
+                aria-label="Partager ma filmothèque"
               >
                 <span className="account__toggle-thumb" />
               </button>

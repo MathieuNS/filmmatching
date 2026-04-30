@@ -21,6 +21,7 @@ from api.views import (
     FriendshipAcceptView,
     FriendshipDeleteView,
     MatchListView,
+    FriendSeenListView,
     GroupMatchListView,
     PendingFriendRequestCountView,
     UnsubscribeEmailView,
@@ -97,4 +98,7 @@ urlpatterns = [
     # Supprimer une amitié ou annuler une demande en attente
     path('api/friends/<int:pk>/delete/', FriendshipDeleteView.as_view(), name='friendship-delete'),
     path('api/friends/<int:pk>/matches/', MatchListView.as_view(), name='match-list'),
+    # "Filmothèque" d'un ami : films qu'il a marqués déjà vu (avec son rating).
+    # Renvoie 403 si l'ami a désactivé le partage dans son profil.
+    path('api/friends/<int:pk>/seen/', FriendSeenListView.as_view(), name='friend-seen-list'),
 ]
