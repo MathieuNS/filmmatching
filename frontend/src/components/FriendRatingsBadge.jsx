@@ -47,12 +47,11 @@ function FriendRatingsBadge({ friendRatings, filmTitle }) {
         type="button"
         className="friend-ratings-badge"
         onClick={handleClick}
-        aria-label="Voir le détail des notes des amis"
+        aria-label={`Voir le détail des notes des amis (${seenCount})`}
       >
         <span className="friend-ratings-badge__stars">
           <StarRating value={average} readOnly />
         </span>
-        <span className="friend-ratings-badge__count">({seenCount})</span>
         <span className="friend-ratings-badge__chevron" aria-hidden="true">
           ›
         </span>

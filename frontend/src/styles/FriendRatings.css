@@ -74,7 +74,8 @@
 .friend-ratings-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  max-width: 100%;
   background: transparent;
   border: none;
   padding: 0;
@@ -83,33 +84,49 @@
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   color: #8B8B9E;
+  /* Important sur mobile : permet au flex parent de raccourcir
+     le span étoiles si la carte est très étroite, évite de pousser
+     le chevron hors de l'overlay. */
+  overflow: hidden;
 }
 
 .friend-ratings-badge__stars {
   display: flex;
   align-items: center;
+  /* min-width: 0 indispensable pour que les enfants puissent rétrécir
+     sous leur taille intrinsèque (sinon flex empêche le shrink). */
+  min-width: 0;
 }
 
-/* On laisse les dimensions héritées de .film-list__card .star-rating__star
-   (16px) pour rester visuellement identique à l'onglet "Déjà vu". */
+/* Étoiles compactées sur mobile pour laisser de la place au score "4.5/5"
+   et au chevron. Surcharge la règle .film-list__card .star-rating__star
+   (16px) qui était trop large pour les cartes étroites de la grille. */
+.friend-ratings-badge .star-rating__star {
+  width: 13px;
+  height: 13px;
+}
 
-.friend-ratings-badge__count {
-  color: #8B8B9E;
-  font-size: 0.75rem;
+.friend-ratings-badge .star-rating {
+  /* Réduit l'espace entre les étoiles et le score interne du StarRating
+     (qui affiche "4.5/5"), pour gagner quelques pixels. */
+  gap: 4px;
+}
+
+.friend-ratings-badge .star-rating__score {
+  /* Score "4.5/5" : on retire le min-width 30px qui forçait une largeur
+     fixe et coupait le "5" final sur cartes étroites. La taille s'adapte
+     maintenant au contenu réel. */
+  min-width: 0;
+  font-size: 0.7rem;
 }
 
 .friend-ratings-badge__chevron {
   color: #8B8B9E;
   font-weight: 700;
-  margin-left: 2px;
   font-size: 0.95rem;
-}
-
-/* État sans note (vu sans noter) — pas d'étoiles, juste texte
-   en italique pour signifier l'absence de moyenne. */
-.friend-ratings-badge--unrated {
-  color: #8B8B9E;
-  font-style: italic;
+  /* flex-shrink: 0 garantit que le chevron est toujours visible,
+     même si les étoiles ou le score doivent rétrécir. */
+  flex-shrink: 0;
 }
 
 /* ============================================

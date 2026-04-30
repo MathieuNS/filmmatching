@@ -55,19 +55,28 @@
   min-width: 30px;
 }
 
-/* --- Variante sur les cartes de la liste (plus petite) --- */
+/* --- Variante sur les cartes de la liste (plus petite) ---
+   La grille de /liste va jusqu'à 140px min sur mobile, soit ~120px
+   de contenu utile dans l'overlay. Avec étoiles + score + (éventuel
+   chevron), l'espace est compté. On compacte pour que "4.5/5" reste
+   entièrement visible. */
 .film-list__card .star-rating {
   /* Positionné en bas de l'overlay, sous le titre */
   margin-top: 4px;
+  /* Réduit l'espace entre les étoiles et le score "/5" */
+  gap: 4px;
 }
 
 .film-list__card .star-rating__star {
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
 }
 
 .film-list__card .star-rating__score {
   font-size: 0.65rem;
+  /* Pas de min-width forcée : la largeur s'adapte au contenu réel,
+     sinon "4.5/5" était tronqué à droite par la limite de la carte. */
+  min-width: 0;
 }
 
 /* --- Hover glow sur les étoiles interactives --- */
