@@ -1,5 +1,6 @@
 import os
 import logging
+from collections import defaultdict
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
@@ -664,6 +665,86 @@ class FilmListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
 
+def _build_friend_ratings_context(user, film_ids):
+    """
+    Prépare en 2 requêtes SQL fixes les données nécessaires pour enrichir
+    le champ 'friend_ratings' de FilmsSerializer (notes données par les amis
+    "publics" sur les films donnés).
+
+    Cette fonction est partagée par toutes les vues qui veulent exposer
+    friend_ratings : RandomFilmView, UserSwipeListView, et plus tard d'autres.
+    Centraliser ici garantit que la logique d'autorisation (friendship acceptée
+    ET share_seen_with_friends=True) est appliquée de la même façon partout.
+
+    Pourquoi ce design (cf. Q10 du grill-me) :
+    - 2 queries fixes, peu importe le nombre de films → pas de N+1
+    - Indexation par film_id pour permettre au serializer un lookup O(1)
+    - On expose aussi le mapping friendship_id pour permettre une future
+      navigation depuis chaque ligne du bottom sheet vers la filmothèque
+
+    Args:
+        user: L'utilisateur connecté (request.user)
+        film_ids: Liste des IDs de films pour lesquels on veut les notes amis.
+                  Si vide, retourne deux dicts vides immédiatement.
+
+    Returns:
+        Tuple (friend_swipes_by_film, friendship_id_by_friend) :
+        - friend_swipes_by_film : dict {film_id: [Swipe]} (Swipe avec user/profile préchargés)
+        - friendship_id_by_friend : dict {user_id: friendship_id}
+    """
+    # Garde de bord : pas de films → rien à préparer
+    if not film_ids:
+        return {}, {}
+
+    # Query 1 : récupérer toutes les amitiés acceptées de l'utilisateur,
+    # avec les profils préchargés pour pouvoir filtrer sur share_seen_with_friends
+    # sans lancer une requête supplémentaire par ami.
+    friendships = (
+        Friendship.objects
+        .filter(Q(sender=user) | Q(receiver=user), accepted=True)
+        .select_related('sender__profile', 'receiver__profile')
+    )
+
+    # On filtre côté Python (et pas SQL) car la condition share_seen_with_friends
+    # dépend de "qui est l'ami" dans la relation, et ce n'est pas exprimable
+    # en une seule clause WHERE sans CASE complexe. Avec O(N amis) en mémoire,
+    # le coût est négligeable.
+    friendship_id_by_friend = {}
+    public_friend_ids = []
+    for f in friendships:
+        friend = f.receiver if f.sender_id == user.id else f.sender
+        profile = getattr(friend, 'profile', None)
+        # Default True : un user sans profile partage par défaut (cas marginal)
+        share = profile.share_seen_with_friends if profile else True
+        if share:
+            public_friend_ids.append(friend.id)
+            friendship_id_by_friend[friend.id] = f.id
+
+    # Si aucun ami public, inutile de faire la query 2
+    if not public_friend_ids:
+        return {}, {}
+
+    # Query 2 : tous les swipes 'seen' de ces amis sur ces films.
+    # select_related charge user et user__profile pour éviter N+1 lors
+    # du tri et de la sérialisation (qui lisent username + avatar).
+    seen_swipes = (
+        Swipe.objects
+        .filter(
+            user_id__in=public_friend_ids,
+            film_id__in=film_ids,
+            status='seen',
+        )
+        .select_related('user', 'user__profile')
+    )
+
+    # Indexation par film_id pour O(1) côté serializer
+    swipes_by_film = defaultdict(list)
+    for sw in seen_swipes:
+        swipes_by_film[sw.film_id].append(sw)
+
+    return swipes_by_film, friendship_id_by_friend
+
+
 class RandomFilmView(APIView):
     """
     Renvoie UN film aléatoire que l'utilisateur n'a pas encore swipé.
@@ -760,8 +841,19 @@ class RandomFilmView(APIView):
             # Le frontend pourra afficher "Tu as tout vu !"
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # On sérialise le film (on le convertit en JSON) et on le renvoie
-        serializer = FilmsSerializer(film)
+        # Préparer le contexte friend_ratings pour ce film unique.
+        # 2 requêtes SQL supplémentaires partagées avec la vue /api/swipes/list/.
+        swipes_by_film, friendship_map = _build_friend_ratings_context(
+            request.user, [film.id]
+        )
+
+        # On sérialise le film (on le convertit en JSON) et on le renvoie.
+        # Le contexte est lu par get_friend_ratings() dans FilmsSerializer.
+        serializer = FilmsSerializer(film, context={
+            'request': request,
+            'friend_swipes_by_film': swipes_by_film,
+            'friendship_id_by_friend': friendship_map,
+        })
         return Response(serializer.data)
 
 
@@ -913,6 +1005,42 @@ class UserSwipeListView(generics.ListAPIView):
             queryset = queryset.filter(status=swipe_status)
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Surcharge list() pour enrichir les films avec friend_ratings sur les
+        onglets "À voir" (like) et "Pas pour moi" (dislike). Sur l'onglet
+        "Déjà vu" (seen), on ne calcule pas friend_ratings car l'utilisateur
+        a déjà sa propre note et l'info sociale est moins pertinente
+        (cf. Q11 du grill-me).
+
+        Pour les autres statuts (sans paramètre ou un futur statut), on ne
+        calcule pas non plus, par défaut prudent.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        swipe_status = request.query_params.get('status')
+
+        # On ne paie le coût des 2 queries supplémentaires que pour les
+        # statuts qui affichent réellement le badge dans l'UI.
+        if swipe_status in ('like', 'dislike'):
+            # values_list évalue le queryset une fois ; les autres opérations
+            # (sérialisation) le réévalueront mais le cache Django gère.
+            film_ids = list(queryset.values_list('film_id', flat=True))
+            swipes_by_film, friendship_map = _build_friend_ratings_context(
+                request.user, film_ids
+            )
+            context = self.get_serializer_context()
+            context['friend_swipes_by_film'] = swipes_by_film
+            context['friendship_id_by_friend'] = friendship_map
+            # SwipeDetailSerializer imbrique FilmsSerializer ; le contexte
+            # se propage automatiquement aux serializers enfants.
+            serializer = self.get_serializer_class()(
+                queryset, many=True, context=context,
+            )
+        else:
+            serializer = self.get_serializer(queryset, many=True)
+
+        return Response(serializer.data)
 
 
 class SwipeUpdateView(generics.UpdateAPIView):

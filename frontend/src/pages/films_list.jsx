@@ -6,6 +6,7 @@ import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
 import StarRating from "../components/StarRating";
+import FriendRatingsBadge from "../components/FriendRatingsBadge";
 import HamburgerMenu from "../components/HamburgerMenu";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FilmList.css";
@@ -596,6 +597,17 @@ function FilmList() {
                 <span className="film-list__card-year">
                   {swipe.film.release_year}
                 </span>
+
+                {/* Badge "Notes des amis" — visible sur "À voir" et "Pas pour moi"
+                    (cf. Q11 du grill-me). Sur "Déjà vu", c'est la note personnelle
+                    qui est affichée à la place. Le badge ne rend rien si aucun
+                    ami public n'a vu ce film (friend_ratings === null). */}
+                {(activeTab === "like" || activeTab === "dislike") && (
+                  <FriendRatingsBadge
+                    friendRatings={swipe.film.friend_ratings}
+                    filmTitle={swipe.film.title}
+                  />
+                )}
 
                 {/* Notation par étoiles — visible uniquement dans l'onglet "Déjà vu".
                     Le onClick avec stopPropagation empêche le clic sur les étoiles

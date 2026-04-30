@@ -722,6 +722,7 @@ function Home() {
           release_year={film.release_year}
           director={film.director}
           trailer_url={film.trailer_url}
+          friendRatings={film.friend_ratings}
         />
       </div>
 

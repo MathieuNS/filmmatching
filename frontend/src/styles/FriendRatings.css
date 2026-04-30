@@ -1,0 +1,343 @@
+/* ==============================================
+   FriendRatings.css — Notes des amis sur un film
+   Composants partagés :
+   - .friend-ratings-section : section inline sur carte Film (Home)
+   - .friend-ratings-badge   : badge compact pour cartes de la grille (/liste)
+   - .friend-ratings-sheet   : bottom sheet partagé (Home + /liste)
+
+   Identité visuelle : violet --violet-nuit (#7B5CFF) — accent "social"
+   du design system, distinct de l'ambre utilisé pour le rating personnel.
+   ============================================== */
+
+/* ============================================
+   1. Section inline sur la carte Film (Home)
+   Style aligné sur .film-card__director / .film-card__actors :
+   ligne unique, Sora 0.8rem, blanc 75% d'opacité.
+   ============================================ */
+
+.friend-ratings-section {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+  cursor: pointer;
+}
+
+.friend-ratings-section__stars {
+  display: flex;
+  align-items: center;
+}
+
+/* Étoiles compactes pour rester sur une ligne avec le label */
+.friend-ratings-section__stars .star-rating__star {
+  width: 14px;
+  height: 14px;
+}
+
+.friend-ratings-section__stars .star-rating__score {
+  display: none;
+}
+
+.friend-ratings-section__average {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #FFAA2B;
+}
+
+.friend-ratings-section__count {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(240, 238, 242, 0.75);
+}
+
+.friend-ratings-section__chevron {
+  color: rgba(240, 238, 242, 0.5);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* ============================================
+   2. Badge compact pour grille (/liste)
+   Posé sur la carte du film, sous les infos texte.
+   Visuel : étoiles ambre 16px (mêmes dimensions et couleur que la
+   StarRating de l'onglet "Déjà vu"), + (N) › pour ouvrir le détail.
+   Pas de pill ni de border : on s'aligne sur le rendu minimaliste
+   du rating perso de l'onglet "Déjà vu".
+   ============================================ */
+
+.friend-ratings-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  color: #8B8B9E;
+}
+
+.friend-ratings-badge__stars {
+  display: flex;
+  align-items: center;
+}
+
+/* On laisse les dimensions héritées de .film-list__card .star-rating__star
+   (16px) pour rester visuellement identique à l'onglet "Déjà vu". */
+
+.friend-ratings-badge__count {
+  color: #8B8B9E;
+  font-size: 0.75rem;
+}
+
+.friend-ratings-badge__chevron {
+  color: #8B8B9E;
+  font-weight: 700;
+  margin-left: 2px;
+  font-size: 0.95rem;
+}
+
+/* État sans note (vu sans noter) — pas d'étoiles, juste texte
+   en italique pour signifier l'absence de moyenne. */
+.friend-ratings-badge--unrated {
+  color: #8B8B9E;
+  font-style: italic;
+}
+
+/* ============================================
+   3. Bottom sheet partagé
+   Pattern repris de FilterBottomSheet (slide-up + backdrop).
+   ============================================ */
+
+.friend-ratings-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  animation: friendRatingsFadeIn 0.25s ease;
+}
+
+@keyframes friendRatingsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.friend-ratings-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 80vh;
+  background-color: #16161A;
+  border-radius: 20px 20px 0 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  animation: friendRatingsSlideUp 0.3s ease;
+}
+
+@keyframes friendRatingsSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.friend-ratings-sheet__handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  flex-shrink: 0;
+}
+
+.friend-ratings-sheet__handle-bar {
+  width: 40px;
+  height: 4px;
+  border-radius: 100px;
+  background-color: #2A2A32;
+}
+
+.friend-ratings-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 20px 12px;
+  flex-shrink: 0;
+}
+
+/* Bloc deux-lignes : label discret au-dessus, titre du film en gros */
+.friend-ratings-sheet__heading {
+  flex: 1;
+  /* min-width: 0 indispensable pour que les enfants tronqués
+     (line-clamp) respectent la largeur du parent flex. */
+  min-width: 0;
+}
+
+.friend-ratings-sheet__label {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #8B8B9E;
+  margin: 0;
+}
+
+.friend-ratings-sheet__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #F0EEF2;
+  margin: 2px 0 0;
+  /* Tronquer à 2 lignes max pour les titres très longs (Spider-Man:
+     Across the Spider-Verse, etc.). line-clamp est supporté nativement. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.friend-ratings-sheet__close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #8B8B9E;
+  font-size: 1rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.friend-ratings-sheet__close:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #F0EEF2;
+}
+
+/* Body scrollable : si beaucoup d'amis, scroll naturel sans cap */
+.friend-ratings-sheet__body {
+  overflow-y: auto;
+  padding: 0 20px 24px;
+  flex: 1;
+}
+
+.friend-ratings-sheet__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 0 8px;
+}
+
+/* Étoiles "héroïques" agrandies */
+.friend-ratings-sheet__hero-stars .star-rating__star {
+  width: 32px;
+  height: 32px;
+}
+
+.friend-ratings-sheet__hero-stars .star-rating__score {
+  display: none;
+}
+
+.friend-ratings-sheet__hero-number {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #FFAA2B;
+  margin: 0;
+}
+
+.friend-ratings-sheet__count {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  color: #8B8B9E;
+  text-align: center;
+  margin: 0 0 16px;
+}
+
+.friend-ratings-sheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.friend-ratings-sheet__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.friend-ratings-sheet__row:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.friend-ratings-sheet__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: #2A2A32;
+}
+
+.friend-ratings-sheet__username {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #F0EEF2;
+  flex: 1;
+  /* Tronque les pseudos très longs sans casser la ligne */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-ratings-sheet__row-stars {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.friend-ratings-sheet__row-stars .star-rating__star {
+  width: 16px;
+  height: 16px;
+}
+
+.friend-ratings-sheet__row-stars .star-rating__score {
+  display: none;
+}
+
+.friend-ratings-sheet__unrated {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  color: #8B8B9E;
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   4. Couleur des étoiles : ambre par défaut partout (Section, Badge, Sheet).
+   On ne surcharge plus rien — les étoiles utilisent la couleur native de
+   StarRating (#FFAA2B), identique à celle des onglets "À voir" et "Déjà vu".
+   Le violet reste utilisé pour les éléments non-étoile (titre Section,
+   chevrons) afin de garder l'identité "social".
+   ============================================ */

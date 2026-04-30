@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // Ici, on l'utilise pour afficher la modale du trailer directement dans le <body>,
 // afin d'éviter les conflits d'événements avec la carte film (swipe, clics, etc.).
 import { createPortal } from "react-dom";
+import FriendRatingsSection from "./FriendRatingsSection";
 // Import du fichier CSS associé au composant
 import "../styles/Films.css";
 
@@ -27,6 +28,9 @@ import "../styles/Films.css";
  * @param {string} props.main_actors - Les acteurs principaux
  * @param {number} props.release_year - L'année de sortie
  * @param {string} props.director - Le réalisateur
+ * @param {Object|null} [props.friendRatings] - Notes données par les amis
+ *   (payload friend_ratings du backend). Null si aucun ami public n'a vu.
+ *   Quand fourni, une section discrète apparaît entre synopsis et réalisateur.
  * @returns {JSX.Element} La carte du film
  */
 function Film({
@@ -40,6 +44,7 @@ function Film({
   release_year,
   director,
   trailer_url,
+  friendRatings,
 }) {
   // --- State pour afficher/masquer le lecteur de bande-annonce ---
   const [showTrailer, setShowTrailer] = useState(false);
@@ -154,6 +159,15 @@ function Film({
 
         {/* Titre du film */}
         <h2 className="film-card__title">{title}</h2>
+
+        {/* Notes données par les amis publics : positionnée sous le titre,
+            avant les CTA, pour donner immédiatement le signal social
+            "qu'est-ce que tes amis ont pensé". Ne rend rien si aucun
+            ami n'a noté ce film (cf. Q5 du grill-me). */}
+        <FriendRatingsSection
+          friendRatings={friendRatings}
+          filmTitle={title}
+        />
 
         {/* Boutons d'action : bande-annonce + où regarder */}
         <div className="film-card__action-buttons">

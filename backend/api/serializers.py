@@ -244,10 +244,86 @@ class FilmsSerializer(serializers.ModelSerializer):
     main_actors = serializers.StringRelatedField(many=True, read_only=True)
     # Pour le réalisateur (ForeignKey, pas ManyToMany), pas besoin de many=True
     director = serializers.StringRelatedField(read_only=True)
+    # Notes données par les amis "publics" (share_seen_with_friends=True) sur ce film.
+    # Vaut null si aucun ami n'a swipé "déjà vu" sur ce film, sinon contient :
+    #   - average : moyenne des ratings (sur les amis qui ont noté), arrondie à 1 décimale,
+    #               null si aucun ami n'a mis de note (mais certains ont vu sans noter)
+    #   - friends : liste triée [notés par rating décroissant, puis vus sans note alphabétique]
+    #               avec username, avatar, rating (null possible) et friendship_id
+    # Le champ n'est rempli que si la vue passe le contexte 'friend_swipes_by_film'.
+    # Sinon (ex: endpoint admin, recherche), il vaut null silencieusement.
+    friend_ratings = serializers.SerializerMethodField()
 
     class Meta:
         model = Films
         fields = '__all__'
+
+    def get_friend_ratings(self, obj):
+        """
+        Construit le payload friend_ratings pour ce film à partir du contexte.
+
+        Le contexte (préparé par la vue) doit contenir :
+        - 'friend_swipes_by_film' : dict {film_id: [Swipe]} pré-indexé
+        - 'friendship_id_by_friend' : dict {user_id: friendship_id}
+
+        Retourne None si aucun swipe ami n'est trouvé pour ce film.
+        Sinon retourne {average: float|null, friends: [...]}.
+
+        Args:
+            obj: L'objet Films sérialisé
+
+        Returns:
+            dict | None
+        """
+        swipes_by_film = self.context.get('friend_swipes_by_film')
+        if swipes_by_film is None:
+            # Le contexte n'a pas été préparé → on n'expose pas ce champ
+            return None
+
+        swipes = swipes_by_film.get(obj.id, [])
+        if not swipes:
+            return None
+
+        friendship_map = self.context.get('friendship_id_by_friend', {})
+
+        # Séparer les amis qui ont noté de ceux qui ont vu sans noter.
+        # Un float() sur le Decimal facilite ensuite la sérialisation JSON.
+        rated = [s for s in swipes if s.rating is not None]
+        unrated = [s for s in swipes if s.rating is None]
+
+        # Moyenne sur les amis qui ont mis une note (Q2 : "vu sans note" exclu)
+        if rated:
+            avg_value = sum(float(s.rating) for s in rated) / len(rated)
+            average = round(avg_value, 1)
+        else:
+            average = None
+
+        # Tri (Q7) : amis notés par rating desc + alphabétique à note égale,
+        # puis amis vus sans note en alphabétique
+        rated_sorted = sorted(
+            rated,
+            key=lambda s: (-float(s.rating), s.user.username.lower()),
+        )
+        unrated_sorted = sorted(
+            unrated,
+            key=lambda s: s.user.username.lower(),
+        )
+
+        friends = []
+        for sw in rated_sorted + unrated_sorted:
+            profile = getattr(sw.user, 'profile', None)
+            avatar_name = profile.avatar if profile else 'avatar-popcorn.svg'
+            friends.append({
+                'username': sw.user.username,
+                'avatar': avatar_name,
+                'rating': float(sw.rating) if sw.rating is not None else None,
+                'friendship_id': friendship_map.get(sw.user_id),
+            })
+
+        return {
+            'average': average,
+            'friends': friends,
+        }
 
 
 class GenreSerializer(serializers.ModelSerializer):
