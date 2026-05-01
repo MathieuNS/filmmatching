@@ -358,6 +358,24 @@
   animation: cardMenuFadeIn 0.15s ease;
 }
 
+/* Quand le dropdown est ouvert, on retire l'overflow:hidden de la carte
+   pour que le menu puisse dépasser sans être coupé (sur mobile, la carte
+   ne fait que ~110-170px alors que le menu fait 160px de large).
+   On réapplique les coins arrondis sur l'image et l'overlay pour
+   préserver le visuel d'origine. */
+.film-list__card:has(.film-list__card-dropdown) {
+  overflow: visible;
+}
+
+.film-list__card:has(.film-list__card-dropdown) .film-list__card-img {
+  border-radius: 14px;
+}
+
+.film-list__card:has(.film-list__card-dropdown) .film-list__card-overlay {
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
 @keyframes cardMenuFadeIn {
   from {
     opacity: 0;

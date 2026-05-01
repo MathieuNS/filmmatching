@@ -5,6 +5,7 @@ import { getAvatarUrl } from "../utils/avatars";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import StarRating from "../components/StarRating";
+import CommentModal from "../components/CommentModal";
 import "../styles/FilmList.css";
 import TmdbAttribution from "../components/TmdbAttribution";
 import HamburgerMenu from "../components/HamburgerMenu";
@@ -89,6 +90,11 @@ function MatchList() {
   const [selectedFilm, setSelectedFilm] = useState(null);
   const [selectedSeenItem, setSelectedSeenItem] = useState(null);
 
+  // Item dont on consulte le commentaire ami (null = modale fermée).
+  // On stocke l'item entier pour avoir accès à film.title et friend_comment
+  // dans la modale de lecture seule.
+  const [viewingCommentItem, setViewingCommentItem] = useState(null);
+
   /**
    * Charge les films matchés et les options de filtres au montage.
    *
@@ -153,17 +159,20 @@ function MatchList() {
   }, [friendshipId, groupIds, isGroupMode]);
 
   /**
-   * Charge la filmothèque de l'ami quand l'onglet "seen" devient actif
-   * pour la première fois. On évite de charger à chaque switch d'onglet :
-   * la liste est gardée en mémoire après le premier chargement.
+   * Charge la filmothèque de l'ami dès le montage en mode 1v1.
+   *
+   * On charge tout de suite (au lieu d'attendre le clic sur l'onglet)
+   * pour deux raisons :
+   * - afficher le nombre de films vus directement dans l'onglet
+   *   "Sa filmothèque" (cohérent avec "À voir ensemble").
+   * - savoir tout de suite si l'ami a bloqué le partage, pour
+   *   afficher un cadenas 🔒 à la place du nombre.
    *
    * Si l'ami a désactivé le partage, l'API renvoie 403 avec le payload
-   * { "error": "private" } → on met seenIsPrivate à true pour afficher
-   * le message dédié.
+   * { "error": "private" } → on met seenIsPrivate à true.
    */
   useEffect(() => {
     if (isGroupMode) return; // Pas de filmothèque en mode groupe
-    if (activeTab !== "seen") return;
     if (seenLoaded) return; // Déjà chargée
 
     async function fetchSeen() {
@@ -191,7 +200,7 @@ function MatchList() {
     }
 
     fetchSeen();
-  }, [activeTab, friendshipId, isGroupMode, seenLoaded]);
+  }, [friendshipId, isGroupMode, seenLoaded]);
 
   /**
    * Change d'onglet et synchronise l'URL (?tab=seen ou pas de param).
@@ -454,8 +463,10 @@ function MatchList() {
             onClick={() => handleTabChange("seen")}
           >
             👁️ Sa filmothèque
-            {seenLoaded && !seenIsPrivate && (
-              <span className="film-list__tab-count">{seenItems.length}</span>
+            {seenLoaded && (
+              <span className="film-list__tab-count">
+                {seenIsPrivate ? "🔒" : seenItems.length}
+              </span>
             )}
           </button>
         </div>
@@ -588,6 +599,25 @@ function MatchList() {
                         </span>
                       )}
 
+                      {/* Pastille "commentaire de l'ami" en haut à gauche.
+                          Visible si l'ami a laissé un commentaire (texte non vide).
+                          Cliquer dessus ouvre la modale en mode lecture seule.
+                          stopPropagation : sans ça, le clic remonterait à la
+                          carte et ouvrirait aussi la fiche film en arrière-plan. */}
+                      {item.friend_comment && (
+                        <button
+                          className="film-list__card-comment-badge"
+                          aria-label={`Voir le commentaire de ${friendName}`}
+                          title={`Voir le commentaire de ${friendName}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingCommentItem(item);
+                          }}
+                        >
+                          💬
+                        </button>
+                      )}
+
                       <div className="film-list__card-overlay">
                         <p className="film-list__card-title">{item.film.title}</p>
                         <span className="film-list__card-year">
@@ -672,6 +702,23 @@ function MatchList() {
           onMarkAsSeen={handleMarkAsSeen}
         />
       )}
+
+      {/* Modale d'affichage du commentaire de l'ami (lecture seule).
+          On adapte l'item filmothèque à la forme attendue par CommentModal :
+          { comment, film }. authorName = pseudo de l'ami pour le titre. */}
+      <CommentModal
+        swipe={
+          viewingCommentItem
+            ? {
+                comment: viewingCommentItem.friend_comment,
+                film: viewingCommentItem.film,
+              }
+            : null
+        }
+        onClose={() => setViewingCommentItem(null)}
+        readOnly
+        authorName={friendName}
+      />
 
       {/* Bottom sheet de filtres */}
       <FilterBottomSheet

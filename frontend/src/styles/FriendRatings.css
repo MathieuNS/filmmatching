@@ -351,6 +351,34 @@
   flex-shrink: 0;
 }
 
+/* --- Pastille 💬 placée après les étoiles d'un ami dans la liste.
+   Bouton circulaire discret, qui s'illumine au survol pour signaler
+   son interactivité. Couleur ambre = couleur sémantique "déjà vu",
+   cohérente avec la pastille équivalente sur les cartes /liste. --- */
+.friend-ratings-sheet__comment-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 170, 43, 0.12);
+  color: #FFAA2B;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Petite marge à gauche pour respirer après les étoiles */
+  margin-left: 4px;
+  transition: all 0.2s ease;
+}
+
+.friend-ratings-sheet__comment-btn:hover {
+  background-color: rgba(255, 170, 43, 0.22);
+  transform: scale(1.1);
+  box-shadow: 0 2px 12px rgba(255, 170, 43, 0.35);
+}
+
 /* ============================================
    4. Couleur des étoiles : ambre par défaut partout (Section, Badge, Sheet).
    On ne surcharge plus rien — les étoiles utilisent la couleur native de

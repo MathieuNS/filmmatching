@@ -318,6 +318,11 @@ class FilmsSerializer(serializers.ModelSerializer):
                 'avatar': avatar_name,
                 'rating': float(sw.rating) if sw.rating is not None else None,
                 'friendship_id': friendship_map.get(sw.user_id),
+                # Commentaire personnel laissé par l'ami sur ce film. Le
+                # frontend l'affiche via une pastille 💬 dans le bottom sheet
+                # des notes amis (page Home / Liste). Toujours en lecture seule
+                # pour l'utilisateur courant. Vide par défaut → pas de pastille.
+                'comment': sw.comment,
             })
 
         return {
@@ -365,7 +370,7 @@ class SwipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'comment', 'created_at']
         # created_at est en lecture seule car il se remplit tout seul (auto_now_add)
         read_only_fields = ['created_at']
 
@@ -412,10 +417,21 @@ class SwipeSerializer(serializers.ModelSerializer):
         # soit celui déjà en base (pour un PATCH partiel)
         status = data.get('status', getattr(self.instance, 'status', None))
         rating = data.get('rating')
+        comment = data.get('comment')
 
         if rating is not None and status != 'seen':
             raise serializers.ValidationError({
                 'rating': "La note n'est autorisée que pour les films déjà vus."
+            })
+
+        # Même règle pour le commentaire : il n'a de sens que pour un film
+        # qu'on a déjà vu (un commentaire sur un film "à voir" ou "pas
+        # intéressé" n'aurait pas de sens dans le produit).
+        # On vérifie si comment est une chaîne non vide : "" est traité comme
+        # "pas de commentaire" et reste autorisé (utile pour effacer).
+        if comment and status != 'seen':
+            raise serializers.ValidationError({
+                'comment': "Le commentaire n'est autorisé que pour les films déjà vus."
             })
         return data
 
@@ -439,7 +455,7 @@ class SwipeDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'comment', 'created_at']
         read_only_fields = ['created_at']
 
 
@@ -462,6 +478,7 @@ class FriendSeenFilmSerializer(serializers.Serializer):
         "film": { ... données complètes du film ... },
         "friend_rating": 4.5 | null,
         "friend_seen_at": "2026-04-15T10:30:00Z",
+        "friend_comment": "" | "Génial, à revoir...",
         "my_status": "like" | "dislike" | "seen" | null,
         "my_rating": 3.0 | null
     }
@@ -472,6 +489,11 @@ class FriendSeenFilmSerializer(serializers.Serializer):
         max_digits=2, decimal_places=1, allow_null=True, read_only=True,
     )
     friend_seen_at = serializers.DateTimeField(read_only=True)
+    # Commentaire personnel de l'ami. Toujours en lecture seule : on ne peut
+    # pas modifier le commentaire de quelqu'un d'autre. Une chaîne vide ""
+    # signifie "aucun commentaire", auquel cas le frontend ne montrera pas
+    # la pastille sur la carte.
+    friend_comment = serializers.CharField(allow_blank=True, read_only=True)
     my_status = serializers.CharField(allow_null=True, read_only=True)
     my_rating = serializers.DecimalField(
         max_digits=2, decimal_places=1, allow_null=True, read_only=True,

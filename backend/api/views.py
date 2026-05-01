@@ -1529,6 +1529,11 @@ class FriendSeenListView(APIView):
                 'film': swipe.film,
                 'friend_rating': swipe.rating,
                 'friend_seen_at': swipe.created_at,
+                # Commentaire personnel laissé par l'ami sur ce film. On l'expose
+                # tel quel : le frontend décidera s'il affiche la pastille (texte
+                # non vide) et la modale en lecture seule. Pas de modification
+                # possible côté ami : c'est la donnée privée d'un autre user.
+                'friend_comment': swipe.comment,
                 'my_status': my_swipe.status if my_swipe else None,
                 'my_rating': my_swipe.rating if my_swipe else None,
             })

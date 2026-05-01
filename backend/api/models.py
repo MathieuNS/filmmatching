@@ -174,6 +174,14 @@ class Swipe(models.Model):
         ],
     )
 
+    # Commentaire personnel laissé par l'utilisateur sur un film "déjà vu".
+    # TextField (et non CharField) car la longueur du texte est libre :
+    # l'utilisateur peut écrire deux mots ou plusieurs paragraphes.
+    # blank=True autorise un commentaire vide ; default="" évite les NULL
+    # en base (convention Django pour les champs texte : on préfère "" à NULL
+    # pour ne pas avoir à gérer deux représentations du "rien").
+    comment = models.TextField(blank=True, default="")
+
     class Meta:
         verbose_name = "Swipe"
         verbose_name_plural = "Swipes"

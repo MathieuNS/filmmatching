@@ -8,6 +8,7 @@ import TmdbAttribution from "../components/TmdbAttribution";
 import StarRating from "../components/StarRating";
 import FriendRatingsBadge from "../components/FriendRatingsBadge";
 import HamburgerMenu from "../components/HamburgerMenu";
+import CommentModal from "../components/CommentModal";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FilmList.css";
 import "../styles/FriendAvatars.css";
@@ -45,6 +46,11 @@ function FilmList() {
 
   // Film sélectionné pour afficher sa fiche complète dans la modale
   const [selectedFilm, setSelectedFilm] = useState(null);
+
+  // Swipe en cours d'édition de commentaire (null = modale fermée).
+  // On stocke le swipe entier (pas juste l'ID) pour que la modale
+  // puisse afficher le titre du film et le commentaire actuel.
+  const [commentingSwipe, setCommentingSwipe] = useState(null);
 
   // Dictionnaire { filmId: [{username, avatar}, ...] } — quels amis ont aussi liké chaque film
   const [friendsLikes, setFriendsLikes] = useState({});
@@ -241,6 +247,37 @@ function FilmList() {
       }, 2000);
     } catch (error) {
       console.error("Erreur lors de la notation :", error);
+    }
+  }
+
+  /**
+   * Sauvegarde le commentaire d'un film "déjà vu".
+   *
+   * Envoie un PATCH à l'API avec le nouveau texte, puis met à jour
+   * le state local pour que l'affichage se rafraîchisse immédiatement
+   * (notamment la pastille "commenté" sur la carte) sans recharger.
+   *
+   * @param {number} swipeId - L'ID du swipe à commenter
+   * @param {string} newComment - Le nouveau texte (chaîne vide pour effacer)
+   */
+  async function handleCommentSave(swipeId, newComment) {
+    try {
+      // PATCH partiel : on n'envoie que le champ comment, le backend
+      // ne touche pas aux autres champs (status, rating, etc.).
+      await api.patch(`/api/swipes/${swipeId}/`, { comment: newComment });
+
+      // Mise à jour locale du state seen pour refléter le changement
+      setSwipes((prev) => ({
+        ...prev,
+        seen: prev.seen.map((s) =>
+          s.id === swipeId ? { ...s, comment: newComment } : s
+        ),
+      }));
+
+      // Ferme la modale après sauvegarde réussie
+      setCommentingSwipe(null);
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement du commentaire :", error);
     }
   }
 
@@ -569,6 +606,26 @@ function FilmList() {
                 alt={swipe.film.title}
               />
 
+              {/* Pastille "commentaire existant" — visible uniquement sur l'onglet
+                  "Déjà vu" si un commentaire est enregistré pour ce film.
+                  Cliquer dessus ouvre directement la modale d'édition (raccourci
+                  pratique pour relire/modifier sans passer par le menu ⋯).
+                  stopPropagation : sans ça, le clic remonterait à la carte et
+                  ouvrirait aussi la fiche film en arrière-plan. */}
+              {activeTab === "seen" && swipe.comment && (
+                <button
+                  className="film-list__card-comment-badge"
+                  aria-label="Voir / modifier mon commentaire"
+                  title="Voir / modifier mon commentaire"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCommentingSwipe(swipe);
+                  }}
+                >
+                  💬
+                </button>
+              )}
+
               {/* Dégradé + avatars amis + titre en bas */}
               <div className="film-list__card-overlay">
                 {/* Avatars empilés des amis qui ont aussi liké ce film */}
@@ -636,9 +693,27 @@ function FilmList() {
               </button>
 
               {/* Menu contextuel — visible seulement si openMenuId correspond */}
-              {/* Menu contextuel — visible seulement si openMenuId correspond */}
               {openMenuId === swipe.id && (
                 <div className="film-list__card-dropdown">
+                  {/* Option "Commentaire" : uniquement dans l'onglet "Déjà vu",
+                      car un commentaire n'a de sens que pour un film qu'on a vu.
+                      Le label change selon qu'un commentaire existe déjà ou non,
+                      pour que l'utilisateur sache s'il va créer ou modifier. */}
+                  {activeTab === "seen" && (
+                    <button
+                      className="film-list__card-dropdown-item film-list__card-dropdown-item--seen"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Ouvre la modale de commentaire et ferme le dropdown
+                        setCommentingSwipe(swipe);
+                        setOpenMenuId(null);
+                      }}
+                    >
+                      <span>💬</span>
+                      {swipe.comment ? "Modifier le commentaire" : "Commentaire"}
+                    </button>
+                  )}
+
                   {statusOptions[activeTab].map((option) => (
                     <button
                       key={option.status}
@@ -676,6 +751,17 @@ function FilmList() {
         currentFilters={activeFilters}
         availableGenres={availableGenres}
         availablePlateforms={availablePlateforms}
+      />
+
+      {/* Modale d'édition du commentaire personnel sur un film "déjà vu".
+          Le composant gère lui-même l'affichage : si commentingSwipe est null,
+          il ne rend rien. */}
+      <CommentModal
+        swipe={commentingSwipe}
+        onClose={() => setCommentingSwipe(null)}
+        onSave={(newComment) =>
+          handleCommentSave(commentingSwipe.id, newComment)
+        }
       />
 
       <TmdbAttribution />

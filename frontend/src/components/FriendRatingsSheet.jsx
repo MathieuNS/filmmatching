@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import StarRating from "./StarRating";
+import CommentModal from "./CommentModal";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/FriendRatings.css";
 
@@ -65,6 +67,14 @@ function getCountLine(ratedCount, seenCount) {
  * @returns {JSX.Element|null} Le bottom sheet ou null
  */
 function FriendRatingsSheet({ isOpen, onClose, friendRatings, filmTitle }) {
+  // Ami dont on consulte le commentaire (null = aucune modale ouverte).
+  // On garde l'objet ami complet pour avoir accès à son username (titre)
+  // et à son commentaire (corps de la modale).
+  // ⚠️ Le useState DOIT être appelé avant tout `return` conditionnel,
+  // sinon les Hooks ne sont pas appelés dans le même ordre à chaque rendu
+  // et React lève une erreur "Rendered fewer hooks than expected".
+  const [viewingCommentFriend, setViewingCommentFriend] = useState(null);
+
   // Garde de bord : pas ouvert ou pas de données → on ne rend rien
   if (!isOpen || !friendRatings) return null;
 
@@ -178,11 +188,51 @@ function FriendRatingsSheet({ isOpen, onClose, friendRatings, filmTitle }) {
                     Vu, sans note
                   </span>
                 )}
+
+                {/* Pastille 💬 placée APRÈS les étoiles (ou "Vu, sans note").
+                    Affichée dès qu'un commentaire existe, peu importe que
+                    l'ami ait noté ou non. Cliquer ouvre la modale en mode
+                    lecture seule (le user ne peut pas modifier un commentaire
+                    qui n'est pas le sien). stopPropagation : empêche le clic
+                    de remonter à la sheet ou au backdrop derrière. */}
+                {friend.comment && (
+                  <button
+                    type="button"
+                    className="friend-ratings-sheet__comment-btn"
+                    aria-label={`Voir le commentaire de ${friend.username}`}
+                    title={`Voir le commentaire de ${friend.username}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingCommentFriend(friend);
+                    }}
+                  >
+                    💬
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         </div>
       </div>
+
+      {/* Modale d'affichage du commentaire de l'ami sélectionné.
+          On adapte la forme attendue par CommentModal :
+          { comment, film: { title } }. Le filmTitle vient de la prop parente
+          car la sheet ne dispose pas du film entier. authorName affiche
+          "Commentaire de {username}" dans le header de la modale. */}
+      <CommentModal
+        swipe={
+          viewingCommentFriend
+            ? {
+                comment: viewingCommentFriend.comment,
+                film: { title: filmTitle || "" },
+              }
+            : null
+        }
+        onClose={() => setViewingCommentFriend(null)}
+        readOnly
+        authorName={viewingCommentFriend?.username}
+      />
     </>,
     document.body,
   );
