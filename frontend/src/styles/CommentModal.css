@@ -1,0 +1,255 @@
+/* ==============================================
+   CommentModal.css — Modale d'édition d'un commentaire personnel
+   sur un film "déjà vu". Respecte le design system :
+   fond sombre, accent ambre/doré (couleur "déjà vu"),
+   typo Outfit pour le titre, Sora pour le corps.
+   ============================================== */
+
+/* --- Fond sombre derrière la modale (couvre tout l'écran) --- */
+.comment-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: commentModalFadeIn 0.2s ease;
+}
+
+@keyframes commentModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Conteneur principal de la modale --- */
+.comment-modal {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  /* Couleur "noir-carte" du design system pour les modales/cartes */
+  background-color: #16161A;
+  /* border-radius: 20px → token "Cards" du design system */
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 24px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: commentModalSlideUp 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes commentModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Bouton fermer en haut à droite --- */
+.comment-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #F0EEF2;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.comment-modal__close:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* --- Titre de la modale (typo Outfit pour les titres) --- */
+.comment-modal__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #F0EEF2;
+  margin: 0;
+  /* Marge à droite pour ne pas chevaucher le bouton fermer */
+  padding-right: 36px;
+}
+
+/* --- Sous-titre : nom du film concerné --- */
+.comment-modal__subtitle {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.875rem;
+  /* Couleur ambre-doré : c'est la couleur sémantique de "déjà vu",
+     ce qui rappelle visuellement le contexte (carte sur l'onglet "Déjà vu"). */
+  color: #FFAA2B;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+/* --- Zone de texte principale --- */
+.comment-modal__textarea {
+  width: 100%;
+  /* gris-sombre du design system pour les inputs */
+  background-color: #1E1E24;
+  border: 1px solid #2A2A32;
+  border-radius: 14px;
+  padding: 14px;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  /* Empêche le redimensionnement horizontal qui casserait la mise en page,
+     mais on autorise le redimensionnement vertical pour les longs commentaires. */
+  resize: vertical;
+  min-height: 140px;
+  /* outline:none + transition pour un focus discret */
+  outline: none;
+  transition: border-color 0.25s ease;
+}
+
+.comment-modal__textarea:focus {
+  /* À la sélection, on bordure en ambre pour rester cohérent avec le sous-titre */
+  border-color: #FFAA2B;
+}
+
+.comment-modal__textarea::placeholder {
+  color: #8B8B9E;
+}
+
+/* --- Mode lecture seule : boîte d'affichage sans édition possible --- */
+/* Visuellement proche du textarea pour rester cohérent, mais sans bordure
+   d'input et avec white-space: pre-wrap pour respecter les retours à la
+   ligne du commentaire original (sinon tout serait sur une seule ligne). */
+.comment-modal__readonly {
+  width: 100%;
+  background-color: #1E1E24;
+  border-radius: 14px;
+  padding: 14px;
+  color: #F0EEF2;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  min-height: 80px;
+  max-height: 320px;
+  /* Si le texte est très long, on autorise le scroll vertical interne
+     plutôt que de faire grossir la modale au-delà de la fenêtre. */
+  overflow-y: auto;
+  /* pre-wrap : conserve les espaces et les retours à la ligne tels que
+     l'auteur les a tapés. Sans ça, les paragraphes seraient collés. */
+  white-space: pre-wrap;
+  /* word-break : coupe les mots très longs (URLs sans espaces) pour
+     éviter qu'ils débordent horizontalement. */
+  word-break: break-word;
+}
+
+/* Texte gris affiché quand le commentaire est vide */
+.comment-modal__empty {
+  color: #8B8B9E;
+  font-style: italic;
+}
+
+/* --- Compteur de caractères, discret en bas du textarea --- */
+.comment-modal__counter {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  color: #8B8B9E;
+  text-align: right;
+}
+
+/* --- Conteneur des boutons d'action --- */
+.comment-modal__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* --- Boutons (token "Buttons" : border-radius 14px) --- */
+.comment-modal__btn {
+  /* flex:1 → les deux boutons partagent l'espace à parts égales */
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Bouton "Annuler" : style discret (gris) */
+.comment-modal__btn--cancel {
+  background-color: #2A2A32;
+  color: #F0EEF2;
+}
+
+.comment-modal__btn--cancel:hover:not(:disabled) {
+  background-color: #36363F;
+}
+
+/* Bouton "Enregistrer" : accent ambre + glow (token Buttons) */
+.comment-modal__btn--save {
+  background-color: #FFAA2B;
+  color: #0D0D0F;
+  /* Glow ambre, comme spécifié dans le design system */
+  box-shadow: 0 4px 24px rgba(255, 170, 43, 0.35);
+}
+
+.comment-modal__btn--save:hover:not(:disabled) {
+  /* Légère intensification du glow au survol */
+  box-shadow: 0 4px 28px rgba(255, 170, 43, 0.55);
+  transform: translateY(-1px);
+}
+
+.comment-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Indicateur visuel sur la carte : un commentaire existe --- */
+/* Petite pastille cliquable en haut à gauche de la carte. Sert à la fois
+   de signal ("ce film est commenté") et de raccourci vers la modale
+   d'édition (sans passer par le menu ⋯). */
+.film-list__card-comment-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #FFAA2B;
+  /* Reset des styles par défaut du <button> pour que la pastille reste
+     ronde et n'hérite pas du look "form button" du navigateur. */
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  z-index: 5;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Survol : on intensifie légèrement le fond et on agrandit la pastille
+   pour signaler clairement qu'elle est cliquable. */
+.film-list__card-comment-badge:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+  box-shadow: 0 2px 12px rgba(255, 170, 43, 0.4);
+}

@@ -225,3 +225,52 @@
 .match-list__count strong {
   color: #2EE0A1;
 }
+
+/* ============================================
+   Onglet "À voir ensemble" actif — couleur match (vert)
+   L'onglet "Sa filmothèque" actif réutilise .film-list__tab--seen (ambre)
+   défini dans FilmList.css.
+   ============================================ */
+.film-list__tab--active.film-list__tab--matches {
+  color: #2EE0A1;
+  background-color: rgba(46, 224, 161, 0.1);
+  border-color: rgba(46, 224, 161, 0.3);
+}
+
+/* ============================================
+   Badge "mon statut" en coin de carte (onglet filmothèque).
+   Permet de scanner la liste : un user voit immédiatement
+   les films qu'il a déjà likés/vus/dislikés sans cliquer.
+   ============================================ */
+.match-list__card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  /* Fond légèrement sombre pour rester lisible sur tous les posters */
+  backdrop-filter: blur(4px);
+}
+
+.match-list__card-badge--like {
+  background-color: rgba(255, 77, 106, 0.95);
+  color: #fff;
+}
+
+.match-list__card-badge--seen {
+  background-color: rgba(255, 170, 43, 0.95);
+  color: #fff;
+}
+
+.match-list__card-badge--dislike {
+  background-color: rgba(42, 42, 50, 0.95);
+  color: #F0EEF2;
+}

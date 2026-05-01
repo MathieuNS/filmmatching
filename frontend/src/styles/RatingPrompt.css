@@ -1,0 +1,211 @@
+/* ==============================================
+   RatingPrompt.css — Direction "Cinéma Premium"
+   Carte glassmorphism (verre dépoli) avec halo ambre diffus en haut
+   évoquant un projecteur de cinéma. Un seul CTA mis en avant,
+   "Sans note" en lien discret en dessous, croix d'annulation
+   en haut à droite. Label dynamique ("Coup de cœur"...) qui
+   apparaît dès que l'utilisateur sélectionne une note.
+   ============================================== */
+
+.rating-prompt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 20px 18px;
+  margin-top: 12px;
+  /* Verre dépoli : fond semi-transparent + blur du contenu derrière.
+     Particulièrement visible quand le composant est en overlay flottant
+     au-dessus d'une carte film (futur usage sur Home). */
+  background-color: rgba(30, 30, 36, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  /* Bordure très douce teintée ambre, en cohérence avec la couleur
+     des étoiles de notation et le halo du projecteur. */
+  border: 1px solid rgba(255, 170, 43, 0.12);
+  border-radius: 20px;
+  /* Double ombre : reflet inset très fin en haut + ombre portée pour profondeur */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: ratingPromptFade 0.3s ease;
+}
+
+/* Halo ambre diffus en haut, comme un projecteur de cinéma.
+   Posé via ::before pour ne pas affecter le flow normal. */
+.rating-prompt::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 170, 43, 0.18) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes ratingPromptFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tous les contenus passent au-dessus du halo */
+.rating-prompt__title,
+.rating-prompt__feedback,
+.rating-prompt__stars,
+.rating-prompt__actions {
+  position: relative;
+  z-index: 1;
+}
+
+/* Titre devenu très discret : petit, en majuscules, gris.
+   Le rôle de "héros" est désormais joué par le label dynamique. */
+.rating-prompt__title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #8B8B9E;
+  margin: 0;
+  text-align: center;
+}
+
+/* Label dynamique ("Coup de cœur", "Vraiment bien"...) — c'est lui
+   qui donne la personnalité et le feedback émotionnel.
+   La min-height réserve la place pour éviter un saut de mise en page
+   quand le label apparaît/disparaît. */
+.rating-prompt__feedback {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #FFAA2B;
+  text-align: center;
+  margin: -4px 0 0;
+  min-height: 1.6em;
+  transition: opacity 0.2s ease;
+}
+
+/* État "vide" du label : invisible mais l'espace reste réservé */
+.rating-prompt__feedback--empty {
+  opacity: 0;
+}
+
+.rating-prompt__stars {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+/* Étoiles plus grandes pour confort tactile et présence visuelle */
+.rating-prompt__stars .star-rating__star {
+  width: 32px;
+  height: 32px;
+}
+
+/* Glow ambre sur les étoiles pleines, en cohérence avec le halo du projecteur */
+.rating-prompt__stars .star-rating__svg--filled path {
+  filter: drop-shadow(0 0 8px rgba(255, 170, 43, 0.5));
+}
+
+/* On masque le score numérique interne du StarRating : le label
+   dynamique le remplace avantageusement. */
+.rating-prompt__stars .star-rating__score {
+  display: none;
+}
+
+.rating-prompt__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Bouton primaire seul mis en avant, large et corail saturé */
+.rating-prompt__save {
+  width: 100%;
+  padding: 13px 24px;
+  background: #FF4D6A;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 24px rgba(255, 77, 106, 0.35);
+}
+
+.rating-prompt__save:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(255, 77, 106, 0.5);
+}
+
+.rating-prompt__save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* "Sans note" : lien texte sous le bouton, plus en compétition visuelle */
+.rating-prompt__skip {
+  background: transparent;
+  border: none;
+  color: #8B8B9E;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.25s ease;
+}
+
+.rating-prompt__skip:hover:not(:disabled) {
+  color: #F0EEF2;
+}
+
+.rating-prompt__skip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Croix d'annulation : déplacée en haut à droite, discrète et ronde */
+.rating-prompt__cancel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: #8B8B9E;
+  font-size: 0.85rem;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-prompt__cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #F0EEF2;
+}
+
+.rating-prompt__cancel:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

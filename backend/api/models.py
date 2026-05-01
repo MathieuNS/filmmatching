@@ -48,6 +48,13 @@ class Profile(models.Model):
     # False sinon. Modifiable à tout moment dans "Mon compte".
     email_notifications = models.BooleanField(default=False)
 
+    # Préférence de partage de la "filmothèque" (films marqués déjà vu).
+    # Quand True, les amis peuvent voir la liste complète des films vus
+    # de cet utilisateur sur la page /amis/:friendshipId/matchs (onglet "Sa filmothèque").
+    # Quand False, les amis voient un message "Cette filmothèque est privée".
+    # Public par défaut : on assume que partager ses films vus est normal entre amis.
+    share_seen_with_friends = models.BooleanField(default=True)
+
     class Meta:
         verbose_name = "Profile"
         verbose_name_plural = "Profiles"
@@ -166,6 +173,14 @@ class Swipe(models.Model):
             MaxValueValidator(5.0),   # Note maximum : 5 étoiles
         ],
     )
+
+    # Commentaire personnel laissé par l'utilisateur sur un film "déjà vu".
+    # TextField (et non CharField) car la longueur du texte est libre :
+    # l'utilisateur peut écrire deux mots ou plusieurs paragraphes.
+    # blank=True autorise un commentaire vide ; default="" évite les NULL
+    # en base (convention Django pour les champs texte : on préfère "" à NULL
+    # pour ne pas avoir à gérer deux représentations du "rien").
+    comment = models.TextField(blank=True, default="")
 
     class Meta:
         verbose_name = "Swipe"

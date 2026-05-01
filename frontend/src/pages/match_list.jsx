@@ -4,6 +4,8 @@ import api from "../api";
 import { getAvatarUrl } from "../utils/avatars";
 import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
+import StarRating from "../components/StarRating";
+import CommentModal from "../components/CommentModal";
 import "../styles/FilmList.css";
 import TmdbAttribution from "../components/TmdbAttribution";
 import HamburgerMenu from "../components/HamburgerMenu";
@@ -14,11 +16,16 @@ import "../styles/MatchList.css";
  *
  * 2 modes d'accès :
  * - Mode 1v1 : /amis/:friendshipId/matchs → matchs avec un seul ami
+ *   Inclut un onglet "Sa filmothèque" qui montre les films vus par l'ami.
  * - Mode groupe : /amis/groupe/matchs?ids=12,34,56 → matchs avec plusieurs amis
+ *   Pas d'onglet filmothèque (la feature n'a de sens qu'en 1v1).
  *
  * Le mode est déterminé automatiquement :
  * - Si friendshipId est présent dans l'URL → mode 1v1 (comportement existant)
  * - Si le query param "ids" est présent → mode groupe (nouvel endpoint)
+ *
+ * En mode 1v1, le query param ?tab=seen permet le deep-linking vers
+ * l'onglet "Sa filmothèque" (utile pour les notifications futures).
  *
  * @returns {JSX.Element} La page des matchs
  */
@@ -31,16 +38,30 @@ function MatchList() {
 
   // useSearchParams() lit les query params de l'URL (après le "?").
   // Pour /amis/groupe/matchs?ids=12,34,56 → searchParams.get("ids") = "12,34,56"
-  const [searchParams] = useSearchParams();
+  // setSearchParams permet de modifier l'URL sans recharger la page (deep-link tab).
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Détermine si on est en mode groupe (plusieurs amis) ou 1v1
   // En mode groupe, friendshipId est undefined et on a un param "ids"
   const groupIds = searchParams.get("ids");
   const isGroupMode = !friendshipId && !!groupIds;
 
+  // --- Onglet actif : "matches" (likes en commun) ou "seen" (filmothèque de l'ami) ---
+  // Le tab "seen" n'existe qu'en mode 1v1. La valeur initiale vient du query param
+  // ?tab=seen pour permettre de partager un lien direct vers cet onglet.
+  const initialTab = searchParams.get("tab") === "seen" && !isGroupMode ? "seen" : "matches";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
   // --- Données ---
-  // Liste des films matchés renvoyés par l'API
+  // Liste des films matchés (likes en commun) renvoyés par l'API
   const [matchedFilms, setMatchedFilms] = useState([]);
+  // Liste des items "filmothèque de l'ami" : tableau d'objets
+  // { film, friend_rating, friend_seen_at, my_status, my_rating }
+  const [seenItems, setSeenItems] = useState([]);
+  // true tant qu'on n'a pas tenté de charger la filmothèque (évite un flash empty)
+  const [seenLoaded, setSeenLoaded] = useState(false);
+  // true si l'ami a désactivé le partage de sa filmothèque (réponse 403 "private")
+  const [seenIsPrivate, setSeenIsPrivate] = useState(false);
   // Mode 1v1 : le pseudo de l'ami (string)
   // Mode groupe : liste des amis [{ username, avatar }, ...]
   const [friendName, setFriendName] = useState("");
@@ -62,8 +83,17 @@ function MatchList() {
   // --- Modale du film choisi aléatoirement ---
   const [randomFilm, setRandomFilm] = useState(null);
 
-  // Film sélectionné pour afficher sa fiche complète dans la modale
+  // Film sélectionné pour afficher sa fiche complète dans la modale.
+  // En mode "matches", contient juste un Film. En mode "seen", contient
+  // un objet enrichi (item de la filmothèque) pour pouvoir passer
+  // friend_rating, my_status, etc. à FilmDetailModal.
   const [selectedFilm, setSelectedFilm] = useState(null);
+  const [selectedSeenItem, setSelectedSeenItem] = useState(null);
+
+  // Item dont on consulte le commentaire ami (null = modale fermée).
+  // On stocke l'item entier pour avoir accès à film.title et friend_comment
+  // dans la modale de lecture seule.
+  const [viewingCommentItem, setViewingCommentItem] = useState(null);
 
   /**
    * Charge les films matchés et les options de filtres au montage.
@@ -129,6 +159,67 @@ function MatchList() {
   }, [friendshipId, groupIds, isGroupMode]);
 
   /**
+   * Charge la filmothèque de l'ami dès le montage en mode 1v1.
+   *
+   * On charge tout de suite (au lieu d'attendre le clic sur l'onglet)
+   * pour deux raisons :
+   * - afficher le nombre de films vus directement dans l'onglet
+   *   "Sa filmothèque" (cohérent avec "À voir ensemble").
+   * - savoir tout de suite si l'ami a bloqué le partage, pour
+   *   afficher un cadenas 🔒 à la place du nombre.
+   *
+   * Si l'ami a désactivé le partage, l'API renvoie 403 avec le payload
+   * { "error": "private" } → on met seenIsPrivate à true.
+   */
+  useEffect(() => {
+    if (isGroupMode) return; // Pas de filmothèque en mode groupe
+    if (seenLoaded) return; // Déjà chargée
+
+    async function fetchSeen() {
+      try {
+        const res = await api.get(`/api/friends/${friendshipId}/seen/`);
+        setSeenItems(res.data);
+        setSeenIsPrivate(false);
+      } catch (error) {
+        // Le backend renvoie 403 avec { "error": "private" } si l'ami
+        // a désactivé le partage. On distingue ce cas d'une vraie erreur.
+        if (
+          error.response &&
+          error.response.status === 403 &&
+          error.response.data?.error === "private"
+        ) {
+          setSeenIsPrivate(true);
+          setSeenItems([]);
+        } else {
+          console.error("Erreur lors du chargement de la filmothèque :", error);
+          setSeenItems([]);
+        }
+      } finally {
+        setSeenLoaded(true);
+      }
+    }
+
+    fetchSeen();
+  }, [friendshipId, isGroupMode, seenLoaded]);
+
+  /**
+   * Change d'onglet et synchronise l'URL (?tab=seen ou pas de param).
+   * Permet de partager un lien direct ou de revenir en arrière dans l'historique.
+   *
+   * @param {string} tab - "matches" ou "seen"
+   */
+  function handleTabChange(tab) {
+    setActiveTab(tab);
+    const newParams = new URLSearchParams(searchParams);
+    if (tab === "seen") {
+      newParams.set("tab", "seen");
+    } else {
+      newParams.delete("tab");
+    }
+    setSearchParams(newParams, { replace: true });
+  }
+
+  /**
    * Applique les filtres sélectionnés dans le bottom sheet.
    *
    * @param {Object} newFilters - Les nouveaux filtres à appliquer
@@ -191,8 +282,14 @@ function MatchList() {
     });
   }
 
-  // Films après application des filtres
+  // Films après application des filtres (onglet "matches")
   const filteredFilms = filterFilms(matchedFilms);
+  // Items "filmothèque" filtrés. On extrait `film` de chaque item pour réutiliser
+  // filterFilms, puis on garde les items dont le film survit au filtre.
+  const filteredSeenItems = seenItems.filter((item) => {
+    const films = filterFilms([item.film]);
+    return films.length > 0;
+  });
 
   // Nombre de filtres actifs (pour le badge)
   const filterCount =
@@ -219,6 +316,81 @@ function MatchList() {
     setRandomFilm(filteredFilms[randomIndex]);
   }
 
+  /**
+   * Ajoute un film à ma watchlist (= crée un swipe de status "like").
+   * Appelé depuis FilmDetailModal quand le user clique le bouton dédié
+   * sur l'onglet "Sa filmothèque".
+   *
+   * Met à jour optimistiquement l'item local pour que le badge "Dans ta
+   * watchlist" apparaisse immédiatement, sans recharger toute la liste.
+   *
+   * @param {Object} film - Le film à ajouter
+   */
+  async function handleAddToWatchlist(film) {
+    await api.post("/api/swipes/", { film: film.id, status: "like" });
+    // Met à jour le my_status localement pour faire disparaître les boutons
+    // et faire apparaître le badge dans la modale + la carte.
+    setSeenItems((prev) =>
+      prev.map((item) =>
+        item.film.id === film.id ? { ...item, my_status: "like" } : item
+      )
+    );
+    setSelectedSeenItem((prev) =>
+      prev && prev.film.id === film.id ? { ...prev, my_status: "like" } : prev
+    );
+  }
+
+  /**
+   * Marque un film comme "déjà vu" par l'utilisateur connecté
+   * (= crée un swipe de status "seen", éventuellement avec une note).
+   * Appelé depuis le RatingPrompt dans FilmDetailModal.
+   *
+   * @param {Object} film - Le film concerné
+   * @param {number|null} rating - La note de l'utilisateur (0.5-5) ou null
+   */
+  async function handleMarkAsSeen(film, rating) {
+    const payload = { film: film.id, status: "seen" };
+    if (rating !== null) {
+      payload.rating = rating;
+    }
+    await api.post("/api/swipes/", payload);
+    setSeenItems((prev) =>
+      prev.map((item) =>
+        item.film.id === film.id
+          ? { ...item, my_status: "seen", my_rating: rating }
+          : item
+      )
+    );
+    setSelectedSeenItem((prev) =>
+      prev && prev.film.id === film.id
+        ? { ...prev, my_status: "seen", my_rating: rating }
+        : prev
+    );
+  }
+
+  /**
+   * Renvoie la classe CSS du badge "mon statut" affiché en coin de carte
+   * sur l'onglet filmothèque. Renvoie null si aucun badge ne doit être affiché.
+   *
+   * @param {string|null} status - Le statut ("like", "seen", "dislike" ou null)
+   */
+  function getStatusBadgeMeta(status) {
+    if (status === "like") return { icon: "❤️", className: "like" };
+    if (status === "seen") return { icon: "👁️", className: "seen" };
+    if (status === "dislike") return { icon: "✕", className: "dislike" };
+    return null;
+  }
+
+  // Détermine le titre de l'écran (en haut). On le calcule en fonction du mode
+  // ET de l'onglet actif pour clarifier le contexte au user.
+  const headerTitle = isGroupMode
+    ? "Matchs de groupe"
+    : friendName
+      ? activeTab === "seen"
+        ? `Filmothèque de ${friendName}`
+        : `Matchs avec ${friendName}`
+      : "Matchs";
+
   return (
     <div className="film-list">
       {/* Header : retour + titre + filtres + hamburger */}
@@ -231,13 +403,7 @@ function MatchList() {
           >
             ←
           </button>
-          <h1 className="film-list__title">
-            {isGroupMode
-              ? "Matchs de groupe"
-              : friendName
-                ? `Matchs avec ${friendName}`
-                : "Matchs"}
-          </h1>
+          <h1 className="film-list__title">{headerTitle}</h1>
         </div>
 
         <div className="film-list__header-actions">
@@ -277,67 +443,204 @@ function MatchList() {
         </div>
       )}
 
-      {/* Contenu */}
+      {/* Onglets : visibles uniquement en mode 1v1 (pas en groupe).
+          On garde les classes film-list__tab pour la cohérence visuelle. */}
+      {!isGroupMode && (
+        <div className="film-list__tabs">
+          <button
+            className={`film-list__tab film-list__tab--matches ${
+              activeTab === "matches" ? "film-list__tab--active" : ""
+            }`}
+            onClick={() => handleTabChange("matches")}
+          >
+            🎬 À voir ensemble
+            <span className="film-list__tab-count">{matchedFilms.length}</span>
+          </button>
+          <button
+            className={`film-list__tab film-list__tab--seen ${
+              activeTab === "seen" ? "film-list__tab--active" : ""
+            }`}
+            onClick={() => handleTabChange("seen")}
+          >
+            👁️ Sa filmothèque
+            {seenLoaded && (
+              <span className="film-list__tab-count">
+                {seenIsPrivate ? "🔒" : seenItems.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Contenu principal — branche selon l'onglet actif */}
       {loading ? (
         <div className="film-list__loading">Chargement...</div>
-      ) : matchedFilms.length === 0 ? (
-        <div className="film-list__empty">
-          <div className="film-list__empty-icon">🎬</div>
-          <h2 className="film-list__empty-title">Aucun match pour l'instant</h2>
-          <p className="film-list__empty-text">
+      ) : activeTab === "matches" ? (
+        // --- Onglet "À voir ensemble" : matchs (likes en commun) ---
+        matchedFilms.length === 0 ? (
+          <div className="film-list__empty">
+            <div className="film-list__empty-icon">🎬</div>
+            <h2 className="film-list__empty-title">Aucun match pour l'instant</h2>
+            <p className="film-list__empty-text">
               Aucun film en commun. Continuez tous à swiper !
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Compteur + bouton aléatoire */}
-          <div className="match-list__count">
-            <strong>{filteredFilms.length}</strong>{" "}
-            {filteredFilms.length > 1 ? "films en commun" : "film en commun"}
-            {filterCount > 0 && ` (${matchedFilms.length} au total)`}
+            </p>
           </div>
-
-          <button
-            className="match-list__random-btn"
-            onClick={handleRandomPick}
-            disabled={filteredFilms.length === 0}
-          >
-            <span className="match-list__random-icon">🎲</span>
-            Choix aléatoire
-          </button>
-
-          {/* Grille de films (mêmes classes que FilmList) */}
-          {filteredFilms.length === 0 ? (
-            <div className="film-list__empty">
-              <h2 className="film-list__empty-title">Aucun résultat</h2>
-              <p className="film-list__empty-text">
-                Essaie de modifier tes filtres.
-              </p>
+        ) : (
+          <>
+            {/* Compteur + bouton aléatoire */}
+            <div className="match-list__count">
+              <strong>{filteredFilms.length}</strong>{" "}
+              {filteredFilms.length > 1 ? "films en commun" : "film en commun"}
+              {filterCount > 0 && ` (${matchedFilms.length} au total)`}
             </div>
-          ) : (
-            <div className="film-list__grid">
-              {filteredFilms.map((film) => (
-                <div
-                  key={film.id}
-                  className="film-list__card"
-                  onClick={() => setSelectedFilm(film)}
-                >
-                  <img
-                    className="film-list__card-img"
-                    src={film.img}
-                    alt={film.title}
-                  />
-                  <div className="film-list__card-overlay">
-                    <p className="film-list__card-title">{film.title}</p>
-                    <span className="film-list__card-year">
-                      {film.release_year}
-                    </span>
+
+            <button
+              className="match-list__random-btn"
+              onClick={handleRandomPick}
+              disabled={filteredFilms.length === 0}
+            >
+              <span className="match-list__random-icon">🎲</span>
+              Choix aléatoire
+            </button>
+
+            {/* Grille de films (mêmes classes que FilmList) */}
+            {filteredFilms.length === 0 ? (
+              <div className="film-list__empty">
+                <h2 className="film-list__empty-title">Aucun résultat</h2>
+                <p className="film-list__empty-text">
+                  Essaie de modifier tes filtres.
+                </p>
+              </div>
+            ) : (
+              <div className="film-list__grid">
+                {filteredFilms.map((film) => (
+                  <div
+                    key={film.id}
+                    className="film-list__card"
+                    onClick={() => setSelectedFilm(film)}
+                  >
+                    <img
+                      className="film-list__card-img"
+                      src={film.img}
+                      alt={film.title}
+                    />
+                    <div className="film-list__card-overlay">
+                      <p className="film-list__card-title">{film.title}</p>
+                      <span className="film-list__card-year">
+                        {film.release_year}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </>
+        )
+      ) : (
+        // --- Onglet "Sa filmothèque" : films vus par l'ami ---
+        !seenLoaded ? (
+          <div className="film-list__loading">Chargement...</div>
+        ) : seenIsPrivate ? (
+          <div className="film-list__empty">
+            <div className="film-list__empty-icon">🔒</div>
+            <h2 className="film-list__empty-title">Filmothèque privée</h2>
+            <p className="film-list__empty-text">
+              {friendName} a choisi de garder sa filmothèque privée.
+            </p>
+          </div>
+        ) : seenItems.length === 0 ? (
+          <div className="film-list__empty">
+            <div className="film-list__empty-icon">👁️</div>
+            <h2 className="film-list__empty-title">Aucun film vu</h2>
+            <p className="film-list__empty-text">
+              {friendName} n'a encore marqué aucun film comme déjà vu.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="match-list__count">
+              <strong>{filteredSeenItems.length}</strong>{" "}
+              {filteredSeenItems.length > 1 ? "films vus" : "film vu"} par {friendName}
+              {filterCount > 0 && ` (${seenItems.length} au total)`}
             </div>
-          )}
-        </>
+
+            {filteredSeenItems.length === 0 ? (
+              <div className="film-list__empty">
+                <h2 className="film-list__empty-title">Aucun résultat</h2>
+                <p className="film-list__empty-text">
+                  Essaie de modifier tes filtres.
+                </p>
+              </div>
+            ) : (
+              <div className="film-list__grid">
+                {filteredSeenItems.map((item) => {
+                  const badge = getStatusBadgeMeta(item.my_status);
+                  return (
+                    <div
+                      key={item.film.id}
+                      className="film-list__card"
+                      onClick={() => setSelectedSeenItem(item)}
+                    >
+                      <img
+                        className="film-list__card-img"
+                        src={item.film.img}
+                        alt={item.film.title}
+                      />
+
+                      {/* Badge "mon statut" en coin de carte si déjà swipé.
+                          Permet de scanner la liste d'un coup d'œil pour
+                          repérer ce qu'on connaît déjà. */}
+                      {badge && (
+                        <span
+                          className={`match-list__card-badge match-list__card-badge--${badge.className}`}
+                          aria-label={`Mon statut : ${item.my_status}`}
+                        >
+                          {badge.icon}
+                        </span>
+                      )}
+
+                      {/* Pastille "commentaire de l'ami" en haut à gauche.
+                          Visible si l'ami a laissé un commentaire (texte non vide).
+                          Cliquer dessus ouvre la modale en mode lecture seule.
+                          stopPropagation : sans ça, le clic remonterait à la
+                          carte et ouvrirait aussi la fiche film en arrière-plan. */}
+                      {item.friend_comment && (
+                        <button
+                          className="film-list__card-comment-badge"
+                          aria-label={`Voir le commentaire de ${friendName}`}
+                          title={`Voir le commentaire de ${friendName}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingCommentItem(item);
+                          }}
+                        >
+                          💬
+                        </button>
+                      )}
+
+                      <div className="film-list__card-overlay">
+                        <p className="film-list__card-title">{item.film.title}</p>
+                        <span className="film-list__card-year">
+                          {item.film.release_year}
+                        </span>
+
+                        {/* Note de l'ami affichée en read-only sur la carte.
+                            Si l'ami n'a pas noté, on n'affiche rien. */}
+                        {item.friend_rating !== null && item.friend_rating !== undefined && (
+                          <StarRating
+                            value={parseFloat(item.friend_rating)}
+                            onChange={() => {}}
+                            readOnly
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )
       )}
 
       {/* Modale du film choisi aléatoirement */}
@@ -380,10 +683,41 @@ function MatchList() {
         </div>
       )}
 
-      {/* Modale fiche complète du film */}
+      {/* Modale fiche complète du film — onglet "matches" (info pure). */}
       <FilmDetailModal
         film={selectedFilm}
         onClose={() => setSelectedFilm(null)}
+      />
+
+      {/* Modale fiche complète du film — onglet "seen" (filmothèque ami).
+          Reçoit la note de l'ami, mon statut et les callbacks d'action. */}
+      {selectedSeenItem && (
+        <FilmDetailModal
+          film={selectedSeenItem.film}
+          onClose={() => setSelectedSeenItem(null)}
+          friendName={friendName}
+          friendRating={selectedSeenItem.friend_rating}
+          myStatus={selectedSeenItem.my_status}
+          onAddToWatchlist={handleAddToWatchlist}
+          onMarkAsSeen={handleMarkAsSeen}
+        />
+      )}
+
+      {/* Modale d'affichage du commentaire de l'ami (lecture seule).
+          On adapte l'item filmothèque à la forme attendue par CommentModal :
+          { comment, film }. authorName = pseudo de l'ami pour le titre. */}
+      <CommentModal
+        swipe={
+          viewingCommentItem
+            ? {
+                comment: viewingCommentItem.friend_comment,
+                film: viewingCommentItem.film,
+              }
+            : null
+        }
+        onClose={() => setViewingCommentItem(null)}
+        readOnly
+        authorName={friendName}
       />
 
       {/* Bottom sheet de filtres */}

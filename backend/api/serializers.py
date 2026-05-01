@@ -17,10 +17,11 @@ class UserSerializer(serializers.ModelSerializer):
     # Champs calculés : on va chercher ces valeurs dans le Profile lié au User
     avatar = serializers.SerializerMethodField()
     email_notifications = serializers.SerializerMethodField()
+    share_seen_with_friends = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'avatar', 'email_notifications']
+        fields = ['id', 'username', 'email', 'password', 'avatar', 'email_notifications', 'share_seen_with_friends']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_avatar(self, obj):
@@ -54,6 +55,24 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'profile'):
             return obj.profile.email_notifications
         return False
+
+    def get_share_seen_with_friends(self, obj):
+        """
+        Récupère la préférence de partage de la filmothèque depuis le Profile.
+
+        Permet aux amis de voir la liste complète des films marqués "déjà vu".
+        Public par défaut : la valeur True est appliquée même si l'utilisateur
+        n'a pas encore de Profile (cas marginal des comptes très anciens).
+
+        Args:
+            obj: L'objet User
+
+        Returns:
+            True si l'utilisateur partage sa filmothèque, False sinon
+        """
+        if hasattr(obj, 'profile'):
+            return obj.profile.share_seen_with_friends
+        return True
 
     def validate_email(self, value):
         """
@@ -106,6 +125,8 @@ class UpdateProfileSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
     # Préférence de notifications email (true/false)
     email_notifications = serializers.BooleanField(required=False)
+    # Préférence de partage de la filmothèque avec les amis (true/false)
+    share_seen_with_friends = serializers.BooleanField(required=False)
     # write_only=True : ces champs ne seront jamais renvoyés dans la réponse
     password = serializers.CharField(required=False, write_only=True)
     password_confirm = serializers.CharField(required=False, write_only=True)
@@ -223,10 +244,91 @@ class FilmsSerializer(serializers.ModelSerializer):
     main_actors = serializers.StringRelatedField(many=True, read_only=True)
     # Pour le réalisateur (ForeignKey, pas ManyToMany), pas besoin de many=True
     director = serializers.StringRelatedField(read_only=True)
+    # Notes données par les amis "publics" (share_seen_with_friends=True) sur ce film.
+    # Vaut null si aucun ami n'a swipé "déjà vu" sur ce film, sinon contient :
+    #   - average : moyenne des ratings (sur les amis qui ont noté), arrondie à 1 décimale,
+    #               null si aucun ami n'a mis de note (mais certains ont vu sans noter)
+    #   - friends : liste triée [notés par rating décroissant, puis vus sans note alphabétique]
+    #               avec username, avatar, rating (null possible) et friendship_id
+    # Le champ n'est rempli que si la vue passe le contexte 'friend_swipes_by_film'.
+    # Sinon (ex: endpoint admin, recherche), il vaut null silencieusement.
+    friend_ratings = serializers.SerializerMethodField()
 
     class Meta:
         model = Films
         fields = '__all__'
+
+    def get_friend_ratings(self, obj):
+        """
+        Construit le payload friend_ratings pour ce film à partir du contexte.
+
+        Le contexte (préparé par la vue) doit contenir :
+        - 'friend_swipes_by_film' : dict {film_id: [Swipe]} pré-indexé
+        - 'friendship_id_by_friend' : dict {user_id: friendship_id}
+
+        Retourne None si aucun swipe ami n'est trouvé pour ce film.
+        Sinon retourne {average: float|null, friends: [...]}.
+
+        Args:
+            obj: L'objet Films sérialisé
+
+        Returns:
+            dict | None
+        """
+        swipes_by_film = self.context.get('friend_swipes_by_film')
+        if swipes_by_film is None:
+            # Le contexte n'a pas été préparé → on n'expose pas ce champ
+            return None
+
+        swipes = swipes_by_film.get(obj.id, [])
+        if not swipes:
+            return None
+
+        friendship_map = self.context.get('friendship_id_by_friend', {})
+
+        # Séparer les amis qui ont noté de ceux qui ont vu sans noter.
+        # Un float() sur le Decimal facilite ensuite la sérialisation JSON.
+        rated = [s for s in swipes if s.rating is not None]
+        unrated = [s for s in swipes if s.rating is None]
+
+        # Moyenne sur les amis qui ont mis une note (Q2 : "vu sans note" exclu)
+        if rated:
+            avg_value = sum(float(s.rating) for s in rated) / len(rated)
+            average = round(avg_value, 1)
+        else:
+            average = None
+
+        # Tri (Q7) : amis notés par rating desc + alphabétique à note égale,
+        # puis amis vus sans note en alphabétique
+        rated_sorted = sorted(
+            rated,
+            key=lambda s: (-float(s.rating), s.user.username.lower()),
+        )
+        unrated_sorted = sorted(
+            unrated,
+            key=lambda s: s.user.username.lower(),
+        )
+
+        friends = []
+        for sw in rated_sorted + unrated_sorted:
+            profile = getattr(sw.user, 'profile', None)
+            avatar_name = profile.avatar if profile else 'avatar-popcorn.svg'
+            friends.append({
+                'username': sw.user.username,
+                'avatar': avatar_name,
+                'rating': float(sw.rating) if sw.rating is not None else None,
+                'friendship_id': friendship_map.get(sw.user_id),
+                # Commentaire personnel laissé par l'ami sur ce film. Le
+                # frontend l'affiche via une pastille 💬 dans le bottom sheet
+                # des notes amis (page Home / Liste). Toujours en lecture seule
+                # pour l'utilisateur courant. Vide par défaut → pas de pastille.
+                'comment': sw.comment,
+            })
+
+        return {
+            'average': average,
+            'friends': friends,
+        }
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -268,7 +370,7 @@ class SwipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'comment', 'created_at']
         # created_at est en lecture seule car il se remplit tout seul (auto_now_add)
         read_only_fields = ['created_at']
 
@@ -315,10 +417,21 @@ class SwipeSerializer(serializers.ModelSerializer):
         # soit celui déjà en base (pour un PATCH partiel)
         status = data.get('status', getattr(self.instance, 'status', None))
         rating = data.get('rating')
+        comment = data.get('comment')
 
         if rating is not None and status != 'seen':
             raise serializers.ValidationError({
                 'rating': "La note n'est autorisée que pour les films déjà vus."
+            })
+
+        # Même règle pour le commentaire : il n'a de sens que pour un film
+        # qu'on a déjà vu (un commentaire sur un film "à voir" ou "pas
+        # intéressé" n'aurait pas de sens dans le produit).
+        # On vérifie si comment est une chaîne non vide : "" est traité comme
+        # "pas de commentaire" et reste autorisé (utile pour effacer).
+        if comment and status != 'seen':
+            raise serializers.ValidationError({
+                'comment': "Le commentaire n'est autorisé que pour les films déjà vus."
             })
         return data
 
@@ -342,8 +455,49 @@ class SwipeDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Swipe
-        fields = ['id', 'user', 'film', 'status', 'rating', 'created_at']
+        fields = ['id', 'user', 'film', 'status', 'rating', 'comment', 'created_at']
         read_only_fields = ['created_at']
+
+
+class FriendSeenFilmSerializer(serializers.Serializer):
+    """
+    Serializer pour la "filmothèque" d'un ami : un film que l'ami a marqué
+    comme déjà vu, enrichi avec :
+    - sa note (si l'ami a noté le film)
+    - la date à laquelle il l'a vu
+    - mon propre statut de swipe sur ce film (like/dislike/seen ou null)
+    - ma propre note si je l'ai aussi vu
+
+    On utilise serializers.Serializer (pas ModelSerializer) car on ne sérialise
+    pas un modèle existant : on construit une vue agrégée qui combine
+    deux Swipe (le mien et celui de l'ami) plus le Film. Les données sont
+    préparées dans la vue (FriendSeenListView) sous forme de dictionnaires.
+
+    Format renvoyé pour chaque film :
+    {
+        "film": { ... données complètes du film ... },
+        "friend_rating": 4.5 | null,
+        "friend_seen_at": "2026-04-15T10:30:00Z",
+        "friend_comment": "" | "Génial, à revoir...",
+        "my_status": "like" | "dislike" | "seen" | null,
+        "my_rating": 3.0 | null
+    }
+    """
+
+    film = FilmsSerializer(read_only=True)
+    friend_rating = serializers.DecimalField(
+        max_digits=2, decimal_places=1, allow_null=True, read_only=True,
+    )
+    friend_seen_at = serializers.DateTimeField(read_only=True)
+    # Commentaire personnel de l'ami. Toujours en lecture seule : on ne peut
+    # pas modifier le commentaire de quelqu'un d'autre. Une chaîne vide ""
+    # signifie "aucun commentaire", auquel cas le frontend ne montrera pas
+    # la pastille sur la carte.
+    friend_comment = serializers.CharField(allow_blank=True, read_only=True)
+    my_status = serializers.CharField(allow_null=True, read_only=True)
+    my_rating = serializers.DecimalField(
+        max_digits=2, decimal_places=1, allow_null=True, read_only=True,
+    )
 
 
 class FriendshipSerializer(serializers.ModelSerializer):
