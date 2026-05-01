@@ -643,8 +643,21 @@ class FilmSearchView(APIView):
             title__icontains=query
         )[:8]
 
+        # Préparer le contexte friend_ratings pour ces films, comme dans
+        # RandomFilmView. Sans ce contexte, FilmsSerializer.get_friend_ratings()
+        # renvoie None, et la note moyenne des amis disparaît côté frontend
+        # quand on sélectionne un film via la recherche.
+        film_ids = [f.id for f in films]
+        swipes_by_film, friendship_map = _build_friend_ratings_context(
+            request.user, film_ids
+        )
+
         # On utilise le FilmsSerializer pour renvoyer tous les champs du film
-        serializer = FilmsSerializer(films, many=True)
+        serializer = FilmsSerializer(films, many=True, context={
+            'request': request,
+            'friend_swipes_by_film': swipes_by_film,
+            'friendship_id_by_friend': friendship_map,
+        })
         return Response(serializer.data)
 
 
