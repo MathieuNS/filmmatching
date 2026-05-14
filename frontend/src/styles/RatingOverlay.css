@@ -1,0 +1,89 @@
+/* ==============================================
+   RatingOverlay.css — Carte flottante non-bloquante
+   Affichée en position fixe en haut de l'écran après un swipe "déjà vu".
+   Slide-in depuis le haut au montage, slide-out à la fermeture.
+   Design cohérent avec le reste de l'app :
+   fond sombre #0D0D0F, accent ambre #FFAA2B, police Outfit/Sora.
+   ============================================== */
+
+/* --- Conteneur principal : position fixe en haut de l'écran --- */
+.rating-overlay {
+  /* Fixé dans la fenêtre, indépendant du scroll de la page */
+  position: fixed;
+  top: 20px;
+  /* Centré horizontalement avec translateX(-50%) */
+  left: 50%;
+  transform: translateX(-50%);
+
+  /* Largeur adaptative : remplit l'écran mobile avec des marges,
+     plafonnée à 380px sur desktop pour rester lisible */
+  width: calc(100% - 32px);
+  max-width: 380px;
+
+  /* Au-dessus de tout : match overlay (z-index 100), search overlay (200) */
+  z-index: 300;
+
+  /* Animation d'entrée : slide depuis le haut avec rebond élastique */
+  animation: overlaySlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* --- Classe ajoutée dynamiquement quand l'overlay se ferme --- */
+.rating-overlay--out {
+  /* "forwards" conserve l'état final (opacity 0) jusqu'au démontage React */
+  animation: overlaySlideOut 0.3s ease forwards;
+}
+
+/* --- Animations --- */
+
+/* Entrée : la carte descend depuis le haut avec un léger rebond */
+@keyframes overlaySlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Sortie : la carte remonte et disparaît */
+@keyframes overlaySlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+/* --- Texte introductif "Tu as vu [titre]" --- */
+.rating-overlay__headline {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #F0EEF2;
+  text-align: center;
+  margin: 0 0 4px;
+
+  /* Évite les débordements pour les titres très longs */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Titre du film mis en valeur en ambre, cohérent avec la couleur "déjà vu" */
+.rating-overlay__film-title {
+  font-style: normal;
+  color: #FFAA2B;
+}
+
+/* --- Responsive : sur très petits écrans, réduit les marges --- */
+@media (max-width: 360px) {
+  .rating-overlay {
+    top: 12px;
+    width: calc(100% - 20px);
+  }
+}

@@ -7,6 +7,7 @@ import FilterBottomSheet from "../components/FilterBottomSheet";
 import FilmDetailModal from "../components/FilmDetailModal";
 import TmdbAttribution from "../components/TmdbAttribution";
 import HamburgerMenu from "../components/HamburgerMenu";
+import RatingOverlay from "../components/RatingOverlay";
 import { getAvatarUrl } from "../utils/avatars";
 import "../styles/Home.css";
 import "../styles/MatchAnimation.css";
@@ -38,6 +39,13 @@ function Home() {
   const [loading, setLoading] = useState(true);
   // true quand il n'y a plus de films à proposer
   const [noMoreFilms, setNoMoreFilms] = useState(false);
+
+  // --- State pour l'overlay de notation post-swipe "déjà vu" ---
+  // Contient { swipeId, film } quand une notation est en attente, null sinon.
+  // swipeId : l'ID du swipe créé en BDD (pour le PATCH avec la note).
+  // film    : les données du film swipé (pour afficher son titre dans l'overlay).
+  // Remplacé directement si l'utilisateur swipe un 2e film "déjà vu" avant d'avoir noté.
+  const [pendingRating, setPendingRating] = useState(null);
 
   // --- State pour la recherche de films ---
   // isSearchOpen : contrôle l'affichage de l'overlay de recherche
@@ -238,6 +246,16 @@ function Home() {
           film: swipedFilm,
           friends: matchedFriends,
         });
+      }
+
+      // Si c'est un swipe "déjà vu" → ouvre l'overlay de notation non-bloquant.
+      // response.data.id est l'identifiant du swipe tout juste créé en BDD ;
+      // il sera utilisé pour PATCH /api/swipes/<id>/ si l'utilisateur note le film.
+      // Si un overlay était déjà affiché (film précédent non noté), il est
+      // silencieusement remplacé : React démonte l'ancien et monte le nouveau
+      // grâce au key={pendingRating.swipeId} posé sur RatingOverlay.
+      if (swipeStatus === "seen") {
+        setPendingRating({ swipeId: response.data.id, film: swipedFilm });
       }
 
       // Afficher immédiatement le film pré-chargé
@@ -629,6 +647,17 @@ function Home() {
           availablePlateforms={availablePlateforms}
         />
         {searchOverlay}
+        {/* L'overlay de notation est position:fixed, il s'affiche au-dessus
+            de tout même pendant le chargement (cas rare : dernier film swipé) */}
+        {pendingRating && (
+          <RatingOverlay
+            key={pendingRating.swipeId}
+            swipeId={pendingRating.swipeId}
+            film={pendingRating.film}
+            onRated={() => setPendingRating(null)}
+            onDismiss={() => setPendingRating(null)}
+          />
+        )}
       </div>
     );
   }
@@ -654,6 +683,17 @@ function Home() {
           availablePlateforms={availablePlateforms}
         />
         {searchOverlay}
+        {/* Cas typique : l'utilisateur swipe "déjà vu" sur son dernier film,
+            puis voit l'écran "Tu as tout vu !" avec l'overlay de notation */}
+        {pendingRating && (
+          <RatingOverlay
+            key={pendingRating.swipeId}
+            swipeId={pendingRating.swipeId}
+            film={pendingRating.film}
+            onRated={() => setPendingRating(null)}
+            onDismiss={() => setPendingRating(null)}
+          />
+        )}
       </div>
     );
   }
@@ -792,6 +832,20 @@ function Home() {
         availablePlateforms={availablePlateforms}
       />
 
+
+      {/* === Overlay de notation post-swipe "déjà vu" === */}
+      {/* Position fixe, non-bloquant : la carte suivante est déjà visible en dessous.
+          key={pendingRating.swipeId} force le démontage/remontage si un nouveau
+          film est swipé "déjà vu" avant que l'utilisateur ait noté le précédent. */}
+      {pendingRating && (
+        <RatingOverlay
+          key={pendingRating.swipeId}
+          swipeId={pendingRating.swipeId}
+          film={pendingRating.film}
+          onRated={() => setPendingRating(null)}
+          onDismiss={() => setPendingRating(null)}
+        />
+      )}
 
       {/* === Overlay d'animation de match === */}
       {/* S'affiche quand on like un film qu'un ami a aussi liké */}
