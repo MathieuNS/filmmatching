@@ -1,6 +1,11 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AppHeader from "../components/AppHeader";
 import Placeholder from "../screens/_Placeholder";
+// Écran de swipe (Phase 5) — remplace le Placeholder pour la route "Home".
+import Home from "../screens/home";
+// Écrans social (Phase 6).
+import Friends from "../screens/Friends";
+import MatchList from "../screens/match_list";
 
 const Stack = createNativeStackNavigator();
 
@@ -25,10 +30,10 @@ export default function AppStack() {
       }}
     >
       {/* Écran d'accueil = le swipe (phase 5) */}
-      <Stack.Screen name="Home" component={Placeholder} />
+      <Stack.Screen name="Home" component={Home} />
       <Stack.Screen name="FilmList" component={Placeholder} />
-      <Stack.Screen name="Friends" component={Placeholder} />
-      <Stack.Screen name="MatchList" component={Placeholder} />
+      <Stack.Screen name="Friends" component={Friends} />
+      <Stack.Screen name="MatchList" component={MatchList} />
       <Stack.Screen name="AlAffiche" component={Placeholder} />
       <Stack.Screen name="UserAccount" component={Placeholder} />
       <Stack.Screen name="Donation" component={Placeholder} />

@@ -19,9 +19,9 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 - [x] Phase 1 — Système de thème
 - [x] Phase 2 — API + authentification
 - [x] Phase 3 — Navigation
-- [x] Phase 4 — Écrans d'authentification (périmètre simplifié : 4 écrans)
-- [ ] Phase 5 — Le swipe (cœur de l'app)
-- [ ] Phase 6 — Social : amis & matchs
+- [] Phase 4 — Écrans d'authentification (périmètre simplifié : 4 écrans)
+- [x] Phase 5 — Le swipe (cœur de l'app)
+- [x] Phase 6 — Social : amis & matchs
 - [ ] Phase 7 — Catalogue & détails
 - [ ] Phase 8 — Compte & pages statiques/légales
 - [ ] Phase 9 — Finitions & distribution
@@ -37,6 +37,10 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 | Stockage des tokens | **expo-secure-store** (chiffré) |
 | Stockage des filtres | **AsyncStorage** |
 | Thème (couleurs/polices) | Centralisé dans `constants/` |
+| Geste de swipe (Phase 5) | **PanResponder + Animated** (intégrés RN, zéro install). On s'est écarté de "gesture-handler + reanimated" : pour une seule carte, la différence de fluidité est invisible et le code reste calqué sur le web. Migration possible plus tard si besoin de perf. |
+| Bande-annonce / plateformes (Phase 5) | **Modales complètes** comme le web : lecteur YouTube via **`react-native-youtube-iframe`** (l'iframe faite main via `react-native-webview` donnait l'erreur YouTube 150/152 "vidéo indisponible" ; la lib dédiée gère l'origine correctement) + modale "Où regarder" (`Linking` pour ouvrir les liens). |
+| Avatars (Phase 6) | SVG **statiques** portés en chaînes JS + rendus via **`SvgXml`** (`react-native-svg`, déjà installé) — pas de `react-native-svg-transformer` (éviterait de toucher `metro.config.js`/babel). Fallback **avatar-lettre** si le nom est inconnu. |
+| `FilmDetailModal` (Phase 6, option A) | **Avancé de la Phase 7 à la Phase 6** car mutualisé entre `match_list` (P6) et `films_list`/`a_l_affiche` (P7). Entraîne un `StarRating` **interactif** et une **variante « détail »** de `FilmCard` (hauteur bornée + scroll, vs `flex:1` plein écran du swipe). |
 
 ### Correspondances web → mobile
 
@@ -48,9 +52,10 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 | état dispersé dans les pages | Redux Toolkit (store central) |
 | fichiers `.css` | `StyleSheet` + `constants/` |
 | polices Google Fonts | @expo-google-fonts (Outfit + Sora) |
-| swipe souris/tactile | gesture-handler + reanimated |
-| modales / bottom sheets CSS | Modal RN / @gorhom/bottom-sheet |
-| `<img>`, SVG | expo-image, react-native-svg |
+| swipe souris/tactile | **PanResponder + Animated** (intégrés RN — cf. décisions, on n'a pas pris gesture-handler/reanimated) |
+| modales / bottom sheets CSS | **`Modal` RN** (utilisé en Phase 5 pour recherche/filtres/match/trailer ; `@gorhom/bottom-sheet` non nécessaire pour l'instant) |
+| lecteur YouTube (`<iframe>`) | **`react-native-youtube-iframe`** |
+| `<img>`, SVG | `Image` RN (distant via `{ uri }`), react-native-svg pour les SVG |
 | liens d'email (`/reset/:token`) | deep linking (expo-linking) |
 
 ---
@@ -95,20 +100,88 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 - [x] Composants partagés `AuthLayout` + `Checkbox` ; correctif `authSlice` (login ne déclenche plus le LoadingScreen)
 - [~] `reset_password` / `activate_account` : **gérés par le site web** (les liens email pointent vers `FRONTEND_URL`). Non construits dans l'app — restent en `_Placeholder`.
 - [~] **Deep linking** : reporté (inutile tant que les emails ouvrent le site). À revoir en phase 9 avec des Universal Links si besoin.
+- [x] impossible de s'identifier, le user n'est pas reconnu
 
 ## Phase 5 — Le swipe (cœur de l'app) — `home`
 *La pièce la plus technique.*
 
-- [ ] Carte de film swipable au doigt (gesture-handler + reanimated) : like / dislike / déjà vu
-- [ ] Chargement du deck + filtres (`/api/genres/`, `/api/platforms/`) + recherche (`/api/films/search/`)
-- [ ] Envoi des swipes (`POST /api/swipes/`) + animation "It's a Match !"
-- [ ] Persistance des filtres en AsyncStorage
+- [x] Carte de film swipable au doigt (**PanResponder + Animated**, cf. décisions) : like / dislike / déjà vu — `screens/home.js` + `components/FilmCard.js`
+- [x] Chargement du deck + filtres (`/api/genres/`, `/api/platforms/`) + recherche (`/api/films/search/`) — `api/films.js`, `components/FilterSheet.js`, `components/SearchOverlay.js`
+- [x] Envoi des swipes (`POST /api/swipes/`) + animation "It's a Match !" — `components/MatchOverlay.js`
+- [x] Persistance des filtres en AsyncStorage — `api/filtersStorage.js`
+- [x] Modales bande-annonce (`react-native-youtube-iframe`) + "Où regarder" (`Linking`) dans `FilmCard`
+- [x] Carte `Home` branchée dans `AppStack` (remplace le `_Placeholder`)
+- [x] Loupe + bouton Filtres déplacés **dans le header partagé** (comme le web) : `AppHeader` accepte une prop `rightActions`, et `Home` les injecte via `navigation.setOptions` (uniquement pour cet écran) → plus de hauteur pour la carte
+- [x] "voir plus" sur le synopsis (3 lignes) et les acteurs (1 ligne) via `onTextLayout` ; "voir plus" sur les **plateformes** via mesure de hauteur (composant `ExpandablePills` dans `FilmCard`)
+- [x] Correctif anti-répétition : on **attend** la confirmation du `POST /api/swipes/` avant de pré-charger le film suivant (sinon le backend re-proposait le film à peine swipé)
+
+### Reste à faire / dette assumée (Phase 5)
+- [x] **Avatars réels dans l'animation de match** (Phase 6) : SVG embarqués (`assets/avatars/avatarsData.js`) + `utils/avatars.js` + `components/Avatar.js` (`SvgXml`, fallback lettre). Branché dans `MatchOverlay` et partout où on affiche des amis.
+- [x] **Notes des amis sur la carte** (Phase 6) : `FilmCard` affiche désormais `FriendRatingsSection` (étoiles `StarRating` + bottom sheet `FriendRatingsSheet` interactif) au lieu du résumé texte.
+- [ ] **"voir plus" sur les genres** : pas encore branché (on affiche tous les genres). Le composant `ExpandablePills` est réutilisable — il suffit d'envelopper la rangée de genres comme pour les plateformes.
+- [ ] **Cas limite swipe ultra-rapide** : si on enchaîne les swipes plus vite que le réseau ne répond, l'écran "Tu as tout vu !" peut apparaître à tort le temps que le film suivant se pré-charge (même limite que le web). À durcir si gênant (recharger un film à la volée si le pré-chargé manque).
+- [ ] **Vidéos à intégration désactivée** : certaines bandes-annonces dont le propriétaire a désactivé l'embed YouTube ne joueront pas en intégré (restriction côté contenu, pas un bug).
 
 ## Phase 6 — Social : amis & matchs
 
-- [ ] `Friends` : liste, recherche, demandes (`/api/friends/...`, `/api/friends/pending-count/`)
-- [ ] `match_list` : matchs à deux et en groupe (`/api/friends/.../matches/`, `group-matches/`), "déjà vu", pick aléatoire
-- [ ] Composants `FriendRatingsBadge` / `FriendRatingsSection` / `FriendRatingsSheet`
+> **Périmètre — option A retenue** : on **avance `FilmDetailModal` (+ `RatingPrompt`) en Phase 6**.
+> Raison : la modale détail est mutualisée entre `match_list` (Phase 6) et `films_list`/`a_l_affiche` (Phase 7).
+> Conséquence : on porte aussi un `StarRating` **interactif** (pas seulement read-only) et on ajoute une
+> **variante « détail »** à `FilmCard` (hauteur bornée + scroll), car aujourd'hui il est taillé pour
+> remplir l'écran de swipe (`flex:1`, overlay `position:absolute`).
+>
+> Endpoints (déjà confirmés dans le code web) :
+> `GET /api/users/me/`, `GET /api/friends/`, `GET /api/users/search/?q=`, `POST /api/friends/ {receiver}`,
+> `PATCH /api/friends/<id>/accept/`, `DELETE /api/friends/<id>/delete/`, `GET /api/friends/pending-count/`,
+> `GET /api/friends/<id>/matches/`, `GET /api/friends/group-matches/?ids=`, `GET /api/friends/<id>/seen/` (403 `{error:"private"}`),
+> `POST /api/swipes/ {film,status,rating?}`.
+
+### Brique 0 — Préalables transverses (à faire en premier)
+- [x] **Avatars** : copier les 5 SVG (`frontend/src/assets/avatars/*.svg`, statiques) côté mobile.
+    - [x] `assets/avatars/avatarsData.js` (chaînes SVG) + rendu via `SvgXml` (`react-native-svg`, déjà installé)
+    - [x] `utils/avatars.js` (`getAvatarXml`, renvoie la chaîne SVG + défaut `avatar-popcorn.svg`)
+    - [x] `components/Avatar.js` : `<Avatar name size fallbackLabel />` avec **fallback avatar-lettre** (pastille dégradée)
+- [x] **`components/StarRating.js`** — **interactif** (requis par `RatingPrompt`) + mode `readOnly` (prop `showScore`).
+      Demi-étoiles : zones tap gauche/droite (`locationX`) ; affichage via étoile pleine clipée (`overflow:hidden`) par-dessus l'étoile vide (2 `<Svg><Path/></Svg>`).
+- [x] **`components/CommentModal.js`** (`Modal` RN) — lecture seule (commentaire d'un ami) + mode édition (`TextInput multiline`).
+
+### Brique 1 — API
+- [x] `api/friends.js` : centralise tous les appels (`fetchMe`, `fetchFriendships`, `searchUsers`,
+      `sendFriendRequest`, `acceptFriend`, `deleteFriend`, `fetchMatches`, `fetchGroupMatches`, `fetchFriendSeen`,
+      `addToWatchlist`, `markAsSeen`). Réutilise `fetchFilterOptions` de `api/films.js`.
+
+### Brique 2 — Écran `screens/Friends.js` (port de `Friends.jsx`)
+- [x] Tri client en 3 listes : demandes reçues / envoyées / amis confirmés (helpers `getFriendName`/`getFriendAvatar`)
+- [x] Ajout d'ami : `TextInput` + autocomplétion **debounce 300ms** + suggestions + feedback succès/erreur
+- [x] Actions accept / decline / cancel / remove avec **mises à jour optimistes** du state local
+- [x] Mode « Soirée cinéma » : `selectMode` + `selectedIds` (Set) + barre flottante « Voir les matchs (n) » (≥ 2)
+- [x] Navigation : ami → `navigate("MatchList", { friendshipId })` ; groupe → `navigate("MatchList", { groupIds })`
+
+### Brique 3 — Notes des amis + branchements
+- [x] `components/FriendRatingsSheet.js` (bottom sheet `Modal`, **pas de `createPortal`**) : hero moyenne, récap `getCountLine`, liste avatar+étoiles | "Vu, sans note" + 💬 → `CommentModal`
+- [x] `components/FriendRatingsSection.js` : ligne compacte sur la carte → ouvre le Sheet
+- [x] Brancher dans `FilmCard.js` : remplacer le **résumé texte** Phase 5 par `<FriendRatingsSection />` (tap ≠ swipe : le PanResponder ne capture qu'au-delà de 8px de mouvement)
+- [x] `MatchOverlay.js` : remplacer l'avatar-lettre par `<Avatar />` (lève la dette Phase 5)
+- [x] `components/FriendRatingsBadge.js` (réutilise le Sheet ; point d'usage = onglets `/liste` en Phase 7)
+
+### Brique 4 — `FilmDetailModal` + `RatingPrompt` (avancés, option A)
+- [x] Ajouter une **variante « détail »** à `FilmCard` (prop `variant="detail"`, `aspectRatio` 2:3) pour l'afficher en modale `ScrollView`
+- [x] `components/RatingPrompt.js` : `StarRating` interactif + label émotionnel (`getFeedbackLabel`) + Valider / Sans note
+- [x] `components/FilmDetailModal.js` (`Modal` RN) : fiche film + (contexte filmothèque) note ami read-only, badge « mon statut », boutons « Ajouter à ma watchlist » / « Déjà vu aussi » (→ `RatingPrompt`), section « Aussi aimé par »
+
+### Brique 5 — Écran `screens/match_list.js` (port de `match_list.jsx`)
+- [x] Mode déduit des params : `route.params.friendshipId` (1v1) vs `route.params.groupIds` (groupe)
+- [x] Onglets 1v1 « À voir ensemble » / « Sa filmothèque » ; bandeau avatars en mode groupe
+- [x] Filtres client (`filterFilms` + réutilisation de `FilterSheet`) + badge nombre de filtres
+- [x] Choix aléatoire 🎲 + **modale inline autonome** (« Ce soir vous regardez… » / Fermer / Relancer)
+- [x] Grilles en `FlatList` (`numColumns=3`), ouverture `FilmDetailModal` au tap
+- [x] Onglet filmothèque : `fetchFriendSeen`, gestion **403 privée** 🔒, note ami (étoiles read-only), badge statut, 💬 → `CommentModal`, actions watchlist / déjà vu
+
+### Brique 6 — Navigation & finitions
+- [x] `AppStack.js` : remplacer les `Placeholder` de `Friends` et `MatchList` par les vrais écrans
+- [x] Bouton **retour** : approche plus simple que prévu — `AppHeader` lit la prop `back` (fournie par React Navigation) et affiche une flèche ← qui appelle `navigation.goBack()`, automatiquement sur tous les écrans poussés (pas besoin de setOptions par écran)
+- [ ] *(optionnel, non fait)* déplacer `pendingCount` dans un slice Redux pour rafraîchir le badge après accept/decline
+- [x] Cases cochées + dettes Phase 5 levées (avatars réels, notes amis interactives) + date bumpée
 
 ## Phase 7 — Catalogue & détails
 
@@ -137,6 +210,13 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 - [ ] Tests sur Android **et** iOS
 - [ ] Build & publication avec **EAS Build**
 
+## Divers
+
+- [x] dans home.js, retiré la ligne sous le header
+- [ ] s'assurrer que le designe de la landing page est identique au web
+- [x] la fleche back du header doit toujours pointer sur home.js
+- [x] supprimer la fleche back de home.js
+
 ---
 
-*Dernière mise à jour : 2026-06-01 (Phase 4 — Auth : login / create_login / forgot_password / check_email ; reset/activate délégués au site web)*
+*Dernière mise à jour : 2026-06-02 (Phase 6 IMPLÉMENTÉE — Social : amis & matchs. Nouveaux fichiers : `assets/avatars/avatarsData.js`, `utils/avatars.js`, `components/Avatar.js`, `components/StarRating.js`, `components/CommentModal.js`, `components/FriendRatingsSheet.js`, `components/FriendRatingsSection.js`, `components/FriendRatingsBadge.js`, `components/RatingPrompt.js`, `components/FilmDetailModal.js`, `api/friends.js`, `screens/Friends.js`, `screens/match_list.js`. Modifs : `FilmCard` (variante "detail" + section notes amis), `MatchOverlay` (vrais avatars), `AppHeader` (bouton retour via prop `back`), `AppStack` (Friends + MatchList branchés). Dettes Phase 5 levées : avatars réels, notes amis sur la carte. Reste optionnel : pendingCount dans Redux pour rafraîchir le badge. À TESTER sur appareil/émulateur.)*

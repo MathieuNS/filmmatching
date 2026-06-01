@@ -629,12 +629,10 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }, { translateY: 10 }], // plus petite et décalée
   },
   cardFront: {
+    // Pas d'ombre ici : sur Android, "elevation" dessinait une ombre dure
+    // bien visible autour de la carte, absente de la version web. On garde
+    // seulement le zIndex pour que cette carte reste au-dessus de l'autre.
     zIndex: 2,
-    shadowColor: COLORS.violetNuit,
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
   },
   cardImage: {
     width: "100%",

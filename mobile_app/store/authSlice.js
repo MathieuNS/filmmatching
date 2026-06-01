@@ -92,8 +92,18 @@ export const login = createAsyncThunk(
       return true;
     } catch (error) {
       // rejectWithValue permet de passer un message d'erreur "propre" au state.
-      const message =
-        error.response?.data?.error || "Erreur d'identifiants.";
+      // On distingue 2 familles d'échec :
+      //  - PAS de `error.response` => la requête n'a jamais atteint le serveur
+      //    (réseau coupé, mauvaise URL d'API, backend éteint...). C'est une
+      //    erreur RÉSEAU, surtout pas un problème d'identifiants.
+      //  - Sinon, le serveur a répondu (401 identifiants, 403 compte non activé...).
+      let message;
+      if (!error.response) {
+        message =
+          "Impossible de joindre le serveur. Vérifie ta connexion";
+      } else {
+        message = error.response.data?.error || "Erreur d'identifiants.";
+      }
       return rejectWithValue(message);
     }
   }
