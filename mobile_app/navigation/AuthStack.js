@@ -5,6 +5,11 @@ import CreateLogin from "../screens/create_login";
 import ForgotPassword from "../screens/forgot_password";
 import CheckEmail from "../screens/check_email";
 import Placeholder from "../screens/_Placeholder";
+// Pages statiques/légales publiques (Phase 8) — accessibles déconnecté.
+import RGPD from "../screens/rgpd";
+import MentionsLegales from "../screens/mentions_legales";
+import Contact from "../screens/contact";
+import Donation from "../screens/donation";
 
 // createNativeStackNavigator = une "pile" d'écrans : on empile/dépile les
 // écrans, avec une transition native (glissement). Équivaut aux <Route> du web.
@@ -39,10 +44,12 @@ export default function AuthStack() {
       <Stack.Screen name="ResetPassword" component={Placeholder} />
       <Stack.Screen name="ActivateAccount" component={Placeholder} />
 
-      {/* Pages légales publiques (phase 8) */}
-      <Stack.Screen name="RGPD" component={Placeholder} />
-      <Stack.Screen name="MentionsLegales" component={Placeholder} />
-      <Stack.Screen name="Contact" component={Placeholder} />
+      {/* Pages statiques/légales publiques (phase 8). Ces écrans gèrent leur
+          propre en-tête (StaticScreenHeader), cohérent avec headerShown:false. */}
+      <Stack.Screen name="RGPD" component={RGPD} />
+      <Stack.Screen name="MentionsLegales" component={MentionsLegales} />
+      <Stack.Screen name="Contact" component={Contact} />
+      <Stack.Screen name="Donation" component={Donation} />
     </Stack.Navigator>
   );
 }

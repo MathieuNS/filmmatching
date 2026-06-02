@@ -22,9 +22,10 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 - [] Phase 4 — Écrans d'authentification (périmètre simplifié : 4 écrans)
 - [x] Phase 5 — Le swipe (cœur de l'app)
 - [x] Phase 6 — Social : amis & matchs
-- [ ] Phase 7 — Catalogue & détails
-- [ ] Phase 8 — Compte & pages statiques/légales
+- [x] Phase 7 — Catalogue & détails
+- [x] Phase 8 — Compte & pages statiques/légales
 - [ ] Phase 9 — Finitions & distribution
+- [ ] Phase 10 — Sécurité (prod) — app **et** web
 
 ---
 
@@ -185,30 +186,182 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 
 ## Phase 7 — Catalogue & détails
 
-- [ ] `films_list` : mes likes / seen / dislikes (`/api/swipes/list/`), filtres, common-likes
-- [ ] `a_l_affiche` (`/api/films/now-playing/`)
-- [ ] Carte `Film`
-- [ ] Modale détail (`FilmDetailModal`)
-- [ ] Bottom sheet de filtres (`FilterBottomSheet`)
-- [ ] `CommentModal`, `StarRating`, `RatingPrompt`
+> **Beaucoup de briques étaient déjà faites en Phase 6** (option A) : `FilmDetailModal`,
+> `FilterSheet`, `CommentModal`, `StarRating`, `FriendRatingsBadge`, `Avatar`, `MatchOverlay`,
+> `filtersStorage`. La Phase 7 a surtout consisté à monter les 2 écrans grille et à les câbler.
+
+### API
+- [x] `api/films.js` : `fetchSwipesList(status)` (`/api/swipes/list/?status=`),
+      `updateSwipe(id, payload)` (PATCH `/api/swipes/<id>/`, sert statut/note/commentaire),
+      `fetchNowPlaying()` (`/api/films/now-playing/`)
+- [x] `api/friends.js` : `fetchCommonLikes()` (`/api/friends/common-likes/`)
+
+### `films_list` : "Ma liste"
+- [x] 3 onglets like / seen / dislike (chargement parallèle `Promise.all`), compteurs
+- [x] Grille `FlatList numColumns=3` (réutilise le patron de `match_list`)
+- [x] Onglet "À voir" : avatars amis empilés (max 3 + « +N ») + `FriendRatingsBadge`
+- [x] Onglet "Pas intéressé" : `FriendRatingsBadge`
+- [x] Onglet "Déjà vu" : `StarRating` **interactif** (note perso) + pastille 💬 commentaire,
+      **tri par note** décroissante avec **gel 2 s** après une modif de note
+- [x] Menu contextuel ⋯ (en `Modal`) : changement de statut + (seen) commentaire
+- [x] Recherche locale + suggestions d'autocomplétion (5 max), vidée au changement d'onglet
+- [x] Filtres via `FilterSheet` + `filtersStorage` (**même clé que Home → partagés**), badge
+- [x] `FilmDetailModal` au tap (passe `friends` = amis ayant aussi liké) + `CommentModal` (édition)
+
+### `a_l_affiche` : "À l'affiche"
+- [x] `fetchNowPlaying` + compteur + grille `FlatList numColumns=3`, badge statut en coin
+- [x] `FilmDetailModal` en **contexte « affiche »** (3 boutons swipe directs + état actif) —
+      décision plan : on a **étendu `FilmDetailModal`** (props `onSwipe` / `userStatus`) au lieu de
+      dupliquer une modale immersive
+- [x] Animation match réutilisant `MatchOverlay`
+
+### Navigation
+- [x] `AppStack.js` : `FilmList` et `AlAffiche` branchés (remplacent les `Placeholder`) ;
+      le `HamburgerMenu` pointait déjà sur ces routes
+
+### Reste / dette assumée (Phase 7)
+- [ ] "voir plus" sur les genres (dette commune avec Phase 5, composant `ExpandablePills` dispo)
+- [ ] À TESTER sur appareil/émulateur (notamment : tap étoiles vs ouverture fiche sur petite carte,
+      suggestions de recherche avec le clavier ouvert)
 
 ## Phase 8 — Compte & pages statiques/légales
 
-- [ ] `user_account` : profil, avatar, mise à jour, suppression (`/api/users/me/...`)
-- [ ] `contact` (`POST /api/contact/`)
-- [ ] `donation`
-- [ ] `rgpd`
-- [ ] `mentions_legales`
-- [ ] `unsubscribe`
-- [ ] `notfound`
-- [ ] Footer `TmdbAttribution` adapté
+> **Décisions du plan** : `unsubscribe` et `notfound` **ignorés** sur mobile
+> (pas de route 404 native ; le lien de désinscription email ouvre le SITE web,
+> cf. [[project_mobile_auth_email_links]] ; et le toggle « Notifications email »
+> de Mon Compte permet déjà de se désinscrire dans l'app). Accès aux pages
+> légales via un **footer `TmdbAttribution`** (comme le web), pas via le menu.
+
+### API & composants partagés
+- [x] `api/account.js` : `updateProfile` (PATCH `/me/update/`), `updateAvatar`
+      (PATCH `/me/avatar/`), `deleteAccount` (DELETE `/me/delete/`), `sendContact`
+      (POST `/api/contact/`). Réutilise `fetchMe` de `api/friends.js`.
+- [x] `components/TmdbAttribution.js` : footer (mention TMDB + liens RGPD /
+      Mentions / Contact / Soutenir) — **point d'entrée vers les pages légales**.
+- [x] `components/StaticScreenHeader.js` : en-tête « ← + titre » pour les pages
+      sans `AppHeader` (légales + donation + contact).
+- [x] Toggles via le `Switch` natif RN (thématisé), pas de composant maison.
+
+### Écrans
+- [x] `user_account` : avatar + **sélecteur d'avatar** (grille `AVATARS`), édition
+      pseudo/email/mot de passe (+ confirmation conditionnelle), 2 toggles
+      (notifications email, partage filmothèque), sauvegarde des **seuls champs
+      modifiés** (+ erreurs DRF + message succès 3 s), suppression de compte
+      (modale → `deleteAccount` → `dispatch(logout())`). Garde l'`AppHeader`.
+- [x] `contact` : formulaire (nom/email/sujet/message) → POST, succès/erreur,
+      lien `mailto:` (`Linking`). `KeyboardAvoidingView`.
+- [x] `donation` : contenu + 2 cartes « raisons » + bouton **Tipeee** (`Linking`).
+- [x] `rgpd` : 12 sections (rendues depuis un tableau de données).
+- [x] `mentions_legales` : 7 sections.
+- [~] `unsubscribe` / `notfound` : **non construits** (cf. décisions) — restent en `_Placeholder`.
+
+### Navigation
+- [x] `AppStack` : `UserAccount` (garde l'`AppHeader`) ; `Donation`, `RGPD`,
+      `MentionsLegales`, `Contact` branchés avec `headerShown:false` (en-tête propre).
+      Import `_Placeholder` retiré (plus utilisé).
+- [x] `AuthStack` : `RGPD`, `MentionsLegales`, `Contact` branchés + **ajout route
+      `Donation`** (accessibles déconnecté).
+- [x] Footer ajouté sur la **landing** (remplace l'ancien bloc TMDB texte) et **Mon Compte**.
+
+### Reste / dette assumée (Phase 8)
+- [ ] Logo SVG TMDB dans le footer (prévu Phase 9 — icônes SVG) ; pour l'instant
+      mention texte uniquement.
+- [ ] À TESTER sur appareil/émulateur (clavier sur Contact, sélecteur d'avatar,
+      suppression de compte → retour à l'AuthStack).
 
 ## Phase 9 — Finitions & distribution
 
-- [ ] Icônes SVG (logos FilmMatching / TMDB) via `react-native-svg`
-- [ ] Splash screen, icône d'app, gestion du clavier, zones sûres (encoches)
-- [ ] Tests sur Android **et** iOS
-- [ ] Build & publication avec **EAS Build**
+> **En cours** : on traite d'abord les **finitions in-app**. La **distribution (EAS)**
+> est reportée — objectif décidé : un **APK Android de test** (pas de publication
+> store), cf. [[project_mobile_distribution]]. Cible Android uniquement pour l'instant.
+
+### Finitions in-app
+- [x] **Logo TMDB en SVG** dans le footer (`assets/logos/tmdbLogo.js` + `SvgXml`
+      dans `TmdbAttribution`) — lève la dette Phase 8. (Classe CSS `.cls-1` du SVG
+      d'origine convertie en `fill="url(#tmdb-gradient)"` car `SvgXml` n'interprète
+      pas le `<style>` interne.) Logo **FilmMatching** laissé en PNG (icône + wordmark
+      en `GradientText`), suffisant.
+- [x] **Splash screen** configuré dans `app.json` (plugin `expo-splash-screen` :
+      image `splash-icon.png`, `imageWidth 200`, `resizeMode contain`, fond `#0D0D0F`).
+- [x] **Nom d'app** = « FilmMatching » + `userInterfaceStyle: dark` (`app.json`).
+- [x] **Clavier** : déjà géré (`AuthLayout` pour l'auth, `KeyboardAvoidingView` sur
+      contact & compte) — rien à ajouter.
+- [x] **Zones sûres** : haut géré partout (`AppHeader`/`StaticScreenHeader`/`SafeAreaView`) ;
+      ajout du `insets.bottom` sur l'écran plein écran « Mon Compte ».
+- [~] **Icône d'app** : laissée telle quelle (`icon.png` + adaptive icons fournis par
+      l'utilisateur). À rebrander seulement s'il fournit de nouveaux visuels.
+
+### Distribution (reportée — voir [[project_mobile_distribution]])
+- [ ] `eas.json` + champs `app.json` (`android.package`, `extra.eas.projectId`)
+- [ ] Compte Expo + `eas-cli` (côté utilisateur)
+- [ ] `eas build -p android --profile preview` → APK installable
+- [ ] Tests sur Android (sur appareil réel via l'APK)
+- [ ] iOS / stores : plus tard (nécessite compte Apple)
+
+## Phase 10 — Sécurité (prod) — app & web
+
+*Objectif : s'assurer que le backend, le site web et l'app mobile sont sûrs **en
+production**. Beaucoup de garde-fous existent déjà côté Django : cette phase est
+surtout un **audit de vérification** (les bons réglages sont-ils ACTIFS en prod ?)
++ quelques ajouts manquants. Légende : `[~]` = déjà présent dans le code, **à
+confirmer en prod** ; `[ ]` = à ajouter/faire.*
+
+### A. Backend / API (Django)
+- [~] `DEBUG=False` en prod (lu depuis `.env`) — **vérifier** que `.env.production`
+      le force bien (une page d'erreur Django en prod fuite du code/des secrets).
+- [~] `ALLOWED_HOSTS` restreint au(x) domaine(s) réel(s) (pas `*`) en prod.
+- [~] `SECRET_KEY` unique, longue, **hors du dépôt** (dans `.env`), différente du dev.
+- [~] CORS restreint (`CORS_ALLOWED_ORIGINS` = domaines connus) — pas `ALLOW_ALL` en prod.
+- [~] Redirection HTTPS + cookies `Secure` (`SECURE_SSL_REDIRECT`, `SESSION/CSRF_COOKIE_SECURE`)
+      + `SECURE_PROXY_SSL_HEADER` (Nginx) — **vérifier** que c'est actif (DEBUG=False).
+- [ ] **HSTS** : ajouter `SECURE_HSTS_SECONDS` (+ `INCLUDE_SUBDOMAINS`, `PRELOAD`) une
+      fois le HTTPS stable (force le navigateur à toujours utiliser HTTPS).
+- [ ] **Rate limiting / anti-brute-force** sur les endpoints sensibles (login,
+      création de compte, mot de passe oublié, contact) — throttling DRF
+      (`DEFAULT_THROTTLE_CLASSES/RATES`) pour limiter les tentatives.
+- [ ] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`) active (longueur
+      mini, pas trop commun).
+- [ ] Vérifier les **permissions par endpoint** (chaque vue sensible en
+      `IsAuthenticated`) et qu'on ne peut pas lire/modifier les données d'autrui
+      (IDOR) : swipes, amitiés, filmothèque privée, `me/...`.
+- [ ] **Durée des tokens JWT** revue (access court ; refresh raisonnable) + envisager
+      la rotation/blacklist des refresh tokens à la déconnexion.
+- [ ] `python manage.py check --deploy` (checklist sécurité officielle de Django) — 0 alerte.
+- [ ] Throttle/`maxLength` sur les champs libres (contact, commentaires) — déjà
+      `maxLength 2000` côté commentaire à confirmer côté backend.
+
+### B. Frontend web
+- [ ] Build de prod **sans source maps** exposées / sans `console.log` sensibles.
+- [ ] Aucune **clé secrète** dans le bundle (seules des URLs publiques) — vérifier le `.env`.
+- [ ] En-têtes de sécurité servis par Nginx : `Content-Security-Policy` (au moins
+      basique), `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`.
+- [ ] Stockage des tokens : conscience que `localStorage` est exposé au XSS — garder
+      le front sain (pas d'injection HTML non échappée).
+
+### C. App mobile
+- [~] Tokens stockés dans `expo-secure-store` (chiffré) — OK (cf. Phase 2).
+- [ ] **HTTPS obligatoire** : l'app ne parle qu'à `https://…` (pas de cleartext HTTP) ;
+      garder `usesCleartextTraffic` désactivé sur Android (défaut).
+- [ ] Pas de **secret embarqué** dans l'app (`EXPO_PUBLIC_*` est public par nature —
+      n'y mettre que des valeurs non sensibles).
+- [ ] Vérifier qu'aucune donnée sensible n'est **loggée** (`console.log` de tokens, etc.).
+- [ ] (Plus tard, build store) envisager le **certificate pinning** si besoin élevé.
+
+### D. Infra / déploiement
+- [ ] **Certificat HTTPS** valide et renouvelé automatiquement (Let's Encrypt) ;
+      note TLS correcte (test SSL Labs).
+- [ ] Nginx : versions à jour, pas de listing de répertoire, taille de requête limitée.
+- [ ] **Base de données** : non exposée publiquement (port fermé), accès par mot de
+      passe fort ; **sauvegardes** régulières testées.
+- [ ] Secrets (`.env.production`) hors dépôt, droits de fichier restreints sur le VPS.
+- [ ] OS/Docker à jour ; SSH durci (clé, pas de root password) ; pare-feu (ports 80/443 seulement).
+
+### E. Dépendances & process
+- [ ] **Audit des dépendances** : `pip` (ex. `pip-audit`) côté backend, `npm audit`
+      côté web et mobile — corriger les vulnérabilités hautes/critiques.
+- [ ] Lancer la revue de sécurité du dépôt (`/security-review`) sur les changements.
+- [ ] Plan de **réaction** : que faire en cas de fuite (rotation `SECRET_KEY`/tokens,
+      invalidation des sessions).
 
 ## Divers
 
@@ -219,4 +372,12 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 
 ---
 
-*Dernière mise à jour : 2026-06-02 (Phase 6 IMPLÉMENTÉE — Social : amis & matchs. Nouveaux fichiers : `assets/avatars/avatarsData.js`, `utils/avatars.js`, `components/Avatar.js`, `components/StarRating.js`, `components/CommentModal.js`, `components/FriendRatingsSheet.js`, `components/FriendRatingsSection.js`, `components/FriendRatingsBadge.js`, `components/RatingPrompt.js`, `components/FilmDetailModal.js`, `api/friends.js`, `screens/Friends.js`, `screens/match_list.js`. Modifs : `FilmCard` (variante "detail" + section notes amis), `MatchOverlay` (vrais avatars), `AppHeader` (bouton retour via prop `back`), `AppStack` (Friends + MatchList branchés). Dettes Phase 5 levées : avatars réels, notes amis sur la carte. Reste optionnel : pendingCount dans Redux pour rafraîchir le badge. À TESTER sur appareil/émulateur.)*
+*Dernière mise à jour : 2026-06-02 (Ajout de la **Phase 10 — Sécurité (prod)** : checklist d'audit + ajouts pour sécuriser backend Django, web et app mobile en production. Le backend a déjà une bonne base — la phase est surtout une vérification que les bons réglages sont actifs en prod, + ajouts manquants (HSTS, rate-limiting, audit des dépendances).)*
+
+*Mise à jour précédente : 2026-06-02 (Phase 9 — FINITIONS in-app faites. Logo TMDB en SVG dans le footer (`assets/logos/tmdbLogo.js`), splash screen configuré + nom d'app « FilmMatching » + thème sombre (`app.json`), `insets.bottom` ajouté sur « Mon Compte ». Clavier & safe-area haut déjà couverts. DISTRIBUTION (EAS / APK Android) reportée à la demande de l'utilisateur. Icônes d'app laissées telles quelles.)*
+
+*Mise à jour précédente : 2026-06-02 (Phase 8 IMPLÉMENTÉE — Compte & pages statiques/légales. Nouveaux écrans : `screens/user_account.js`, `screens/contact.js`, `screens/donation.js`, `screens/rgpd.js`, `screens/mentions_legales.js`. Nouveaux fichiers : `api/account.js`, `components/TmdbAttribution.js`, `components/StaticScreenHeader.js`. Modifs : `AppStack` (UserAccount + pages statiques branchées, import Placeholder retiré), `AuthStack` (RGPD/Mentions/Contact + route Donation), `landing_page` (footer TmdbAttribution). Décisions : `unsubscribe`/`notfound` ignorés (web), accès légales via footer. À TESTER sur appareil/émulateur.)*
+
+*Mise à jour précédente : 2026-06-02 (Phase 7 IMPLÉMENTÉE — Catalogue & détails. Nouveaux écrans : `screens/films_list.js` ("Ma liste", 3 onglets + grille + menu ⋯ + recherche + filtres partagés), `screens/a_l_affiche.js` ("À l'affiche", grille + contexte swipe + MatchOverlay). Ajouts API : `fetchSwipesList`, `updateSwipe`, `fetchNowPlaying` (api/films.js), `fetchCommonLikes` (api/friends.js). `FilmDetailModal` étendu avec un contexte "affiche" (props `onSwipe`/`userStatus` → 3 boutons de swipe). `AppStack` : FilmList + AlAffiche branchés. À TESTER sur appareil/émulateur.)*
+
+*Mise à jour précédente : 2026-06-02 (Phase 6 IMPLÉMENTÉE — Social : amis & matchs. Nouveaux fichiers : `assets/avatars/avatarsData.js`, `utils/avatars.js`, `components/Avatar.js`, `components/StarRating.js`, `components/CommentModal.js`, `components/FriendRatingsSheet.js`, `components/FriendRatingsSection.js`, `components/FriendRatingsBadge.js`, `components/RatingPrompt.js`, `components/FilmDetailModal.js`, `api/friends.js`, `screens/Friends.js`, `screens/match_list.js`. Modifs : `FilmCard` (variante "detail" + section notes amis), `MatchOverlay` (vrais avatars), `AppHeader` (bouton retour via prop `back`), `AppStack` (Friends + MatchList branchés). Dettes Phase 5 levées : avatars réels, notes amis sur la carte. Reste optionnel : pendingCount dans Redux pour rafraîchir le badge. À TESTER sur appareil/émulateur.)*

@@ -118,6 +118,21 @@ export async function fetchFriendSeen(friendshipId) {
 }
 
 /**
+ * Récupère, pour chaque film que J'AI liké, la liste des amis qui l'ont
+ * AUSSI liké (sert à empiler leurs avatars sur les cartes de "Ma liste").
+ *
+ * Le backend ne renvoie que les films ayant au moins un ami en commun.
+ * Format : { "42": [{username, avatar}, ...], "87": [{username, avatar}] }
+ * (les clés sont des IDs de film sous forme de chaîne).
+ *
+ * @returns {Promise<Object>} Dictionnaire { filmId: [{username, avatar}, ...] }
+ */
+export async function fetchCommonLikes() {
+  const response = await api.get("/api/friends/common-likes/");
+  return response.data;
+}
+
+/**
  * Ajoute un film à MA watchlist (= crée un swipe "like").
  *
  * @param {number} filmId - L'ID du film

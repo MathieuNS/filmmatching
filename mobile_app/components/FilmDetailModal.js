@@ -40,6 +40,11 @@ import { RADII, SPACING, BORDERS } from "../constants/spacing";
  * @param {string|null} [props.myStatus] - Mon statut : "like"|"dislike"|"seen"|null
  * @param {Function} [props.onAddToWatchlist] - Clic "Ajouter à ma watchlist"
  * @param {Function} [props.onMarkAsSeen] - Appelée avec (film, rating|null)
+ * @param {Function} [props.onSwipe] - Contexte "À l'affiche" : appelée avec
+ *   (film, status) où status vaut "like"|"seen"|"dislike". Si fournie, on
+ *   affiche 3 boutons de swipe directs (au lieu du contexte filmothèque).
+ * @param {string} [props.userStatus] - Mon statut actuel sur ce film (contexte
+ *   affiche), pour surligner le bouton : "like"|"seen"|"dislike"|null
  * @returns {JSX.Element|null} La modale ou null si pas de film
  */
 export default function FilmDetailModal({
@@ -51,6 +56,8 @@ export default function FilmDetailModal({
   myStatus = null,
   onAddToWatchlist,
   onMarkAsSeen,
+  onSwipe,
+  userStatus = null,
 }) {
   // Affiche-t-on le mini RatingPrompt (clic "Déjà vu aussi") ?
   const [showRatingPrompt, setShowRatingPrompt] = useState(false);
@@ -100,6 +107,24 @@ export default function FilmDetailModal({
     }
   }
 
+  /**
+   * Clic sur un des 3 boutons de swipe (contexte "À l'affiche").
+   * Délègue au parent qui gère l'appel API + l'éventuel match.
+   * @param {string} status - "like", "seen" ou "dislike"
+   */
+  async function handleSwipe(status) {
+    if (!onSwipe || saving) return;
+    setSaving(true);
+    try {
+      await onSwipe(film, status);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Contexte "À l'affiche" : on affiche 3 boutons de swipe directs.
+  const isAfficheContext = !!onSwipe;
+
   // Contexte "filmothèque d'un ami" : au moins une prop sociale fournie.
   const isFriendShelfContext =
     friendRating !== null ||
@@ -125,6 +150,67 @@ export default function FilmDetailModal({
           >
             {/* La carte film, en variante "detail" (hauteur propre). */}
             <FilmCard film={film} variant="detail" />
+
+            {/* Contexte "À l'affiche" : 3 boutons de swipe directs.
+                Le bouton correspondant à mon statut actuel est surligné. */}
+            {isAfficheContext && (
+              <View style={styles.afficheActions}>
+                <Pressable
+                  style={[
+                    styles.afficheBtn,
+                    styles.afficheLike,
+                    userStatus === "like" && styles.afficheLikeActive,
+                  ]}
+                  onPress={() => handleSwipe("like")}
+                  disabled={saving}
+                >
+                  <Text
+                    style={[
+                      styles.afficheLikeText,
+                      userStatus === "like" && styles.afficheTextActive,
+                    ]}
+                  >
+                    ❤️ À voir
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.afficheBtn,
+                    styles.afficheSeen,
+                    userStatus === "seen" && styles.afficheSeenActive,
+                  ]}
+                  onPress={() => handleSwipe("seen")}
+                  disabled={saving}
+                >
+                  <Text
+                    style={[
+                      styles.afficheSeenText,
+                      userStatus === "seen" && styles.afficheTextActive,
+                    ]}
+                  >
+                    👁️ Déjà vu
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.afficheBtn,
+                    styles.afficheDislike,
+                    userStatus === "dislike" && styles.afficheDislikeActive,
+                  ]}
+                  onPress={() => handleSwipe("dislike")}
+                  disabled={saving}
+                >
+                  <Text
+                    style={[
+                      styles.afficheDislikeText,
+                      userStatus === "dislike" && styles.afficheTextActive,
+                    ]}
+                  >
+                    ✕ Pas intéressé
+                  </Text>
+                </Pressable>
+              </View>
+            )}
 
             {/* Section filmothèque : note ami + badge mon statut + actions. */}
             {isFriendShelfContext && (
@@ -314,6 +400,63 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displaySemiBold,
     fontSize: 14,
     color: COLORS.ambreDore,
+  },
+
+  // Contexte "À l'affiche" : 3 boutons de swipe
+  afficheActions: {
+    gap: SPACING.sm,
+  },
+  afficheBtn: {
+    paddingVertical: SPACING.md,
+    borderRadius: RADII.button,
+    alignItems: "center",
+    borderWidth: BORDERS.width,
+  },
+  // Like (corail)
+  afficheLike: {
+    backgroundColor: "rgba(255,77,106,0.12)",
+    borderColor: "rgba(255,77,106,0.4)",
+  },
+  afficheLikeActive: {
+    backgroundColor: COLORS.corailVif,
+    borderColor: COLORS.corailVif,
+  },
+  afficheLikeText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 14,
+    color: COLORS.corailVif,
+  },
+  // Seen (ambre)
+  afficheSeen: {
+    backgroundColor: "rgba(255,170,43,0.12)",
+    borderColor: "rgba(255,170,43,0.4)",
+  },
+  afficheSeenActive: {
+    backgroundColor: COLORS.ambreDore,
+    borderColor: COLORS.ambreDore,
+  },
+  afficheSeenText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 14,
+    color: COLORS.ambreDore,
+  },
+  // Dislike (gris)
+  afficheDislike: {
+    backgroundColor: COLORS.grisSombre,
+    borderColor: COLORS.grisMoyen,
+  },
+  afficheDislikeActive: {
+    backgroundColor: COLORS.grisMoyen,
+    borderColor: COLORS.grisTexte,
+  },
+  afficheDislikeText: {
+    fontFamily: FONTS.displaySemiBold,
+    fontSize: 14,
+    color: COLORS.grisTexte,
+  },
+  // Texte blanc quand le bouton est actif (fond plein).
+  afficheTextActive: {
+    color: "#fff",
   },
 
   // Section "Aussi aimé par"

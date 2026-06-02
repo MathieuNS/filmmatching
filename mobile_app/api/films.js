@@ -115,6 +115,59 @@ export async function sendSwipe(filmId, status) {
 }
 
 /**
+ * Récupère la liste des films swipés par l'utilisateur pour un statut donné.
+ *
+ * C'est la source de la page "Ma liste" (films_list). Le backend renvoie,
+ * pour chaque swipe, le film COMPLET imbriqué (titre, image, genres,
+ * friend_ratings...) ainsi que mes propres `rating` et `comment`.
+ *
+ * Format d'un élément :
+ *   { id, user, film: {...}, status, rating, comment, created_at }
+ *
+ * @param {string} status - "like", "seen" ou "dislike"
+ * @returns {Promise<Array>} La liste des swipes du statut demandé
+ */
+export async function fetchSwipesList(status) {
+  const response = await api.get(
+    `/api/swipes/list/?status=${encodeURIComponent(status)}`
+  );
+  return response.data;
+}
+
+/**
+ * Modifie un swipe existant (changement de statut, de note ou de commentaire).
+ *
+ * On utilise PATCH (mise à jour PARTIELLE) : on n'envoie que les champs à
+ * changer, le backend laisse les autres intacts. Exemples d'appels :
+ *   updateSwipe(12, { status: "seen" })   // déplacer d'un onglet à l'autre
+ *   updateSwipe(12, { rating: 4.5 })      // noter un film "déjà vu"
+ *   updateSwipe(12, { comment: "Top !" }) // commenter un film "déjà vu"
+ *
+ * @param {number} swipeId - L'ID du swipe à modifier
+ * @param {Object} payload - Les champs à mettre à jour ({ status }, { rating }, { comment })
+ * @returns {Promise<Object>} Le swipe mis à jour
+ */
+export async function updateSwipe(swipeId, payload) {
+  const response = await api.patch(`/api/swipes/${swipeId}/`, payload);
+  return response.data;
+}
+
+/**
+ * Récupère les films actuellement à l'affiche au cinéma en France.
+ *
+ * Ces films sont pré-chargés en base par une commande cron quotidienne
+ * (get_now_playing) ; l'API les renvoie tous d'un coup avec leurs infos
+ * complètes (casting, réalisateur, bande-annonce, plateformes) et mon
+ * `user_status` éventuel.
+ *
+ * @returns {Promise<Array>} La liste des films à l'affiche
+ */
+export async function fetchNowPlaying() {
+  const response = await api.get("/api/films/now-playing/");
+  return response.data;
+}
+
+/**
  * Charge en parallèle la liste des genres et des plateformes
  * disponibles (pour remplir les chips du panneau de filtres).
  *

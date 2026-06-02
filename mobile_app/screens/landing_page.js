@@ -23,6 +23,10 @@ import { COLORS, GRADIENTS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 // Composant réutilisable : texte coloré en dégradé (source unique, voir components/)
 import GradientText from "../components/GradientText";
+// Footer global (mention TMDB + liens RGPD / Mentions / Contact / Soutien).
+// Sur mobile, c'est le point d'entrée vers les pages légales quand on est
+// déconnecté (les routes existent aussi dans l'AuthStack).
+import TmdbAttribution from "../components/TmdbAttribution";
 
 /**
  * Liste des films/séries utilisés pour la démo de swipe.
@@ -458,15 +462,9 @@ export default function LandingPage({ navigation }) {
           </Text>
         </View>
 
-        {/* --- Attribution TMDB (obligatoire quand on utilise leurs données) ---
-            Le logo TMDB est un SVG : on l'ajoutera plus tard (react-native-svg
-            ou une image PNG). Pour l'instant on garde la mention texte. */}
-        <View style={styles.tmdb}>
-          <Text style={styles.tmdbText}>
-            Cette application utilise l'API de TMDB mais n'est ni approuvée ni
-            certifiée par TMDB.
-          </Text>
-        </View>
+        {/* --- Footer : attribution TMDB + liens légaux (point d'entrée
+            déconnecté vers RGPD / Mentions / Contact / Soutien). --- */}
+        <TmdbAttribution />
       </SafeAreaView>
     </View>
   );
