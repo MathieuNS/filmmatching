@@ -9,6 +9,7 @@ import {
   StyleSheet, // pour créer les styles en JavaScript (remplace le CSS)
   Animated, // API d'animation de React Native (remplace les transitions CSS)
   Easing, // courbes d'accélération pour les animations
+  Dimensions, // donne la taille de l'écran (pour adapter les éléments)
 } from "react-native";
 // SafeAreaView : conteneur qui évite les zones "dangereuses" (encoche, barre d'état)
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -77,9 +78,22 @@ const DEMO_FILMS = [
  */
 const SWIPE_SEQUENCE = ["right", "left", "up", "right", "left"];
 
-// Dimensions de la pile de cartes (en pixels logiques)
-const CARD_WIDTH = 200;
-const CARD_HEIGHT = 290;
+// Dimensions de l'écran, lues UNE FOIS au chargement du module.
+// (L'app est en portrait : pas besoin de recalculer à la rotation.)
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+// Dimensions de la pile de cartes, calculées EN FONCTION de l'écran pour
+// remplir l'espace sans déborder :
+// - hauteur ≈ 34 % de la hauteur de l'écran (grandit sur grand écran, rétrécit
+//   sur petit) ;
+// - largeur déduite via le ratio d'une affiche de film (2:3 ≈ 0,69), puis
+//   bornée à 48 % de la largeur d'écran pour laisser la place aux 2 icônes de
+//   swipe (♥ / ✕) qui l'encadrent.
+const CARD_HEIGHT = Math.round(SCREEN_HEIGHT * 0.34);
+const CARD_WIDTH = Math.min(
+  Math.round(CARD_HEIGHT * 0.69),
+  Math.round(SCREEN_WIDTH * 0.48)
+);
 
 /**
  * Contenu visuel d'une carte de film (image + dégradé + infos).
@@ -247,12 +261,12 @@ export default function LandingPage({ navigation }) {
     inputRange: [0, 1],
     outputRange: [
       0,
-      swipeDirection === "right" ? 220 : swipeDirection === "left" ? -220 : 0,
+      swipeDirection === "right" ? 190 : swipeDirection === "left" ? -190 : 0,
     ],
   });
   const translateY = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, swipeDirection === "up" ? -260 : 0],
+    outputRange: [0, swipeDirection === "up" ? -220 : 0],
   });
   const rotate = anim.interpolate({
     inputRange: [0, 1],
@@ -438,7 +452,14 @@ export default function LandingPage({ navigation }) {
         <View style={styles.cta}>
           {/* Pressable = zone cliquable. On appelle navigation.navigate si dispo. */}
           <Pressable
-            style={styles.ctaButton}
+            // style peut être une FONCTION qui reçoit { pressed } : on combine
+            // le style de base + un style "enfoncé" seulement quand on appuie.
+            // (Ce n'est pas un style inline : on assemble des entrées du
+            // StyleSheet, comme on le ferait avec un tableau de classes.)
+            style={({ pressed }) => [
+              styles.ctaButton,
+              pressed && styles.ctaButtonPressed,
+            ]}
             onPress={() => navigation?.navigate?.("CreateLogin")}
           >
             <LinearGradient
@@ -484,9 +505,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1, // occupe tout l'écran (plein écran, comme le web 100vh)
     alignItems: "center", // centre les enfants horizontalement
-    justifyContent: "center", // ...et verticalement (toute la colonne est centrée)
+    // space-between : les sections (logo → footer) se répartissent sur TOUTE la
+    // hauteur disponible. L'espace libre est distribué de façon égale ENTRE
+    // elles, donc plus de gros vide en haut/bas : la page "remplit" l'écran.
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 12, // marge intérieure ; le haut est déjà protégé par SafeAreaView
   },
 
   // --- Logo ---
@@ -495,7 +519,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start", // collé à gauche comme sur le web
     gap: 10,
-    marginBottom: 24,
+    // pas de marginBottom : l'espacement vertical est géré par le
+    // justifyContent: "space-between" du conteneur "content"
   },
   logoIcon: {
     width: 40,
@@ -509,15 +534,14 @@ const styles = StyleSheet.create({
   // --- Header ---
   header: {
     alignItems: "center",
-    marginBottom: 20,
   },
   title: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 30,
+    fontSize: 27,
     color: COLORS.blancDoux,
     textAlign: "center",
-    lineHeight: 38,
-    marginBottom: 10,
+    lineHeight: 34,
+    marginBottom: 8,
   },
   subtitle: {
     fontFamily: FONTS.body,
@@ -530,7 +554,6 @@ const styles = StyleSheet.create({
   // --- Zone démo ---
   demoSection: {
     position: "relative", // sert de repère pour l'overlay de match (absolute)
-    marginBottom: 20,
     alignItems: "center",
   },
   demoRow: {
@@ -546,16 +569,16 @@ const styles = StyleSheet.create({
 
   // Icônes de swipe rondes
   swipeIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26, // moitié de la taille = cercle parfait
+    width: 54,
+    height: 54,
+    borderRadius: 27, // moitié de la taille = cercle parfait
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.04)",
   },
   swipeIconText: {
-    fontSize: 22,
+    fontSize: 23,
   },
   swipeIconDislike: {
     backgroundColor: "rgba(139,139,158,0.12)",
@@ -585,11 +608,11 @@ const styles = StyleSheet.create({
 
   // Bouton "Déjà vu"
   seenIcon: {
-    marginTop: 16,
+    marginTop: 14,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 100,
     backgroundColor: "rgba(255,170,43,0.12)",
     borderWidth: 1,
@@ -606,7 +629,7 @@ const styles = StyleSheet.create({
   },
   seenIconText: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 13,
+    fontSize: 15,
     color: COLORS.ambreDore,
   },
 
@@ -627,10 +650,15 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }, { translateY: 10 }], // plus petite et décalée
   },
   cardFront: {
-    // Pas d'ombre ici : sur Android, "elevation" dessinait une ombre dure
-    // bien visible autour de la carte, absente de la version web. On garde
-    // seulement le zIndex pour que cette carte reste au-dessus de l'autre.
-    zIndex: 2,
+    zIndex: 2, // cette carte reste au-dessus de celle du dessous
+    // Lueur violette douce sous la carte (comme le box-shadow violet du web).
+    // shadowColor/Radius ne s'appliquent QUE sur iOS : c'est volontaire. Sur
+    // Android, "elevation" dessinait une ombre dure et grise absente du web ;
+    // on l'omet donc, et le halo d'arrière-plan donne déjà la lueur côté Android.
+    shadowColor: COLORS.violetNuit,
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
   cardImage: {
     width: "100%",
@@ -665,17 +693,17 @@ const styles = StyleSheet.create({
   },
   cardBadgeText: {
     fontFamily: FONTS.displayBold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.5,
   },
   cardTitle: {
     fontFamily: FONTS.displayBold,
-    fontSize: 18,
+    fontSize: 21,
     color: COLORS.blancDoux,
   },
   cardMeta: {
     fontFamily: FONTS.body,
-    fontSize: 11,
+    fontSize: 13,
     color: "rgba(240,238,242,0.6)",
     marginTop: 4,
   },
@@ -750,26 +778,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap", // passe à la ligne si pas la place
     justifyContent: "center",
-    gap: 12,
-    marginBottom: 20,
+    gap: 8,
   },
   stat: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     borderRadius: 100,
     backgroundColor: COLORS.noirCarte,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.04)",
   },
   statIcon: {
-    fontSize: 16,
+    fontSize: 15,
   },
   statText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.grisTexte,
   },
   statValue: {
@@ -782,7 +809,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
     alignItems: "center",
-    gap: 16,
+    gap: 10,
   },
   ctaButton: {
     width: "100%",
@@ -794,18 +821,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
+  // État "enfoncé" du bouton (équivalent du :active web) : il rapetisse
+  // légèrement et sa lueur s'atténue, pour un retour tactile visible.
+  ctaButtonPressed: {
+    transform: [{ scale: 0.97 }],
+    shadowOpacity: 0.15,
+  },
   ctaButtonGradient: {
-    paddingVertical: 16,
+    paddingVertical: 17,
     alignItems: "center",
   },
   ctaButtonText: {
     fontFamily: FONTS.displayBold,
-    fontSize: 17,
+    fontSize: 18,
     color: "#fff",
   },
   loginLink: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.grisTexte,
   },
   loginLinkAccent: {

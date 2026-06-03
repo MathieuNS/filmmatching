@@ -306,6 +306,16 @@ surtout un **audit de vérification** (les bons réglages sont-ils ACTIFS en pro
 + quelques ajouts manquants. Légende : `[~]` = déjà présent dans le code, **à
 confirmer en prod** ; `[ ]` = à ajouter/faire.*
 
+### Premiers pas (rapides, à lancer en premier)
+*Deux outils rapides et sans risque qui donnent tout de suite une liste priorisée :*
+- [ ] **`python manage.py check --deploy`** — contrôle de la **configuration** Django
+      pour la prod (DEBUG, HSTS, cookies sécurisés, ALLOWED_HOSTS…). À lancer avec
+      `DEBUG=False`, donc sur le VPS : `docker compose exec backend python manage.py check --deploy`.
+      Ça ne corrige rien : ça liste les réglages à durcir (objectif : 0 alerte).
+- [ ] **`/security-review`** (commande Claude Code) — revue du **code** à la recherche
+      de failles (injections, IDOR/accès aux données d'autrui, secrets en dur, logs
+      sensibles…). À lancer sur les changements de la branche ; renvoie un rapport priorisé.
+
 ### A. Backend / API (Django)
 - [~] `DEBUG=False` en prod (lu depuis `.env`) — **vérifier** que `.env.production`
       le force bien (une page d'erreur Django en prod fuite du code/des secrets).
@@ -326,7 +336,7 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
       (IDOR) : swipes, amitiés, filmothèque privée, `me/...`.
 - [ ] **Durée des tokens JWT** revue (access court ; refresh raisonnable) + envisager
       la rotation/blacklist des refresh tokens à la déconnexion.
-- [ ] `python manage.py check --deploy` (checklist sécurité officielle de Django) — 0 alerte.
+- [ ] `python manage.py check --deploy` → 0 alerte (cf. « Premiers pas »).
 - [ ] Throttle/`maxLength` sur les champs libres (contact, commentaires) — déjà
       `maxLength 2000` côté commentaire à confirmer côté backend.
 
@@ -359,7 +369,7 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
 ### E. Dépendances & process
 - [ ] **Audit des dépendances** : `pip` (ex. `pip-audit`) côté backend, `npm audit`
       côté web et mobile — corriger les vulnérabilités hautes/critiques.
-- [ ] Lancer la revue de sécurité du dépôt (`/security-review`) sur les changements.
+- [ ] Lancer `/security-review` sur les changements (cf. « Premiers pas »).
 - [ ] Plan de **réaction** : que faire en cas de fuite (rotation `SECRET_KEY`/tokens,
       invalidation des sessions).
 
@@ -372,7 +382,9 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
 
 ---
 
-*Dernière mise à jour : 2026-06-02 (Ajout de la **Phase 10 — Sécurité (prod)** : checklist d'audit + ajouts pour sécuriser backend Django, web et app mobile en production. Le backend a déjà une bonne base — la phase est surtout une vérification que les bons réglages sont actifs en prod, + ajouts manquants (HSTS, rate-limiting, audit des dépendances).)*
+*Dernière mise à jour : 2026-06-03 (Landing page — ajustements visuels : **lueur violette douce sous la carte** du dessus (iOS via `shadow*` ; pas d'`elevation` Android pour éviter l'ombre dure) + **feedback d'appui** sur le bouton CTA (`Pressable` `pressed` → scale + lueur atténuée). NB : le **halo lumineux radial** du web a été tenté via `react-native-svg` puis **abandonné** — le dégradé radial « bande » (anneaux visibles) sur Android faute de dithering. À TESTER sur appareil/émulateur.)*
+
+*Mise à jour précédente : 2026-06-02 (Ajout de la **Phase 10 — Sécurité (prod)** : checklist d'audit + ajouts pour sécuriser backend Django, web et app mobile en production. Le backend a déjà une bonne base — la phase est surtout une vérification que les bons réglages sont actifs en prod, + ajouts manquants (HSTS, rate-limiting, audit des dépendances).)*
 
 *Mise à jour précédente : 2026-06-02 (Phase 9 — FINITIONS in-app faites. Logo TMDB en SVG dans le footer (`assets/logos/tmdbLogo.js`), splash screen configuré + nom d'app « FilmMatching » + thème sombre (`app.json`), `insets.bottom` ajouté sur « Mon Compte ». Clavier & safe-area haut déjà couverts. DISTRIBUTION (EAS / APK Android) reportée à la demande de l'utilisateur. Icônes d'app laissées telles quelles.)*
 
