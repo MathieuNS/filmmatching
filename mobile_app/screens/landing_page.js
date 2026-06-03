@@ -310,8 +310,11 @@ export default function LandingPage({ navigation }) {
 
         {/* --- Titre + sous-titre --- */}
         <View style={styles.header}>
+          {/* Espace insécable ( ) avant ? et ! : règle typographique
+              française. L'insécable empêche la ponctuation de passer seule
+              en début de ligne. */}
           <Text style={styles.title}>
-            Marre de manger froid?{"\n"}Arrête de scroller!
+            Marre de manger froid{" "}?{"\n"}Arrête de scroller{" "}!
           </Text>
           <Text style={styles.subtitle}>
             Swipe et trouve un film ou une série qui plaît à tout le monde en
@@ -431,7 +434,7 @@ export default function LandingPage({ navigation }) {
           <View style={styles.stat}>
             <Text style={styles.statIcon}>🎬</Text>
             <Text style={styles.statText}>
-              <Text style={styles.statValue}>21 000+</Text> films et séries
+              <Text style={styles.statValue}>35 000+</Text> films et séries
             </Text>
           </View>
           <View style={styles.stat}>
@@ -473,7 +476,7 @@ export default function LandingPage({ navigation }) {
           </Pressable>
 
           <Text style={styles.loginLink}>
-            Déjà un compte ?{" "}
+            Déjà un compte{" "}?{" "}
             <Text
               style={styles.loginLinkAccent}
               onPress={() => navigation?.navigate?.("Login")}
@@ -537,24 +540,25 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 27,
+    fontSize: 24,
     color: COLORS.blancDoux,
     textAlign: "center",
-    lineHeight: 34,
+    lineHeight: 30,
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.grisTexte,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 20,
   },
 
   // --- Zone démo ---
   demoSection: {
     position: "relative", // sert de repère pour l'overlay de match (absolute)
     alignItems: "center",
+    marginTop: 12, // léger espace entre le sous-titre et l'animation de swipe
   },
   demoRow: {
     flexDirection: "row",
@@ -728,28 +732,28 @@ const styles = StyleSheet.create({
   },
   matchTitle: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 34,
-    marginBottom: 8,
+    fontSize: 30,
+    marginBottom: 6,
   },
   matchSubtitle: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.blancDoux,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   matchFilmImg: {
-    width: 110,
-    height: 165,
-    borderRadius: 16,
+    width: 96,
+    height: 144,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.vertMatch,
   },
   matchFilmTitle: {
     fontFamily: FONTS.displayBold,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.blancDoux,
-    marginTop: 12,
-    marginBottom: 16,
+    marginTop: 10,
+    marginBottom: 14,
   },
   matchFriend: {
     alignItems: "center",

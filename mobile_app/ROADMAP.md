@@ -376,13 +376,16 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
 ## Divers
 
 - [x] dans home.js, retiré la ligne sous le header
-- [ ] s'assurrer que le designe de la landing page est identique au web
+- [x] s'assurrer que le designe de la landing page est identique au web
 - [x] la fleche back du header doit toujours pointer sur home.js
 - [x] supprimer la fleche back de home.js
+- [] notifications
 
 ---
 
-*Dernière mise à jour : 2026-06-03 (Landing page — ajustements visuels : **lueur violette douce sous la carte** du dessus (iOS via `shadow*` ; pas d'`elevation` Android pour éviter l'ombre dure) + **feedback d'appui** sur le bouton CTA (`Pressable` `pressed` → scale + lueur atténuée). NB : le **halo lumineux radial** du web a été tenté via `react-native-svg` puis **abandonné** — le dégradé radial « bande » (anneaux visibles) sur Android faute de dithering. À TESTER sur appareil/émulateur.)*
+*Dernière mise à jour : 2026-06-03 (Landing page — suite des ajustements : éléments **adaptés à la taille de l'écran** (cartes calculées en fraction de `SCREEN_HEIGHT`, répartition `space-between` + tailles agrandies) et **typo française** (espaces insécables avant `? !`). NB : un essai de remplacement des **emojis par des icônes SVG** a été **annulé** à la demande de l'utilisateur — on garde les emojis 🎬 🤝 ⚡ 👁 (le composant `components/Icon.js` créé pour l'occasion a été supprimé). À TESTER sur appareil/émulateur.)*
+
+*Mise à jour précédente : 2026-06-03 (Landing page — ajustements visuels : **lueur violette douce sous la carte** du dessus (iOS via `shadow*` ; pas d'`elevation` Android pour éviter l'ombre dure) + **feedback d'appui** sur le bouton CTA (`Pressable` `pressed` → scale + lueur atténuée). NB : le **halo lumineux radial** du web a été tenté via `react-native-svg` puis **abandonné** — le dégradé radial « bande » (anneaux visibles) sur Android faute de dithering. À TESTER sur appareil/émulateur.)*
 
 *Mise à jour précédente : 2026-06-02 (Ajout de la **Phase 10 — Sécurité (prod)** : checklist d'audit + ajouts pour sécuriser backend Django, web et app mobile en production. Le backend a déjà une bonne base — la phase est surtout une vérification que les bons réglages sont actifs en prod, + ajouts manquants (HSTS, rate-limiting, audit des dépendances).)*
 
