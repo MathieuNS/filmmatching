@@ -526,12 +526,12 @@ const styles = StyleSheet.create({
     // justifyContent: "space-between" du conteneur "content"
   },
   logoIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
   },
   logoText: {
     fontFamily: FONTS.displayExtraBold,
-    fontSize: 28,
+    fontSize: 25,
   },
 
   // --- Header ---
@@ -559,6 +559,12 @@ const styles = StyleSheet.create({
     position: "relative", // sert de repère pour l'overlay de match (absolute)
     alignItems: "center",
     marginTop: 12, // léger espace entre le sous-titre et l'animation de swipe
+    // Marge basse MINIMALE garantie : avec justifyContent "space-between",
+    // sur un écran court (ex. Oppo Reno 2) l'espace libre se réduit jusqu'à
+    // coller le bouton "Déjà vu" au bloc de stats juste dessous. Cette marge
+    // assure un écart minimum quoi qu'il arrive. Volontairement modérée pour
+    // laisser de la place plus bas (stats ↔ bouton "Commencer à swiper").
+    marginBottom: 8,
   },
   demoRow: {
     flexDirection: "row",
@@ -785,6 +791,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap", // passe à la ligne si pas la place
     justifyContent: "center",
     gap: 8,
+    // Marge basse garantie pour décoller les stats du bouton "Commencer à
+    // swiper" quand le space-between se resserre (écran court, Oppo Reno 2).
+    marginBottom: 12,
   },
   stat: {
     flexDirection: "row",
@@ -834,12 +843,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
   },
   ctaButtonGradient: {
-    paddingVertical: 17,
+    paddingVertical: 15,
     alignItems: "center",
   },
   ctaButtonText: {
     fontFamily: FONTS.displayBold,
-    fontSize: 18,
+    fontSize: 17,
     color: "#fff",
   },
   loginLink: {
