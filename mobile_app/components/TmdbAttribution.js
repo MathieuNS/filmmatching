@@ -10,8 +10,8 @@ import { SPACING } from "../constants/spacing";
 // On reste TRÈS petit, comme le site web (height: 10px) : le logo doit être
 // discret, posé à gauche de la mention légale. On part d'une hauteur fixe et
 // on calcule la largeur pour garder les proportions d'origine.
-const TMDB_LOGO_HEIGHT = 14;
-const TMDB_LOGO_WIDTH = Math.round((TMDB_LOGO_HEIGHT * 185.04) / 133.4); // ≈ 19
+const TMDB_LOGO_HEIGHT = 12;
+const TMDB_LOGO_WIDTH = Math.round((TMDB_LOGO_HEIGHT * 185.04) / 133.4); // ≈ 17
 
 /**
  * TmdbAttribution — footer global (version mobile).
@@ -58,7 +58,7 @@ export default function TmdbAttribution() {
       {/* Liens vers les pages légales / soutien */}
       <View style={styles.links}>
         <Pressable onPress={() => navigation.navigate("RGPD")} hitSlop={6}>
-          <Text style={styles.link}>Politique de confidentialité</Text>
+          <Text style={styles.link}>Confidentialité</Text>
         </Pressable>
         <Text style={styles.separator}>·</Text>
         <Pressable
@@ -94,10 +94,10 @@ const styles = StyleSheet.create({
   tmdbText: {
     flex: 1, // prend la largeur restante à droite du logo (et wrap)
     fontFamily: FONTS.body,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.grisTexte,
     textAlign: "left", // aligné à gauche, collé au logo
-    lineHeight: 16,
+    lineHeight: 15,
   },
   links: {
     flexDirection: "row",
@@ -108,12 +108,12 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.grisTexte,
   },
   separator: {
     fontFamily: FONTS.body,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.grisMoyen,
   },
 });

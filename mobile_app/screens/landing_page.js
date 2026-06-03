@@ -540,10 +540,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 24,
+    fontSize: 22,
     color: COLORS.blancDoux,
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 28,
     marginBottom: 8,
   },
   subtitle: {
@@ -715,7 +715,9 @@ const styles = StyleSheet.create({
   // --- Overlay "It's a Match !" ---
   matchOverlay: {
     position: "absolute",
-    top: -20,
+    // top à 0 (et non -20 comme les autres côtés) : l'overlay ne doit pas
+    // déborder vers le HAUT, sinon il recouvre le sous-titre juste au-dessus.
+    top: 0,
     left: -20,
     right: -20,
     bottom: -20,
@@ -732,7 +734,7 @@ const styles = StyleSheet.create({
   },
   matchTitle: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 30,
+    fontSize: 26,
     marginBottom: 6,
   },
   matchSubtitle: {
@@ -760,15 +762,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   matchAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   matchAvatarText: {
     fontFamily: FONTS.displayBold,
-    fontSize: 18,
+    fontSize: 15,
     color: "#fff",
   },
   matchFriendName: {

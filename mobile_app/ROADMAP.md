@@ -273,7 +273,16 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
 
 > **En cours** : on traite d'abord les **finitions in-app**. La **distribution (EAS)**
 > est reportée — objectif décidé : un **APK Android de test** (pas de publication
-> store), cf. [[project_mobile_distribution]]. Cible Android uniquement pour l'instant.
+> store), cf. [[project_mobile_distribution]].
+>
+> **Cible = iOS *et* Android** (l'app doit marcher sur les deux). **MAIS** le développeur
+> ne possède qu'un **appareil Android** (téléphone physique + émulateur) : **tous les
+> tests réels se font sur Android**, aucun appareil/simulateur iOS disponible (pas de
+> Mac / pas de compte Apple pour l'instant). Donc : on écrit du **code cross-platform**
+> et on suit les API iOS+Android d'Expo même si seul Android est vérifiable ; quand une
+> brique dépend de **code natif spécifique** (ex. `expo-blur`, chemins Android/iOS
+> distincts), on code le chemin iOS correctement mais il reste **non vérifié sur iOS**.
+> La **distribution** démarre côté **Android** ; iOS plus tard (compte Apple requis).
 
 ### Finitions in-app
 - [x] **Logo TMDB en SVG** dans le footer (`assets/logos/tmdbLogo.js` + `SvgXml`
@@ -383,7 +392,9 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
 
 ---
 
-*Dernière mise à jour : 2026-06-03 (Landing page — suite des ajustements : éléments **adaptés à la taille de l'écran** (cartes calculées en fraction de `SCREEN_HEIGHT`, répartition `space-between` + tailles agrandies) et **typo française** (espaces insécables avant `? !`). NB : un essai de remplacement des **emojis par des icônes SVG** a été **annulé** à la demande de l'utilisateur — on garde les emojis 🎬 🤝 ⚡ 👁 (le composant `components/Icon.js` créé pour l'occasion a été supprimé). À TESTER sur appareil/émulateur.)*
+*Dernière mise à jour : 2026-06-04 (Précision **cible de plateformes** : l'app vise **iOS ET Android**, mais le développeur n'a qu'un **appareil Android** pour tester (téléphone + émulateur) — donc code cross-platform, mais vérification réelle sur Android uniquement. Note ajoutée dans `CLAUDE.md` (section Mobile app) et en tête de Phase 9.)*
+
+*Mise à jour précédente : 2026-06-03 (Landing page — suite des ajustements : éléments **adaptés à la taille de l'écran** (cartes calculées en fraction de `SCREEN_HEIGHT`, répartition `space-between` + tailles agrandies) et **typo française** (espaces insécables avant `? !`). NB : un essai de remplacement des **emojis par des icônes SVG** a été **annulé** à la demande de l'utilisateur — on garde les emojis 🎬 🤝 ⚡ 👁 (le composant `components/Icon.js` créé pour l'occasion a été supprimé). À TESTER sur appareil/émulateur.)*
 
 *Mise à jour précédente : 2026-06-03 (Landing page — ajustements visuels : **lueur violette douce sous la carte** du dessus (iOS via `shadow*` ; pas d'`elevation` Android pour éviter l'ombre dure) + **feedback d'appui** sur le bouton CTA (`Pressable` `pressed` → scale + lueur atténuée). NB : le **halo lumineux radial** du web a été tenté via `react-native-svg` puis **abandonné** — le dégradé radial « bande » (anneaux visibles) sur Android faute de dithering. À TESTER sur appareil/émulateur.)*
 
