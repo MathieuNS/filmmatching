@@ -20,6 +20,7 @@ import { GRADIENTS } from "../constants/colors";
  * @param {Object} [props.start={x:0,y:0}] - point de départ du dégradé
  * @param {Object} [props.end={x:1,y:1}] - point de fin (0,0->1,1 ≈ 135° comme le web)
  * @param {Object|Object[]} [props.style] - style du texte (taille, graisse...)
+ * @param {number} [props.numberOfLines] - limite de lignes (tronque avec "…")
  * @returns {JSX.Element} Le texte coloré en dégradé
  */
 export default function GradientText({
@@ -28,16 +29,26 @@ export default function GradientText({
   start = { x: 0, y: 0 },
   end = { x: 1, y: 1 },
   style,
+  numberOfLines,
 }) {
   return (
     <MaskedView
-      // maskElement = le "pochoir" : la forme à travers laquelle on voit le dégradé
-      maskElement={<Text style={style}>{children}</Text>}
+      // maskElement = le "pochoir" : la forme à travers laquelle on voit le dégradé.
+      // `numberOfLines` est appliqué AUX DEUX textes (masque + texte de mesure)
+      // pour qu'ils gardent exactement la même taille : sinon le dégradé et le
+      // pochoir auraient des dimensions différentes.
+      maskElement={
+        <Text style={style} numberOfLines={numberOfLines}>
+          {children}
+        </Text>
+      }
     >
       <LinearGradient colors={colors} start={start} end={end}>
         {/* On remet le même texte mais invisible (opacity 0) juste pour
             donner la bonne taille au dégradé. Le visible, c'est le masque. */}
-        <Text style={[style, { opacity: 0 }]}>{children}</Text>
+        <Text style={[style, { opacity: 0 }]} numberOfLines={numberOfLines}>
+          {children}
+        </Text>
       </LinearGradient>
     </MaskedView>
   );

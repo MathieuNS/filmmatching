@@ -12,6 +12,7 @@ import {
   Dimensions,
   StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { RADII, SPACING } from "../constants/spacing";
@@ -71,6 +72,19 @@ export default function Home({ navigation }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [matchData, setMatchData] = useState(null);
+
+  // Zone "sûre" du bas : hauteur de la barre de navigation (ou de la barre de
+  // gestes) du téléphone. On l'AJOUTE au paddingBottom de l'écran pour que les
+  // labels des 3 boutons ne passent plus DERRIÈRE les boutons système du bas
+  // (problème constaté sur l'Oppo Reno 2). Même principe que `insets.top` pour
+  // la barre d'état dans AppHeader.
+  const insets = useSafeAreaInsets();
+  // Style de l'écran combinant le style statique + le padding bas dynamique.
+  // `SPACING.md` reste comme respiration minimale quand l'inset vaut 0.
+  const screenStyle = [
+    styles.screen,
+    { paddingBottom: insets.bottom + SPACING.md },
+  ];
 
   // --- Animation de la carte ---
   // Animated.ValueXY = un couple (x, y) animable. C'est la position de la
@@ -392,8 +406,11 @@ export default function Home({ navigation }) {
               <Pressable
                 style={styles.filterBtn}
                 onPress={() => setIsFilterOpen(true)}
+                // Libellé d'accessibilité : l'icône seule ne dit pas son rôle
+                // aux lecteurs d'écran, on le précise donc explicitement.
+                accessibilityLabel="Filtres"
               >
-                <Text style={styles.filterBtnText}>⚙ Filtres</Text>
+                <Text style={styles.filterBtnIcon}>⚙</Text>
                 {filterCount > 0 && (
                   <View style={styles.filterBadge}>
                     <Text style={styles.filterBadgeText}>{filterCount}</Text>
@@ -432,7 +449,7 @@ export default function Home({ navigation }) {
   // ============================================================
   if (loading) {
     return (
-      <View style={styles.screen}>
+      <View style={screenStyle}>
         <View style={styles.centered}>
           <Text style={styles.loadingText}>Chargement...</Text>
         </View>
@@ -443,7 +460,7 @@ export default function Home({ navigation }) {
 
   if (noMoreFilms) {
     return (
-      <View style={styles.screen}>
+      <View style={screenStyle}>
         <View style={styles.centered}>
           <Text style={styles.emptyIcon}>🎬</Text>
           <Text style={styles.emptyTitle}>Tu as tout vu !</Text>
@@ -457,7 +474,7 @@ export default function Home({ navigation }) {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={screenStyle}>
       {/* Zone de la carte (prend tout l'espace restant) */}
       <View style={styles.cardZone}>
         <Animated.View
@@ -601,29 +618,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   filterBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs + 2,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
+    // Même gabarit carré 40x40 que la loupe (searchBtn) pour rester homogène.
+    // `position: relative` sert d'ancrage au badge positionné en absolu.
+    position: "relative",
+    width: 40,
+    height: 40,
     borderRadius: RADII.pill,
     borderWidth: 1,
     borderColor: "rgba(123,92,255,0.3)",
     backgroundColor: "rgba(123,92,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  filterBtnText: {
-    fontFamily: FONTS.displaySemiBold,
-    fontSize: 13,
+  filterBtnIcon: {
+    fontSize: 16,
     color: COLORS.violetNuit,
   },
   filterBadge: {
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
+    // Badge compteur épinglé dans le coin haut-droit de l'icône.
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
     borderRadius: RADII.pill,
     backgroundColor: COLORS.violetNuit,
     alignItems: "center",
     justifyContent: "center",
+    // Liseré couleur du fond pour détacher le badge du bouton.
+    borderWidth: 2,
+    borderColor: COLORS.noirCinema,
   },
   filterBadgeText: {
     fontFamily: FONTS.displayBold,

@@ -59,7 +59,13 @@ export default function AppHeader({ route, navigation, back, rightActions }) {
           source={require("../assets/filmmatching-icon.png")}
           resizeMode="contain"
         />
-        <GradientText colors={GRADIENTS.passion} style={styles.logoText}>
+        <GradientText
+          colors={GRADIENTS.passion}
+          style={styles.logoText}
+          // 1 seule ligne : si la place manque (petit écran), le nom se tronque
+          // proprement au lieu de DÉBORDER sous la loupe/les filtres.
+          numberOfLines={1}
+        >
           FilmMatching
         </GradientText>
       </View>
@@ -78,7 +84,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between", // logo à gauche, menu à droite
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.lg, // resserré (xl->lg) pour libérer de la place
     paddingBottom: SPACING.md,
     backgroundColor: COLORS.noirCinema,
   },
@@ -89,6 +95,9 @@ const styles = StyleSheet.create({
     // Permet au logo de se rétrécir si les actions de droite prennent de la
     // place, au lieu de pousser le hamburger hors de l'écran.
     flexShrink: 1,
+    // minWidth:0 est INDISPENSABLE : sans ça, un enfant flex refuse de passer
+    // sous sa largeur "naturelle" et le nom déborderait quand même.
+    minWidth: 0,
   },
   backBtn: {
     width: 32,
@@ -109,6 +118,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm + 2, // ~10px entre les boutons et le menu
+    // Le cluster d'actions garde TOUJOURS sa taille : c'est le logo qui cède,
+    // pas la loupe/les filtres/le menu.
+    flexShrink: 0,
   },
   logoIcon: {
     width: 28,
@@ -117,5 +129,8 @@ const styles = StyleSheet.create({
   logoText: {
     fontFamily: FONTS.displayExtraBold,
     fontSize: 20,
+    // Autorise le texte à se rétrécir à l'intérieur de logoRow (sinon il garde
+    // sa largeur intrinsèque et chevauche le cluster de droite).
+    flexShrink: 1,
   },
 });

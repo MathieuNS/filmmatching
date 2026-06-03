@@ -297,6 +297,24 @@ Suivi de la transformation du **site web** (`frontend/`, React + Vite) en **appl
       contact & compte) — rien à ajouter.
 - [x] **Zones sûres** : haut géré partout (`AppHeader`/`StaticScreenHeader`/`SafeAreaView`) ;
       ajout du `insets.bottom` sur l'écran plein écran « Mon Compte ».
+- [ ] **Zones sûres BAS — audit par écran** : vérifier que rien (contenu, footer
+      TMDB, boutons d'action) ne passe **derrière les boutons système** (barre de
+      navigation du bas) sur un écran court. Constaté sur l'**Oppo Reno 2**.
+      Correctif type : ajouter `insets.bottom` au `paddingBottom` **ET** rendre
+      l'écran défilable (`ScrollView`/`FlatList contentContainerStyle`) si le
+      contenu déborde — un padding seul ne corrige pas un débordement vertical.
+    - [x] `home` (labels des 3 boutons Like/Déjà vu/Pas intéressé) — `insets.bottom` ajouté
+    - [ ] `user_account` (« Mon Compte ») — a déjà l'`insets.bottom` mais le `View`
+          plein écran **déborde** sur écran court → passer en `ScrollView`
+    - [ ] `films_list` (« Ma liste ») — `FlatList`, ajouter `insets.bottom` au `listContent`
+    - [ ] `a_l_affiche` (« À l'affiche ») — idem `FlatList`
+    - [ ] `match_list` (« Matchs ») — idem `FlatList`
+    - [ ] `Friends` (« Mes Amis ») — `ScrollView`, ajouter `insets.bottom` au `scrollContent`
+    - [ ] `contact` — `ScrollView`, footer TMDB en bas
+    - [ ] `donation` — `ScrollView`, footer TMDB en bas
+    - [ ] `rgpd` — `ScrollView`, footer TMDB en bas
+    - [ ] `mentions_legales` — `ScrollView`, footer TMDB en bas
+    - [~] `landing_page` — couvert par `SafeAreaView` (à confirmer sur l'appareil)
 - [~] **Icône d'app** : laissée telle quelle (`icon.png` + adaptive icons fournis par
       l'utilisateur). À rebrander seulement s'il fournit de nouveaux visuels.
 
@@ -389,10 +407,14 @@ confirmer en prod** ; `[ ]` = à ajouter/faire.*
 - [x] la fleche back du header doit toujours pointer sur home.js
 - [x] supprimer la fleche back de home.js
 - [] notifications
+- [] quand on ouvre la bande annonce, le tap en dehors ne ferme pas la fenetre youtube
+- [] dans voir les match, le bouton retour doit renvoyer à la liste d'ami
 
 ---
 
-*Dernière mise à jour : 2026-06-04 (Précision **cible de plateformes** : l'app vise **iOS ET Android**, mais le développeur n'a qu'un **appareil Android** pour tester (téléphone + émulateur) — donc code cross-platform, mais vérification réelle sur Android uniquement. Note ajoutée dans `CLAUDE.md` (section Mobile app) et en tête de Phase 9.)*
+*Dernière mise à jour : 2026-06-04 (Ajout d'un **audit « zones sûres bas »** par écran en Phase 9 : vérifier que le contenu/footer/boutons ne passent pas **derrière les boutons système** (barre de navigation), constaté sur l'**Oppo Reno 2**. `home` corrigé (`insets.bottom` sur les 3 boutons). `user_account` a déjà l'inset mais **déborde** (View plein écran sans scroll → à passer en `ScrollView`). Les autres écrans (listes + pages statiques) restent à vérifier/corriger. Correctif type : `insets.bottom` + rendre défilable si débordement. Aussi cette session : correction de connexion depuis le téléphone physique (URL API = IP LAN, pas `10.0.2.2`) et header Home — bouton « ⚙ Filtres » passé en **icône seule** pour que la loupe ne chevauche plus le nom « FilmMatching ».)*
+
+*Mise à jour précédente : 2026-06-04 (Précision **cible de plateformes** : l'app vise **iOS ET Android**, mais le développeur n'a qu'un **appareil Android** pour tester (téléphone + émulateur) — donc code cross-platform, mais vérification réelle sur Android uniquement. Note ajoutée dans `CLAUDE.md` (section Mobile app) et en tête de Phase 9.)*
 
 *Mise à jour précédente : 2026-06-03 (Landing page — suite des ajustements : éléments **adaptés à la taille de l'écran** (cartes calculées en fraction de `SCREEN_HEIGHT`, répartition `space-between` + tailles agrandies) et **typo française** (espaces insécables avant `? !`). NB : un essai de remplacement des **emojis par des icônes SVG** a été **annulé** à la demande de l'utilisateur — on garde les emojis 🎬 🤝 ⚡ 👁 (le composant `components/Icon.js` créé pour l'occasion a été supprimé). À TESTER sur appareil/émulateur.)*
 
