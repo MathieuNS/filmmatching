@@ -1,10 +1,9 @@
-import { View, Text, ScrollView, Pressable, Linking, StyleSheet } from "react-native";
+import { View, Text, Pressable, Linking, StyleSheet } from "react-native";
 // Hook qui renvoie la taille des zones système (barre du bas, etc.). On ajoute
-// insets.bottom au paddingBottom pour que le footer ne passe pas derrière les
-// boutons du téléphone (le contenu est dans une ScrollView).
+// insets.bottom au paddingBottom pour que le contenu ne passe pas derrière les
+// boutons du téléphone (l'écran remplit toute la hauteur, sans scroll).
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import StaticScreenHeader from "../components/StaticScreenHeader";
-import TmdbAttribution from "../components/TmdbAttribution";
 import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { RADII, SPACING, BORDERS } from "../constants/spacing";
@@ -19,6 +18,12 @@ const TIPEEE_URL = "https://fr.tipeee.com/filmmatching/";
  * est gratuit et invite à soutenir le projet. Le bouton ouvre la page Tipeee
  * dans le navigateur (`Linking.openURL`). Accessible connecté ou non.
  *
+ * Mise en page : l'écran occupe TOUTE la hauteur sans défilement. Au lieu
+ * d'une `ScrollView`, on utilise une `View` en `flex: 1`. Le contenu textuel
+ * reste en haut, et le footer TMDB est poussé tout en bas grâce à
+ * `marginTop: "auto"` (l'espace restant est absorbé au-dessus de lui).
+ * Les tailles/espacements sont resserrés pour que tout tienne à l'écran.
+ *
  * @returns {JSX.Element} L'écran Donation
  */
 export default function Donation() {
@@ -30,14 +35,14 @@ export default function Donation() {
     <View style={styles.screen}>
       <StaticScreenHeader title="Soutenir le projet" />
 
-      <ScrollView
-        // Style de base + paddingBottom dynamique (marge habituelle + hauteur
-        // de la barre du bas) pour que le footer ne déborde pas dessous.
-        contentContainerStyle={[
+      {/* Conteneur plein écran (flex: 1) à la place de la ScrollView. Le
+          paddingBottom suit la barre du bas du téléphone pour que le footer
+          ne passe pas derrière les boutons système. */}
+      <View
+        style={[
           styles.content,
-          { paddingBottom: SPACING.xl + insets.bottom },
+          { paddingBottom: SPACING.md + insets.bottom },
         ]}
-        showsVerticalScrollIndicator={false}
       >
         {/* En-tête */}
         <Text style={styles.emoji}>♥</Text>
@@ -81,9 +86,7 @@ export default function Donation() {
           Merci du fond du cœur. Chaque contribution, même petite, fait une
           vraie différence.
         </Text>
-
-        <TmdbAttribution />
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -94,31 +97,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.noirCinema,
   },
   content: {
+    flex: 1, // remplit toute la hauteur restante sous l'en-tête (plus de scroll)
     paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
     alignItems: "center",
     // paddingBottom n'est PAS ici : il est calculé dans le composant
-    // (SPACING.xl + insets.bottom) pour tenir compte de la barre du téléphone.
+    // (SPACING.md + insets.bottom) pour tenir compte de la barre du téléphone.
   },
   emoji: {
-    fontSize: 40,
+    fontSize: 34,
     color: COLORS.corailVif,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
   title: {
     fontFamily: FONTS.displayBold,
-    fontSize: 24,
+    fontSize: 22,
     color: COLORS.blancDoux,
     textAlign: "center",
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   subtitle: {
     fontFamily: FONTS.body,
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.grisTexte,
     textAlign: "center",
-    lineHeight: 21,
-    marginBottom: SPACING.xl,
+    lineHeight: 19,
+    marginBottom: SPACING.lg,
   },
   card: {
     width: "100%",
@@ -126,34 +130,34 @@ const styles = StyleSheet.create({
     borderRadius: RADII.card,
     borderWidth: BORDERS.width,
     borderColor: BORDERS.colorStrong,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   cardIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
   cardTitle: {
     fontFamily: FONTS.displaySemiBold,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.blancDoux,
     textAlign: "center",
   },
   cardText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.grisTexte,
     textAlign: "center",
-    lineHeight: 19,
+    lineHeight: 17,
   },
   tipeeeBtn: {
     width: "100%",
     backgroundColor: COLORS.corailVif,
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.md,
     borderRadius: RADII.button,
     alignItems: "center",
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   tipeeeBtnText: {
     fontFamily: FONTS.displaySemiBold,
@@ -162,10 +166,10 @@ const styles = StyleSheet.create({
   },
   thanks: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.grisTexte,
     textAlign: "center",
-    lineHeight: 19,
-    marginTop: SPACING.xl,
+    lineHeight: 17,
+    marginTop: SPACING.md,
   },
 });

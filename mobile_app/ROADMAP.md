@@ -135,6 +135,7 @@ Suivi du portage du **site web** (`frontend/`, React + Vite) vers l'**app mobile
 - [x] le tap en dehors du popup youtube devrait fermer le popup youtube
 - [ ] lower case lors de la connexion avec email
 - [ ] lower case sur les pseudo (web et mobile app) pour éviter d'avoir deux pseudo identiques avec des majuscule et minuscules
+- [ ] Filtre bouton réinitialiser devrait valider les filtres
 
 ### Limites connues (pas des bugs)
 - Bandes-annonces dont l'embed YouTube est désactivé par le propriétaire : ne jouent pas en intégré (restriction côté contenu).
