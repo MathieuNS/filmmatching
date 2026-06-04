@@ -39,9 +39,17 @@ import { RADII, SPACING, BORDERS } from "../constants/spacing";
  */
 export default function UserAccount() {
   const dispatch = useDispatch();
-  // Zone "sûre" du bas (home indicator iOS) : on l'ajoute au padding pour que
-  // le footer ne soit pas collé au bord / masqué sur cet écran plein écran.
+  // Zone "sûre" du bas (barre de navigation Android / home indicator iOS) :
+  // on l'ajoute au padding pour que le footer ne passe pas derrière.
   const insets = useSafeAreaInsets();
+
+  // --- Adaptation à la taille de l'écran (pas de défilement) ---
+  // areaHeight = hauteur dispo SOUS le header (zone d'affichage, hors barre du
+  // bas). contentHeight = hauteur naturelle du contenu, mesurée à l'exécution.
+  // On compare les deux pour réduire le contenu juste ce qu'il faut. 0 = pas
+  // encore mesuré au 1er rendu.
+  const [areaHeight, setAreaHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
 
   // --- Données utilisateur ---
   const [user, setUser] = useState(null);
@@ -176,6 +184,23 @@ export default function UserAccount() {
     }
   }
 
+  // Facteur d'échelle : on compare la hauteur RÉELLE du contenu (mesurée) à la
+  // place disponible. Si le contenu est trop grand, on le réduit juste ce qu'il
+  // faut pour qu'il tienne (borné à 0.7 pour rester lisible/cliquable). Tant que
+  // les deux mesures ne sont pas faites (=0), on reste à 1 (taille normale).
+  // On applique ce facteur via `transform: scale` : TOUT le bloc rétrécit
+  // uniformément (textes, champs, marges…), donc la hauteur affichée vaut
+  // exactement scale × hauteur naturelle → garanti de tenir. Le transform
+  // n'affecte PAS la mesure onLayout (qui reste la hauteur naturelle), donc
+  // pas de boucle de recalcul.
+  // Place réellement dispo pour centrer le contenu = zone mesurée moins la
+  // barre système (réservée par le paddingBottom de la zone).
+  const available = areaHeight - insets.bottom;
+  const scale =
+    areaHeight === 0 || contentHeight === 0
+      ? 1
+      : Math.max(0.7, Math.min(1, available / contentHeight));
+
   if (loading) {
     return (
       <View style={styles.screen}>
@@ -186,15 +211,32 @@ export default function UserAccount() {
 
   return (
     <View style={styles.screen}>
-      {/* Plein écran (pas de défilement) : le contenu se répartit sur la
-          hauteur disponible. KeyboardAvoidingView évite que le clavier
-          recouvre les champs sur iOS. */}
+      {/* Plein écran SANS défilement : on mesure la hauteur dispo (onLayout de
+          la zone) ET la hauteur naturelle du contenu, puis on applique un
+          `transform: scale` qui rétrécit tout le bloc juste ce qu'il faut pour
+          qu'il tienne (footer compris). paddingBottom = insets.bottom réserve
+          la barre système et sert de base au centrage vertical.
+          KeyboardAvoidingView évite que le clavier recouvre les champs. */}
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={[styles.area, { paddingBottom: insets.bottom }]}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        // onLayout donne la hauteur réelle de cette zone (sous le header, barre
+        // du bas déduite par le padding). On ne garde que la valeur la PLUS
+        // GRANDE mesurée : quand le clavier s'ouvre et rétrécit la zone,
+        // l'échelle ne "saute" pas.
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          setAreaHeight((prev) => (h > prev ? h : prev));
+        }}
       >
         <View
-          style={[styles.content, { paddingBottom: insets.bottom + SPACING.md }]}
+          // transform: scale réduit uniformément tout le contenu. Le 2e style
+          // (transform) est calculé à l'exécution, d'où sa présence ici.
+          style={[styles.content, { transform: [{ scale }] }]}
+          // Mesure la hauteur NATURELLE du contenu (le transform ne modifie pas
+          // cette mesure). Quand le champ de confirmation apparaît, la hauteur
+          // change → onLayout refire → l'échelle se recalcule toute seule.
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
         >
           <Text style={styles.pageTitle}>Mon Compte</Text>
 
@@ -318,9 +360,6 @@ export default function UserAccount() {
           <Text style={styles.deleteBtnText}>Supprimer mon compte</Text>
         </Pressable>
 
-          {/* Pousse le footer en bas de l'écran (plein écran sans scroll). */}
-          <View style={styles.spacer} />
-
           <TmdbAttribution />
         </View>
       </KeyboardAvoidingView>
@@ -403,8 +442,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.noirCinema,
   },
-  flex: {
+  // Zone d'affichage sous le header. flex: 1 pour remplir l'espace, et
+  // justifyContent center pour centrer verticalement le contenu (équilibré
+  // quand il reste de la place ; collé/réduit quand l'écran est court).
+  area: {
     flex: 1,
+    justifyContent: "center",
   },
   loadingText: {
     color: COLORS.grisTexte,
@@ -413,17 +456,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: SPACING.huge,
   },
-  // Plein écran : on remplit la hauteur, le footer est poussé en bas (spacer).
+  // Contenu à hauteur NATURELLE (pas de flex: 1) : c'est cette hauteur qu'on
+  // mesure pour calculer le facteur de réduction. Le `transform: scale` est
+  // ajouté dans le composant (valeur calculée à l'exécution).
   content: {
-    flex: 1,
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
     alignItems: "center",
-  },
-  // Espace élastique qui pousse le footer tout en bas de l'écran.
-  spacer: {
-    flexGrow: 1,
   },
   pageTitle: {
     alignSelf: "flex-start",

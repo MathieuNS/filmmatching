@@ -7,6 +7,9 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+// useSafeAreaInsets : hauteur des zones système (barre du bas) pour ne pas que
+// le contenu défilable ni la barre flottante passent derrière les boutons.
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "../components/Avatar";
 import {
   fetchMe,
@@ -36,6 +39,10 @@ import { RADII, SPACING, BORDERS } from "../constants/spacing";
  * @returns {JSX.Element} L'écran des amis
  */
 export default function Friends({ navigation }) {
+  // Hauteur des zones système (barre de navigation du bas). 0 si l'appareil
+  // n'en a pas. On l'ajoute aux paddings/positions du bas.
+  const insets = useSafeAreaInsets();
+
   // --- Données ---
   const [currentUserId, setCurrentUserId] = useState(null);
   const [friendships, setFriendships] = useState([]);
@@ -45,6 +52,10 @@ export default function Friends({ navigation }) {
   const [selectMode, setSelectMode] = useState(false);
   // Set d'IDs d'amitiés sélectionnées (Set = ajout/retrait sans doublons).
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // Hauteur réelle de la barre flottante "Voir les matchs", mesurée à
+  // l'exécution (onLayout), pour réserver exactement la place qu'il faut en
+  // bas de la liste afin qu'elle ne cache pas les derniers amis.
+  const [floatingBarHeight, setFloatingBarHeight] = useState(0);
 
   // --- Formulaire d'ajout d'ami ---
   const [searchQuery, setSearchQuery] = useState("");
@@ -244,6 +255,11 @@ export default function Friends({ navigation }) {
   );
   const confirmedFriends = friendships.filter((f) => f.accepted);
 
+  // La barre flottante "Voir les matchs" est affichée en mode sélection dès
+  // qu'au moins 2 amis sont cochés. On le calcule une fois pour le réutiliser
+  // (réservation de place en bas de liste + rendu de la barre).
+  const showFloatingBar = selectMode && selectedIds.size >= 2;
+
   /**
    * Pseudo de l'ami dans une amitié (l'autre que moi).
    * @param {Object} f - amitié
@@ -282,9 +298,108 @@ export default function Friends({ navigation }) {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        // paddingBottom = barre système (insets.bottom) + place habituelle.
+        // Quand la barre flottante "Voir les matchs" est affichée, on réserve
+        // EN PLUS sa hauteur (mesurée) + son décalage + une marge, sinon elle
+        // recouvrirait les derniers amis de la liste.
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom:
+              insets.bottom +
+              (showFloatingBar
+                ? SPACING.xl + floatingBarHeight + SPACING.md
+                : SPACING.huge),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
+        {/* === Ajouter un ami (placé en haut, sous le titre) === */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ajouter un ami</Text>
+          <View style={styles.addForm}>
+            <View style={styles.searchWrapper}>
+              <TextInput
+                style={styles.addInput}
+                placeholder="Pseudo de ton ami..."
+                placeholderTextColor={COLORS.grisTexte}
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  // Si on modifie le texte après avoir choisi une suggestion,
+                  // on annule la sélection pour relancer la recherche.
+                  setSelectedUser(null);
+                }}
+                onSubmitEditing={handleSendRequest}
+                autoCapitalize="none"
+              />
+
+              {/* Liste de suggestions (autocomplétion) */}
+              {suggestions.length > 0 && (
+                <View style={styles.suggestions}>
+                  {suggestions.map((user) => (
+                    <Pressable
+                      key={user.id}
+                      style={styles.suggestionItem}
+                      onPress={() => handleSelectSuggestion(user)}
+                    >
+                      <Avatar
+                        name={user.avatar}
+                        size={28}
+                        fallbackLabel={user.username}
+                      />
+                      <Text style={styles.suggestionName}>{user.username}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              {/* Indicateur de recherche en cours */}
+              {searchingUsers && searchQuery.trim().length >= 2 && (
+                <View style={styles.suggestions}>
+                  <Text style={styles.suggestionLoading}>Recherche...</Text>
+                </View>
+              )}
+            </View>
+
+            <Pressable
+              style={[
+                styles.addBtn,
+                (sending || !searchQuery.trim()) && styles.addBtnDisabled,
+              ]}
+              onPress={handleSendRequest}
+              disabled={sending || !searchQuery.trim()}
+            >
+              <Text style={styles.addBtnText}>
+                {sending ? "Envoi..." : "Envoyer"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Message de feedback (succès ou erreur) */}
+          {feedbackMessage && (
+            <View
+              style={[
+                styles.message,
+                feedbackMessage.type === "success"
+                  ? styles.messageSuccess
+                  : styles.messageError,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  feedbackMessage.type === "success"
+                    ? styles.messageTextSuccess
+                    : styles.messageTextError,
+                ]}
+              >
+                {feedbackMessage.text}
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* === Demandes reçues en attente === */}
         {pendingReceived.length > 0 && (
           <View style={styles.section}>
@@ -371,7 +486,7 @@ export default function Friends({ navigation }) {
 
           {confirmedFriends.length === 0 ? (
             <Text style={styles.empty}>
-              Tu n'as pas encore d'amis. Envoie une demande ci-dessous !
+              Tu n'as pas encore d'amis. Envoie une demande ci-dessus !
             </Text>
           ) : (
             confirmedFriends.map((f) => {
@@ -456,97 +571,16 @@ export default function Friends({ navigation }) {
             </View>
           ))}
         </View>
-
-        {/* === Ajouter un ami === */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ajouter un ami</Text>
-          <View style={styles.addForm}>
-            <View style={styles.searchWrapper}>
-              <TextInput
-                style={styles.addInput}
-                placeholder="Pseudo de ton ami..."
-                placeholderTextColor={COLORS.grisTexte}
-                value={searchQuery}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                  // Si on modifie le texte après avoir choisi une suggestion,
-                  // on annule la sélection pour relancer la recherche.
-                  setSelectedUser(null);
-                }}
-                onSubmitEditing={handleSendRequest}
-                autoCapitalize="none"
-              />
-
-              {/* Liste de suggestions (autocomplétion) */}
-              {suggestions.length > 0 && (
-                <View style={styles.suggestions}>
-                  {suggestions.map((user) => (
-                    <Pressable
-                      key={user.id}
-                      style={styles.suggestionItem}
-                      onPress={() => handleSelectSuggestion(user)}
-                    >
-                      <Avatar
-                        name={user.avatar}
-                        size={28}
-                        fallbackLabel={user.username}
-                      />
-                      <Text style={styles.suggestionName}>{user.username}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {/* Indicateur de recherche en cours */}
-              {searchingUsers && searchQuery.trim().length >= 2 && (
-                <View style={styles.suggestions}>
-                  <Text style={styles.suggestionLoading}>Recherche...</Text>
-                </View>
-              )}
-            </View>
-
-            <Pressable
-              style={[
-                styles.addBtn,
-                (sending || !searchQuery.trim()) && styles.addBtnDisabled,
-              ]}
-              onPress={handleSendRequest}
-              disabled={sending || !searchQuery.trim()}
-            >
-              <Text style={styles.addBtnText}>
-                {sending ? "Envoi..." : "Envoyer"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Message de feedback (succès ou erreur) */}
-          {feedbackMessage && (
-            <View
-              style={[
-                styles.message,
-                feedbackMessage.type === "success"
-                  ? styles.messageSuccess
-                  : styles.messageError,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  feedbackMessage.type === "success"
-                    ? styles.messageTextSuccess
-                    : styles.messageTextError,
-                ]}
-              >
-                {feedbackMessage.text}
-              </Text>
-            </View>
-          )}
-        </View>
       </ScrollView>
 
       {/* Barre flottante "Voir les matchs" (mode sélection, ≥ 2 amis cochés) */}
-      {selectMode && selectedIds.size >= 2 && (
-        <View style={styles.floatingBar}>
+      {showFloatingBar && (
+        <View
+          style={[styles.floatingBar, { bottom: SPACING.xl + insets.bottom }]}
+          // On mesure sa hauteur réelle pour réserver la place exacte en bas de
+          // la liste (cf. contentContainerStyle du ScrollView).
+          onLayout={(e) => setFloatingBarHeight(e.nativeEvent.layout.height)}
+        >
           <Pressable style={styles.floatingBtn} onPress={handleGroupMatch}>
             <Text style={styles.floatingBtnText}>
               🎬 Voir les matchs ({selectedIds.size} amis)
@@ -586,8 +620,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.huge,
     gap: SPACING.xxl,
+    // paddingBottom n'est PAS ici : calculé dans le composant
+    // (SPACING.huge + insets.bottom) pour réserver la barre système du bas.
   },
 
   // --- Sections ---
@@ -866,7 +901,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: SPACING.xl,
     right: SPACING.xl,
-    bottom: SPACING.xl,
+    // bottom n'est PAS ici : calculé dans le composant (SPACING.xl +
+    // insets.bottom) pour passer au-dessus de la barre système.
   },
   floatingBtn: {
     backgroundColor: COLORS.violetNuit,

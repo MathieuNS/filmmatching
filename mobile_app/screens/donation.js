@@ -1,4 +1,8 @@
 import { View, Text, ScrollView, Pressable, Linking, StyleSheet } from "react-native";
+// Hook qui renvoie la taille des zones système (barre du bas, etc.). On ajoute
+// insets.bottom au paddingBottom pour que le footer ne passe pas derrière les
+// boutons du téléphone (le contenu est dans une ScrollView).
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import StaticScreenHeader from "../components/StaticScreenHeader";
 import TmdbAttribution from "../components/TmdbAttribution";
 import { COLORS } from "../constants/colors";
@@ -18,12 +22,21 @@ const TIPEEE_URL = "https://fr.tipeee.com/filmmatching/";
  * @returns {JSX.Element} L'écran Donation
  */
 export default function Donation() {
+  // Hauteur des zones système. insets.bottom = hauteur de la barre de
+  // navigation du téléphone (0 si l'appareil n'en a pas).
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
       <StaticScreenHeader title="Soutenir le projet" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        // Style de base + paddingBottom dynamique (marge habituelle + hauteur
+        // de la barre du bas) pour que le footer ne déborde pas dessous.
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SPACING.xl + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* En-tête */}
@@ -83,8 +96,9 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
     alignItems: "center",
+    // paddingBottom n'est PAS ici : il est calculé dans le composant
+    // (SPACING.xl + insets.bottom) pour tenir compte de la barre du téléphone.
   },
   emoji: {
     fontSize: 40,

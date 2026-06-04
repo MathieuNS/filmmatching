@@ -10,6 +10,10 @@ import {
   Linking,
   StyleSheet,
 } from "react-native";
+// Hook qui renvoie la taille des zones système (barre du bas, etc.). On ajoute
+// insets.bottom au paddingBottom pour que le footer ne passe pas derrière les
+// boutons du téléphone (le contenu est dans une ScrollView).
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import StaticScreenHeader from "../components/StaticScreenHeader";
 import Input from "../components/Input";
 import Button from "../components/Button";
@@ -29,6 +33,10 @@ import { RADII, SPACING, BORDERS } from "../constants/spacing";
  * @returns {JSX.Element} L'écran Contact
  */
 export default function Contact() {
+  // Hauteur des zones système. insets.bottom = hauteur de la barre de
+  // navigation du téléphone (0 si l'appareil n'en a pas).
+  const insets = useSafeAreaInsets();
+
   // Champs du formulaire.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -74,7 +82,12 @@ export default function Contact() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          // Style de base + paddingBottom dynamique (marge habituelle + hauteur
+          // de la barre du bas) pour que le footer ne déborde pas dessous.
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: SPACING.xl + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -167,7 +180,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
+    // paddingBottom n'est PAS ici : il est calculé dans le composant
+    // (SPACING.xl + insets.bottom) pour tenir compte de la barre du téléphone.
   },
   subtitle: {
     fontFamily: FONTS.body,

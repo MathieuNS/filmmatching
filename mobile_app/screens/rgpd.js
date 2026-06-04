@@ -1,4 +1,9 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
+// useSafeAreaInsets : hook qui renvoie la taille des zones "système" (barre
+// d'état en haut, barre de navigation en bas). On l'utilise au lieu de
+// SafeAreaView car le contenu est dans une ScrollView : on ajoute la hauteur
+// de la barre du bas au paddingBottom pour que le footer ne passe pas dessous.
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import StaticScreenHeader from "../components/StaticScreenHeader";
 import TmdbAttribution from "../components/TmdbAttribution";
 import { COLORS } from "../constants/colors";
@@ -120,12 +125,23 @@ const SECTIONS = [
  * @returns {JSX.Element} L'écran RGPD
  */
 export default function RGPD() {
+  // Hauteur des zones système. insets.bottom = hauteur de la barre de
+  // navigation Android (0 si l'appareil n'en a pas).
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.screen}>
       <StaticScreenHeader title="Confidentialité" />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        // On combine le style de base + un paddingBottom dynamique : la marge
+        // habituelle (SPACING.xl) PLUS la hauteur de la barre du bas. Comme
+        // cette valeur dépend de l'appareil, elle ne peut pas vivre dans le
+        // StyleSheet (calculée à l'exécution) — c'est l'usage prévu.
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: SPACING.xl + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.lastUpdated}>Dernière mise à jour : 9 mars 2026</Text>
@@ -161,7 +177,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
+    // paddingBottom n'est PAS ici : il est calculé dans le composant
+    // (SPACING.xl + insets.bottom) pour tenir compte de la barre du téléphone.
   },
   lastUpdated: {
     fontFamily: FONTS.body,

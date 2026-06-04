@@ -13,10 +13,14 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+
+# EAS credentials (signature/keystore en local — ne jamais committer)
+credentials.json
 
 # Metro
 .metro-health-check*
