@@ -97,9 +97,17 @@ api.interceptors.response.use(
     // On ne tente le rafraîchissement QUE si :
     // - c'est bien un 401 (jeton expiré/invalide),
     // - cette requête n'a pas DÉJÀ été rejouée (flag `_retry`, anti-boucle),
-    // - et ce n'est pas l'appel de rafraîchissement lui-même (sinon boucle infinie).
-    const isRefreshCall = originalRequest?.url?.includes("/api/token/refresh/");
-    if (status !== 401 || originalRequest._retry || isRefreshCall) {
+    // - et ce n'est pas un endpoint d'AUTHENTIFICATION lui-même.
+    //
+    // `/api/token/` (connexion) ET `/api/token/refresh/` (rafraîchissement) :
+    // un 401 sur ces deux endpoints NE veut PAS dire "jeton d'accès expiré",
+    // mais "identifiants/refresh invalides". Si on lançait quand même le
+    // rafraîchissement, l'absence de refresh token (pas encore connecté) ferait
+    // lever une nouvelle erreur SANS `.response` -> l'écran de login afficherait
+    // à tort "Impossible de joindre le serveur" au lieu de "Erreur d'identifiants".
+    // `includes("/api/token/")` couvre les deux URLs (refresh contient ce préfixe).
+    const isAuthEndpoint = originalRequest?.url?.includes("/api/token/");
+    if (status !== 401 || originalRequest._retry || isAuthEndpoint) {
       return Promise.reject(error);
     }
     originalRequest._retry = true;

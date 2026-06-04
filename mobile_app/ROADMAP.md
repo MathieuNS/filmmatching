@@ -130,8 +130,8 @@ Suivi du portage du **site web** (`frontend/`, React + Vite) vers l'**app mobile
 - [x] **Bande-annonce** : le tap en dehors ne ferme pas la fenêtre YouTube.
 - [x] **« Voir les matchs »** : le bouton retour doit renvoyer à la liste d'amis (et non à Home).
 - [ ] *(optionnel)* `pendingCount` dans un slice Redux (rafraîchir le badge après accept/decline).
-- [ ] **À tester sur appareil** : tap étoiles vs ouverture fiche (petites cartes), recherche clavier ouvert, sélecteur d'avatar, suppression de compte → retour AuthStack.
-- [ ] l'erreur d'identifiant envoie "erreur avec le serveur, vérifier la connexion" au lieu de erreur d'identifiant
+- [x] **À tester sur appareil** : tap étoiles vs ouverture fiche (petites cartes), recherche clavier ouvert, sélecteur d'avatar, suppression de compte → retour AuthStack.
+- [x] l'erreur d'identifiant envoie "impossible de rejoindre le serveur, vérifier la connexion" au lieu de erreur d'identifiant
 - [x] le tap en dehors du popup youtube devrait fermer le popup youtube
 - [ ] lower case lors de la connexion avec email
 - [ ] lower case sur les pseudo (web et mobile app) pour éviter d'avoir deux pseudo identiques avec des majuscule et minuscules

@@ -19,6 +19,14 @@ import LoadingScreen from "../screens/LoadingScreen";
  * `NavigationContainer` est la racine obligatoire de React Navigation
  * (l'équivalent de `<BrowserRouter>` du web).
  *
+ * ⚠️ `key` sur le `NavigationContainer` : AppStack et AuthStack partagent
+ * certains noms d'écran (RGPD, Contact, MentionsLegales, Donation, accessibles
+ * connecté ET déconnecté). Sans la `key`, en se déconnectant React Navigation
+ * tente de PRÉSERVER l'écran courant par son nom : si on était (ou si l'historique
+ * passait) sur une de ces pages partagées, l'AuthStack la ré-afficherait au lieu
+ * de repartir sur `Landing`. Changer la `key` entre "auth"/"unauth" force le
+ * conteneur à se remonter à neuf -> l'AuthStack démarre bien sur son écran initial.
+ *
  * @returns {JSX.Element} L'écran approprié selon l'état de connexion
  */
 export default function RootNavigator() {
@@ -30,9 +38,11 @@ export default function RootNavigator() {
     return <LoadingScreen />;
   }
 
+  const isAuthenticated = status === "authenticated";
+
   return (
-    <NavigationContainer>
-      {status === "authenticated" ? <AppStack /> : <AuthStack />}
+    <NavigationContainer key={isAuthenticated ? "app" : "auth"}>
+      {isAuthenticated ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
