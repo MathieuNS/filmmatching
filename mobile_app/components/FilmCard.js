@@ -291,7 +291,12 @@ export default function FilmCard({ film, variant = "swipe" }) {
               style={[styles.actionBtn, styles.trailerBtn]}
               onPress={() => setShowTrailer(true)}
             >
-              <Text style={[styles.actionBtnText, { color: COLORS.corailVif }]}>
+              {/* numberOfLines={1} : le libellé ne se casse jamais en hauteur,
+                  il se tronque (…) si la place manque vraiment. */}
+              <Text
+                style={[styles.actionBtnText, { color: COLORS.corailVif }]}
+                numberOfLines={1}
+              >
                 ▶ Bande-annonce
               </Text>
             </Pressable>
@@ -301,7 +306,10 @@ export default function FilmCard({ film, variant = "swipe" }) {
               style={[styles.actionBtn, styles.platformsBtn]}
               onPress={() => setShowPlatforms(true)}
             >
-              <Text style={[styles.actionBtnText, { color: COLORS.vertMatch }]}>
+              <Text
+                style={[styles.actionBtnText, { color: COLORS.vertMatch }]}
+                numberOfLines={1}
+              >
                 📺 Regarder
               </Text>
             </Pressable>
@@ -553,15 +561,21 @@ const styles = StyleSheet.create({
   // Boutons d'action
   actionButtons: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    // Pas de `flexWrap` : les deux boutons restent côte à côte sur la même
+    // ligne. S'ils manquent de place, ils rétrécissent (flexShrink ci-dessous)
+    // au lieu de passer l'un sous l'autre.
     gap: SPACING.sm,
     marginTop: 2,
   },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    // Autorise le bouton à se réduire sous sa largeur naturelle quand la place
+    // manque (sinon le 2e bouton serait poussé hors de la ligne).
+    flexShrink: 1,
     paddingVertical: 6,
-    paddingHorizontal: SPACING.lg - 2, // ~14px
+    paddingHorizontal: SPACING.md, // resserré (~14px -> ~10px) pour gagner de la place
     borderRadius: RADII.pill,
     borderWidth: BORDERS.width,
   },

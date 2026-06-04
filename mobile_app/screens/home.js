@@ -44,7 +44,7 @@ const SWIPE_THRESHOLD = 120;
  * Port de la page web `frontend/src/pages/home.jsx`. On affiche un film à la
  * fois ; l'utilisateur le fait glisser au doigt (ou tape un bouton) :
  *   - vers la DROITE  → "À voir" (like)
- *   - vers la GAUCHE  → "Pas intéressé" (dislike)
+ *   - vers la GAUCHE  → "Zapper" (dislike)
  *   - vers le HAUT    → "Déjà vu" (seen)
  *
  * Le film suivant est pré-chargé en avance pour un affichage instantané.
@@ -490,7 +490,7 @@ export default function Home({ navigation }) {
           ]}
           {...panResponder.panHandlers}
         >
-          {/* Indicateur "Pas intéressé" (glissement gauche) */}
+          {/* Indicateur "Zapper" (glissement gauche) */}
           <Animated.View
             style={[
               styles.indicator,
@@ -500,7 +500,7 @@ export default function Home({ navigation }) {
             pointerEvents="none"
           >
             <Text style={[styles.indicatorText, { color: COLORS.grisTexte }]}>
-              ✕ Pas intéressé
+              ✕ Zapper
             </Text>
           </Animated.View>
 
@@ -538,7 +538,7 @@ export default function Home({ navigation }) {
 
       {/* Les 3 boutons d'action sous la carte */}
       <View style={styles.actions}>
-        {/* Pas intéressé */}
+        {/* Zapper */}
         <View style={styles.actionGroup}>
           <Pressable
             style={[styles.actionBtn, styles.actionBtnDislike]}
@@ -549,7 +549,7 @@ export default function Home({ navigation }) {
             </Text>
           </Pressable>
           <Text style={[styles.actionLabel, { color: COLORS.corailVif }]}>
-            Pas intéressé
+            Zapper
           </Text>
         </View>
 

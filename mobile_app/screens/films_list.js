@@ -38,7 +38,7 @@ const NUM_COLUMNS = 3;
 const TABS = [
   { status: "like", label: "À voir", icon: "❤️" },
   { status: "seen", label: "Déjà vu", icon: "👁️" },
-  { status: "dislike", label: "Pas intéressé", icon: "✕" },
+  { status: "dislike", label: "Zappé", icon: "✕" },
 ];
 
 // Pour le menu contextuel : quels statuts proposer selon l'onglet courant
@@ -46,11 +46,11 @@ const TABS = [
 const STATUS_OPTIONS = {
   like: [
     { status: "seen", label: "Déjà vu", icon: "👁️" },
-    { status: "dislike", label: "Pas intéressé", icon: "✕" },
+    { status: "dislike", label: "Zapper", icon: "✕" },
   ],
   seen: [
     { status: "like", label: "À voir", icon: "❤️" },
-    { status: "dislike", label: "Pas intéressé", icon: "✕" },
+    { status: "dislike", label: "Zapper", icon: "✕" },
   ],
   dislike: [
     { status: "like", label: "À voir", icon: "❤️" },
@@ -67,7 +67,7 @@ const STATUS_OPTIONS = {
  *   - "Déjà vu" (seen) : mes films vus, que je peux noter (étoiles) et
  *     commenter (💬). Triés par note décroissante (tri gelé 2 s après une
  *     modif de note pour pouvoir se corriger).
- *   - "Pas intéressé" (dislike) : mes films écartés, avec le badge amis.
+ *   - "Zappé" (dislike) : mes films écartés, avec le badge amis.
  *
  * Depuis chaque carte je peux changer le statut d'un film via le menu ⋯,
  * ouvrir sa fiche complète (FilmDetailModal) ou éditer mon commentaire.
@@ -395,7 +395,7 @@ export default function FilmList() {
           </Text>
           <Text style={styles.cardYear}>{film.release_year}</Text>
 
-          {/* Onglets "À voir" / "Pas intéressé" : badge des notes des amis. */}
+          {/* Onglets "À voir" / "Zappé" : badge des notes des amis. */}
           {(activeTab === "like" || activeTab === "dislike") && (
             <FriendRatingsBadge
               friendRatings={film.friend_ratings}

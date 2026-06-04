@@ -30,7 +30,7 @@ function getStatusBadge(status) {
  * d'un coup avec leurs infos complètes.
  *
  * Au tap sur un film, on ouvre `FilmDetailModal` en contexte "affiche" :
- * 3 boutons de swipe directs (À voir / Déjà vu / Pas intéressé) qui
+ * 3 boutons de swipe directs (À voir / Déjà vu / Zappé) qui
  * utilisent le même endpoint /api/swipes/ que le reste de l'app. Un match
  * déclenche l'animation `MatchOverlay`.
  *
