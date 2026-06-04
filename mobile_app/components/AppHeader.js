@@ -23,10 +23,11 @@ import { SPACING, BORDERS } from "../constants/spacing";
  * Bouton retour : React Navigation fournit la prop `back` (définie seulement
  * s'il y a un écran précédent dans la pile). Quand elle existe (ex : Friends,
  * MatchList ouverts depuis le menu), on affiche une flèche ← à gauche du logo.
- * Plutôt qu'un simple "retour en arrière" (`goBack`), la flèche ramène
- * directement à l'écran d'accueil `Home` (le swipe), pour un comportement
- * prévisible quel que soit le chemin emprunté. L'écran Home lui-même force
- * `back` à undefined → pas de flèche dessus.
+ * Par défaut la flèche ramène directement à l'accueil `Home` (le swipe), pour
+ * un comportement prévisible quel que soit le chemin emprunté. SEULE EXCEPTION :
+ * la liste des matchs (`MatchList`), toujours ouverte depuis la liste d'amis,
+ * où la flèche revient à `Friends` (`goBack`) plutôt qu'à Home. L'écran Home
+ * force `back` à undefined → pas de flèche dessus.
  *
  * @param {Object} props
  * @param {Object} [props.route] - route active fournie par le navigateur
@@ -47,9 +48,15 @@ export default function AppHeader({ route, navigation, back, rightActions }) {
         {back && (
           <Pressable
             style={styles.backBtn}
-            onPress={() => navigation.navigate("Home")}
+            // Par défaut : retour à l'accueil. Exception : sur la liste des
+            // matchs, on revient à la liste d'amis (l'écran précédent).
+            onPress={() =>
+              route?.name === "MatchList"
+                ? navigation.goBack()
+                : navigation.navigate("Home")
+            }
             hitSlop={8}
-            accessibilityLabel="Retour à l'accueil"
+            accessibilityLabel="Retour"
           >
             <Text style={styles.backIcon}>←</Text>
           </Pressable>

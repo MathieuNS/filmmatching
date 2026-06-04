@@ -369,8 +369,16 @@ export default function FilmCard({ film, variant = "swipe" }) {
           animationType="fade"
           onRequestClose={() => setShowTrailer(false)}
         >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.trailerModal}>
+          {/* Pressable en fond : un tap N'IMPORTE OÙ en dehors du lecteur
+              ferme la modale (comme la modale « Où regarder »). */}
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setShowTrailer(false)}
+          >
+            {/* Pressable interne (onPress vide) : "absorbe" le tap pour qu'un
+                clic SUR le lecteur ne referme pas la modale (équiv.
+                stopPropagation du web). */}
+            <Pressable style={styles.trailerModal} onPress={() => {}}>
               <Pressable
                 style={styles.modalClose}
                 onPress={() => setShowTrailer(false)}
@@ -391,8 +399,8 @@ export default function FilmCard({ film, variant = "swipe" }) {
                   if (state === "ended") setShowTrailer(false);
                 }}
               />
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       ) : null}
 
