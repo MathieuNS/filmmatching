@@ -31,8 +31,9 @@ import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { RADII, SPACING, BORDERS } from "../constants/spacing";
 
-// Nombre de colonnes de la grille de films (comme match_list).
-const NUM_COLUMNS = 3;
+// Nombre de colonnes de la grille de films. 2 colonnes → cartes plus grandes,
+// comme l'affichage responsive du site web sur téléphone.
+const NUM_COLUMNS = 2;
 
 // Configuration des onglets : statut interne, libellé, icône.
 const TABS = [
