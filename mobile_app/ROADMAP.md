@@ -49,9 +49,9 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 - [~] **Icône d'app** : laissée telle quelle ; à rebrander seulement si nouveaux visuels.
 
 ### Distribution (reportée — cf. [[project_mobile_distribution]])
-- [ ] `eas.json` + champs `app.json` (`android.package`, `extra.eas.projectId`)
-- [ ] Compte Expo + `eas-cli` (côté utilisateur)
-- [ ] `eas build -p android --profile preview` → APK installable
+- [x] `eas.json` + champs `app.json` (`android.package`, `extra.eas.projectId`)
+- [x] Compte Expo + `eas-cli` (côté utilisateur)
+- [x] `eas build -p android --profile preview` → APK installable
 - [ ] Tests sur Android (appareil réel via l'APK)
 - [ ] iOS / stores : plus tard (nécessite compte Apple)
 
@@ -63,13 +63,13 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 > Légende : `[~]` = présent dans le code, **à confirmer en prod** ; `[ ]` = à ajouter/faire.
 
 ### Premiers pas (rapides)
-- [ ] `python manage.py check --deploy` (avec `DEBUG=False`, sur le VPS) → liste priorisée, objectif 0 alerte
+- [~] `python manage.py check --deploy` (avec `DEBUG=False`, sur le VPS) → lancé ; restait 3 warnings : `SECRET_KEY` faible (à régénérer dans `.env.production`), HSTS (ajouté), `static` manquant (corrigé via `.gitignore`). Objectif 0 alerte.
 - [ ] `/security-review` (Claude Code) → revue du code (injections, IDOR, secrets, logs sensibles)
 
 ### A. Backend / API (Django)
 - [~] `DEBUG=False` en prod ; `ALLOWED_HOSTS` restreint (pas `*`) ; `SECRET_KEY` unique hors dépôt
 - [~] CORS restreint (pas `ALLOW_ALL`) ; redirection HTTPS + cookies `Secure` + `SECURE_PROXY_SSL_HEADER`
-- [ ] **HSTS** (`SECURE_HSTS_SECONDS` + subdomains/preload) une fois le HTTPS stable
+- [~] **HSTS** (`SECURE_HSTS_SECONDS` + subdomains) ajouté dans `settings.py` à **1 jour** (prudent) ; à passer à 1 an + preload après quelques jours stables
 - [ ] **Rate limiting** sur endpoints sensibles (login, création, mdp oublié, contact) — throttling DRF
 - [ ] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`)
 - [ ] **Permissions par endpoint** (`IsAuthenticated`) + anti-**IDOR** (swipes, amitiés, filmothèque privée, `me/...`)
@@ -88,7 +88,7 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 - [ ] (Plus tard) certificate pinning si besoin élevé
 
 ### D. Infra / déploiement
-- [ ] Certificat HTTPS valide + auto-renouvelé (Let's Encrypt) ; note TLS correcte
+- [x] Certificat HTTPS valide + auto-renouvelé (Let's Encrypt) ; renouvellement réparé via `pre_hook`/`post_hook` certbot (stop/start le `frontend` Docker pour libérer le port 80), validé par `--dry-run`
 - [ ] Nginx à jour, pas de listing, taille de requête limitée
 - [ ] BDD non exposée publiquement + sauvegardes testées
 - [ ] Secrets (`.env.production`) hors dépôt, droits restreints ; OS/Docker à jour, SSH durci, pare-feu 80/443
@@ -113,4 +113,4 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ---
 
-*Dernière mise à jour : 2026-06-05 (Réorganisation : suppression du détail du déjà-livré — phases 0-8 résumées, finitions/dettes terminées retirées (vivent dans le code + git). Ne restent que les décisions arrêtées, la Phase 9 (distribution), la Phase 10 (sécurité prod) et les TODO ouverts.)*
+*Dernière mise à jour : 2026-06-06 (Phase 10 démarrée : `check --deploy` lancé en prod ; renouvellement HTTPS auto réparé (hooks certbot) ; HSTS ajouté (1 jour, prudent) ; dossier `static` source dé-ignoré. Reste : régénérer `SECRET_KEY`, déployer ces correctifs.)*

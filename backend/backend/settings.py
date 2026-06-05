@@ -209,6 +209,18 @@ if not DEBUG:
     # si la requête originale était en HTTPS (même si Nginx → Django est en HTTP).
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+    # HSTS (HTTP Strict Transport Security) : on envoie un en-tête qui dit au
+    # navigateur "pour ce domaine, n'utilise QUE du HTTPS pendant la durée indiquée,
+    # jamais du HTTP". Ça protège contre les attaques d'interception.
+    # ⚠️ Quasi irréversible : le navigateur MÉMORISE cette consigne. Si le HTTPS
+    # casse pendant ce temps, le site devient inaccessible (pas de repli sur HTTP).
+    # On commence donc PRUDEMMENT à 1 jour (86400s) ; une fois sûr que tout tient
+    # dans la durée, passer à 31536000 (1 an) et activer SECURE_HSTS_PRELOAD.
+    SECURE_HSTS_SECONDS = 86400  # 1 jour
+    # INCLUDE_SUBDOMAINS : applique aussi la règle aux sous-domaines (www, etc.).
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # SECURE_HSTS_PRELOAD = True  # à activer seulement avec SECURE_HSTS_SECONDS = 31536000
+
 # ──────────────────────────────────────────────
 # Configuration des logs
 # ──────────────────────────────────────────────
