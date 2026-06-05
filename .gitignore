@@ -15,7 +15,9 @@ env/
 # Django
 *.sqlite3
 backend/media/
-backend/static/
+# NB : backend/static/ n'est PAS ignoré → ce sont nos fichiers statiques SOURCES
+# (ex: CSS perso de l'admin) qui doivent être versionnés et déployés.
+# Seul backend/staticfiles/ (généré par collectstatic) est ignoré.
 backend/staticfiles/
 
 # Environment variables

@@ -1,0 +1,474 @@
+/*
+ * CSS personnalisé pour l'admin Django.
+ * Applique la charte graphique FilmMatching (thème sombre cinéma)
+ * en surchargeant les variables CSS natives de Django admin.
+ */
+
+/* ===== Variables CSS de Django admin — on les remplace par nos couleurs ===== */
+:root {
+    /* Couleurs principales */
+    --primary: #FF4D6A;              /* corail-vif — accent principal */
+    --accent: #7B5CFF;               /* violet-nuit — accent secondaire */
+    --secondary: #FFAA2B;            /* ambre-doré */
+    --primary-fg: #F0EEF2;           /* blanc-doux — texte sur boutons */
+
+    /* Fond et surfaces */
+    --body-fg: #F0EEF2;              /* blanc-doux — texte principal */
+    --body-bg: #0D0D0F;             /* noir-cinéma — fond de page */
+    --body-quiet-color: #8B8B9E;     /* gris-texte — texte secondaire */
+    --body-loud-color: #F0EEF2;      /* blanc-doux — texte accentué */
+
+    /* En-tête */
+    --header-color: #F0EEF2;
+    --header-branding-color: #FF4D6A;
+    --header-bg: #16161A;            /* noir-carte */
+    --header-link-color: #F0EEF2;
+
+    /* Breadcrumbs */
+    --breadcrumbs-fg: #8B8B9E;
+    --breadcrumbs-link-fg: #F0EEF2;
+    --breadcrumbs-bg: #1E1E24;       /* gris-sombre */
+
+    /* Liens */
+    --link-fg: #7B5CFF;              /* violet-nuit */
+    --link-hover-color: #FF4D6A;     /* corail-vif au survol */
+    --link-selected-fg: #2EE0A1;     /* vert-match */
+
+    /* Boutons */
+    --button-fg: #F0EEF2;
+    --button-bg: #FF4D6A;
+    --button-hover-bg: #e6435e;
+    --default-button-bg: #7B5CFF;
+    --default-button-hover-bg: #6a4de6;
+    --close-button-bg: #2A2A32;
+    --close-button-hover-bg: #3a3a44;
+
+    /* Bordures et séparateurs */
+    --hairline-color: #2A2A32;       /* gris-moyen */
+    --border-color: #2A2A32;
+
+    /* Messages */
+    --message-success-bg: rgba(46, 224, 161, 0.15);
+    --message-warning-bg: rgba(255, 170, 43, 0.15);
+    --message-error-bg: rgba(255, 77, 106, 0.15);
+
+    /* Modules (sidebar, filtres, etc.) */
+    --darkened-bg: #16161A;          /* noir-carte — fond modules */
+    --selected-bg: #1E1E24;          /* gris-sombre — ligne sélectionnée */
+    --selected-row: rgba(123, 92, 255, 0.1); /* violet très transparent */
+
+    /* Formulaires */
+    --object-tools-fg: #F0EEF2;
+    --object-tools-bg: #7B5CFF;
+    --object-tools-hover-bg: #6a4de6;
+}
+
+/* ===== Styles globaux ===== */
+body {
+    font-family: 'Sora', 'Segoe UI', sans-serif;
+    /* Dégradé radial : deux halos discrets (corail + violet) très transparents
+       par-dessus le noir cinéma → donne de la profondeur au lieu d'un noir plat.
+       "fixed" garde le dégradé immobile quand on scrolle. */
+    background-color: #0D0D0F;
+    background-image:
+        radial-gradient(circle at 0% 0%, rgba(255, 77, 106, 0.06), transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(123, 92, 255, 0.06), transparent 40%);
+    background-attachment: fixed;
+}
+
+#header {
+    background: linear-gradient(135deg, #16161A 0%, #1E1E24 100%);
+    border-bottom: 1px solid #2A2A32;
+    /* Ombre douce sous l'en-tête pour le détacher du contenu */
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Logo / titre du site dans l'en-tête */
+#branding h1,
+#branding h1 a:link,
+#branding h1 a:visited {
+    color: #FF4D6A;
+    font-family: 'Outfit', 'Segoe UI', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Navigation utilisateur (coin haut droit) ===== */
+#user-tools a {
+    color: #7B5CFF;
+    border-bottom: none;
+    transition: color 0.25s ease;
+}
+
+#user-tools a:hover {
+    color: #FF4D6A;
+}
+
+/* ===== Modules (blocs de contenu) ===== */
+/* On transforme chaque module en "carte" façon charte FilmMatching :
+   coins arrondis 20px, fine bordure, ombre douce. overflow:hidden permet
+   à l'en-tête en dégradé (h2) d'épouser les coins arrondis du haut. */
+.module {
+    background: #16161A;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    margin-bottom: 24px;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+    background: linear-gradient(135deg, #FF4D6A 0%, #FFAA2B 100%);
+    color: #F0EEF2;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* ===== Boutons ===== */
+.submit-row input,
+.submit-row a,
+input[type="submit"],
+.button,
+a.button {
+    border-radius: 14px !important;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    border: none;
+}
+
+/* Bouton principal (Enregistrer) */
+input[type="submit"].default,
+.submit-row input.default {
+    background: linear-gradient(135deg, #FF4D6A 0%, #FFAA2B 100%);
+    box-shadow: 0 4px 24px rgba(255, 77, 106, 0.3);
+}
+
+input[type="submit"].default:hover,
+.submit-row input.default:hover {
+    box-shadow: 0 6px 32px rgba(255, 77, 106, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Bouton "Supprimer" */
+.deletelink,
+.submit-row a.deletelink {
+    background: transparent;
+    border: 1px solid #FF4D6A;
+    color: #FF4D6A;
+    border-radius: 14px;
+    transition: all 0.25s ease;
+}
+
+.deletelink:hover,
+.submit-row a.deletelink:hover {
+    background: rgba(255, 77, 106, 0.15);
+    color: #FF4D6A;
+}
+
+/* ===== Tableaux (listes d'objets) ===== */
+#changelist table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#changelist table thead th {
+    background: #1E1E24;
+    border-bottom: 2px solid #FF4D6A;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    color: #F0EEF2;
+}
+
+#changelist table tbody tr:nth-child(odd) {
+    background: #16161A;
+}
+
+#changelist table tbody tr:nth-child(even) {
+    background: #0D0D0F;
+}
+
+#changelist table tbody tr:hover {
+    background: rgba(123, 92, 255, 0.08);
+    transition: background 0.25s ease;
+}
+
+#changelist table tbody td {
+    border-bottom: 1px solid #2A2A32;
+}
+
+/* ===== Filtres (sidebar droite) ===== */
+#changelist-filter {
+    background: #16161A;
+    border: 1px solid #2A2A32;
+    border-radius: 20px;
+}
+
+#changelist-filter h2 {
+    border-radius: 20px 20px 0 0;
+}
+
+#changelist-filter h3 {
+    color: #FFAA2B;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+}
+
+#changelist-filter li.selected a {
+    color: #2EE0A1;
+    font-weight: 600;
+}
+
+/* ===== Barre de recherche ===== */
+#changelist-search input[type="text"],
+#searchbar {
+    background: #1E1E24;
+    border: 1px solid #2A2A32;
+    border-radius: 14px;
+    color: #F0EEF2;
+    padding: 8px 16px;
+    transition: border-color 0.25s ease;
+}
+
+#changelist-search input[type="text"]:focus,
+#searchbar:focus {
+    border-color: #7B5CFF;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.2);
+}
+
+#changelist-search input[type="submit"] {
+    border-radius: 14px;
+    background: #7B5CFF;
+}
+
+/* ===== Formulaires ===== */
+.form-row {
+    border-bottom-color: #2A2A32;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+    background: #1E1E24;
+    border: 1px solid #2A2A32;
+    border-radius: 10px;
+    color: #F0EEF2;
+    padding: 8px 12px;
+    transition: border-color 0.25s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+    border-color: #7B5CFF;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(123, 92, 255, 0.2);
+}
+
+select {
+    /* Flèche du select plus visible sur fond sombre */
+    color: #F0EEF2;
+}
+
+/* ===== Messages de succès/erreur ===== */
+.messagelist li.success {
+    background: rgba(46, 224, 161, 0.12);
+    border-left: 4px solid #2EE0A1;
+    color: #2EE0A1;
+}
+
+.messagelist li.warning {
+    background: rgba(255, 170, 43, 0.12);
+    border-left: 4px solid #FFAA2B;
+    color: #FFAA2B;
+}
+
+.messagelist li.error {
+    background: rgba(255, 77, 106, 0.12);
+    border-left: 4px solid #FF4D6A;
+    color: #FF4D6A;
+}
+
+/* ===== Breadcrumbs ===== */
+div.breadcrumbs {
+    background: #1E1E24;
+    border-bottom: 1px solid #2A2A32;
+    font-family: 'Sora', sans-serif;
+}
+
+/* ===== Dashboard (page d'accueil admin) ===== */
+.dashboard .module table th {
+    background: transparent;
+    color: #8B8B9E;
+    font-family: 'Outfit', sans-serif;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.dashboard .module table td a {
+    color: #F0EEF2;
+    transition: color 0.25s ease;
+}
+
+.dashboard .module table td a:hover {
+    color: #FF4D6A;
+}
+
+/* ===== Object tools (boutons "Ajouter", "Historique") ===== */
+.object-tools a,
+.object-tools a:link {
+    background: #7B5CFF;
+    border-radius: 14px;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.25s ease;
+}
+
+.object-tools a:hover {
+    background: #6a4de6;
+    box-shadow: 0 4px 16px rgba(123, 92, 255, 0.3);
+}
+
+/* ===== Fieldsets (groupes de champs dans les formulaires) ===== */
+/* fieldset.module hérite déjà de la carte ci-dessus ; on ajuste juste le
+   padding interne pour que les champs respirent. */
+fieldset.module {
+    padding-bottom: 8px;
+}
+
+/* ===== Login page ===== */
+#content-main {
+    color: #F0EEF2;
+}
+
+/* La page de connexion porte la classe "login" sur le <body>.
+   On centre la boîte de connexion et on la présente comme une carte
+   avec un glow corail, façon CTA de la charte. */
+body.login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+body.login #container {
+    background: #16161A;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    box-shadow: 0 12px 48px rgba(255, 77, 106, 0.15);
+    padding: 8px;
+    width: 100%;
+    max-width: 380px;
+    /* On masque le bandeau d'en-tête sombre par défaut sur le login */
+    overflow: hidden;
+}
+
+/* En-tête de la boîte de login : on met le nom du site en avant */
+body.login #header {
+    border-radius: 20px 20px 0 0;
+    text-align: center;
+    padding: 24px 16px;
+}
+
+body.login #branding h1,
+body.login #site-name a {
+    color: #FF4D6A;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+/* Le bouton "Se connecter" prend toute la largeur, dégradé Passion */
+body.login .submit-row input[type="submit"] {
+    width: 100%;
+    background: linear-gradient(135deg, #FF4D6A 0%, #FFAA2B 100%);
+    box-shadow: 0 4px 24px rgba(255, 77, 106, 0.3);
+}
+
+body.login .submit-row input[type="submit"]:hover {
+    box-shadow: 0 6px 32px rgba(255, 77, 106, 0.5);
+    transform: translateY(-1px);
+}
+
+/* ===== Liens de pagination ===== */
+.paginator {
+    color: #8B8B9E;
+}
+
+.paginator a:link,
+.paginator a:visited {
+    color: #F0EEF2;
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: #1E1E24;
+    border: 1px solid #2A2A32;
+    transition: all 0.25s ease;
+}
+
+.paginator a:hover {
+    background: #2A2A32;
+    color: #FFAA2B;
+}
+
+/* Page courante (non cliquable) */
+.paginator .this-page {
+    color: #0D0D0F;
+    background: linear-gradient(135deg, #FF4D6A, #FFAA2B);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+
+/* ===== Related widget (loupe, +) ===== */
+.related-lookup,
+.add-related {
+    color: #7B5CFF;
+    transition: color 0.25s ease;
+}
+
+.related-lookup:hover,
+.add-related:hover {
+    color: #FF4D6A;
+}
+
+/* ===== Icône calendrier/horloge ===== */
+.datetimeshortcuts a {
+    color: #7B5CFF;
+}
+
+/* ===== Help text ===== */
+.help,
+.helptext {
+    color: #8B8B9E;
+    font-size: 0.85rem;
+}
+
+/* ===== Scrollbar personnalisée ===== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0D0D0F;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2A2A32;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3a3a44;
+}
