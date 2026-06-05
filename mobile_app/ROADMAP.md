@@ -1,0 +1,116 @@
+# 🎬 FilmMatching Mobile — Feuille de route
+
+Suivi du portage du **site web** (`frontend/`, React + Vite) vers l'**app mobile** (`mobile_app/`, React Native + Expo).
+
+> **Principe** : le backend Django ne change pas. L'app mobile est un **nouveau client** des mêmes endpoints. On reconstruit l'interface écran par écran.
+> Cette feuille ne liste que **les décisions arrêtées et ce qui reste à faire**. Le détail du déjà-livré est dans le code + l'historique git.
+> Pour cocher : `[ ]` → `[x]`.
+
+---
+
+## 📊 Avancement global
+
+Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, social, catalogue, compte). Reste :
+
+- [ ] **Phase 9 — Finitions & distribution** ← *en cours*
+- [ ] **Phase 10 — Sécurité (prod)** — app & web
+
+---
+
+## 🧱 Décisions arrêtées
+
+| Sujet | Choix |
+|---|---|
+| État | **Redux Toolkit** (store central) |
+| Navigation | **Menu burger** (`HamburgerMenu`, pas de bottom tabs) + React Navigation (stack) |
+| Tokens | **expo-secure-store** (chiffré) |
+| Filtres | **AsyncStorage** (clé partagée Home / Ma liste) |
+| Thème | Centralisé dans `constants/` (`StyleSheet`, pas de CSS) |
+| Swipe | **PanResponder + Animated** (intégrés RN ; pas de gesture-handler/reanimated) |
+| Bande-annonce | **`react-native-youtube-iframe`** (l'iframe maison donnait l'erreur YouTube 150/152) ; « Où regarder » via `Linking` |
+| Avatars | SVG statiques en chaînes JS + `SvgXml` (`react-native-svg`) ; fallback avatar-lettre |
+| `FilmDetailModal` | Mutualisé `match_list` + `films_list`/`a_l_affiche` ; entraîne `StarRating` interactif + variante « détail » de `FilmCard` |
+| reset/activate password | **Gérés par le site web** (liens email → `FRONTEND_URL`) ; non construits dans l'app |
+| Deep linking | **Reporté** (inutile tant que les emails ouvrent le site) |
+| `unsubscribe` / `notfound` | **Ignorés** sur mobile (désinscription via toggle « Notifications email » de Mon Compte) |
+| Pages légales | Accès via le **footer `TmdbAttribution`**, pas le menu |
+
+---
+
+## Phase 9 — Finitions & distribution
+
+> **Cible = iOS *et* Android** (l'app doit marcher sur les deux). **MAIS** seul un **appareil Android**
+> est disponible pour tester (téléphone physique + émulateur) — pas de Mac / compte Apple. Donc :
+> **code cross-platform**, mais vérification réelle sur Android uniquement. Pour le code natif spécifique
+> (ex. `expo-blur`), coder le chemin iOS correctement mais le considérer **non vérifié sur iOS**.
+> **Distribution** : un **APK Android de test** (pas de publication store), cf. [[project_mobile_distribution]].
+
+### Finitions in-app
+- [~] **Icône d'app** : laissée telle quelle ; à rebrander seulement si nouveaux visuels.
+
+### Distribution (reportée — cf. [[project_mobile_distribution]])
+- [ ] `eas.json` + champs `app.json` (`android.package`, `extra.eas.projectId`)
+- [ ] Compte Expo + `eas-cli` (côté utilisateur)
+- [ ] `eas build -p android --profile preview` → APK installable
+- [ ] Tests sur Android (appareil réel via l'APK)
+- [ ] iOS / stores : plus tard (nécessite compte Apple)
+
+---
+
+## Phase 10 — Sécurité (prod) — app & web
+
+> Audit de **vérification en production** (beaucoup de garde-fous existent déjà côté Django) + ajouts manquants.
+> Légende : `[~]` = présent dans le code, **à confirmer en prod** ; `[ ]` = à ajouter/faire.
+
+### Premiers pas (rapides)
+- [ ] `python manage.py check --deploy` (avec `DEBUG=False`, sur le VPS) → liste priorisée, objectif 0 alerte
+- [ ] `/security-review` (Claude Code) → revue du code (injections, IDOR, secrets, logs sensibles)
+
+### A. Backend / API (Django)
+- [~] `DEBUG=False` en prod ; `ALLOWED_HOSTS` restreint (pas `*`) ; `SECRET_KEY` unique hors dépôt
+- [~] CORS restreint (pas `ALLOW_ALL`) ; redirection HTTPS + cookies `Secure` + `SECURE_PROXY_SSL_HEADER`
+- [ ] **HSTS** (`SECURE_HSTS_SECONDS` + subdomains/preload) une fois le HTTPS stable
+- [ ] **Rate limiting** sur endpoints sensibles (login, création, mdp oublié, contact) — throttling DRF
+- [ ] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`)
+- [ ] **Permissions par endpoint** (`IsAuthenticated`) + anti-**IDOR** (swipes, amitiés, filmothèque privée, `me/...`)
+- [ ] **Tokens JWT** : durées revues + rotation/blacklist des refresh à la déconnexion
+- [ ] Throttle / `maxLength` sur champs libres (contact, commentaires)
+
+### B. Frontend web
+- [ ] Build prod sans source maps / `console.log` sensibles ; aucune clé secrète dans le bundle
+- [ ] En-têtes Nginx : CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
+- [ ] Front sain (pas d'injection HTML non échappée — `localStorage` exposé au XSS)
+
+### C. App mobile
+- [~] Tokens dans `expo-secure-store` (OK, Phase 2)
+- [ ] **HTTPS only** (pas de cleartext HTTP ; `usesCleartextTraffic` off sur Android)
+- [ ] Pas de secret embarqué (`EXPO_PUBLIC_*` est public) ; aucune donnée sensible loggée
+- [ ] (Plus tard) certificate pinning si besoin élevé
+
+### D. Infra / déploiement
+- [ ] Certificat HTTPS valide + auto-renouvelé (Let's Encrypt) ; note TLS correcte
+- [ ] Nginx à jour, pas de listing, taille de requête limitée
+- [ ] BDD non exposée publiquement + sauvegardes testées
+- [ ] Secrets (`.env.production`) hors dépôt, droits restreints ; OS/Docker à jour, SSH durci, pare-feu 80/443
+
+### E. Dépendances & process
+- [ ] Audit des dépendances : `pip-audit` (backend), `npm audit` (web + mobile)
+- [ ] Plan de réaction en cas de fuite (rotation `SECRET_KEY`/tokens, invalidation des sessions)
+
+---
+
+## 🐛 Dettes & TODO des phases livrées
+
+- [ ] **Swipe ultra-rapide** (Phase 5) : enchaîner plus vite que le réseau peut afficher « Tu as tout vu ! » à tort. À durcir si gênant.
+- [ ] **Notifications** : à faire.
+- [ ] *(optionnel)* `pendingCount` dans un slice Redux (rafraîchir le badge après accept/decline).
+- [x] lower case lors de la connexion avec email et création du compte (mat@gmail.com = Mat@gmail.com) (app et web)
+- [x] lower case sur les pseudo (web et mobile app) pour éviter d'avoir deux pseudo identiques avec des majuscule et minuscules
+- [x] Filtre bouton réinitialiser devrait valider les filtres
+
+### Limites connues (pas des bugs)
+- Bandes-annonces dont l'embed YouTube est désactivé par le propriétaire : ne jouent pas en intégré (restriction côté contenu).
+
+---
+
+*Dernière mise à jour : 2026-06-05 (Réorganisation : suppression du détail du déjà-livré — phases 0-8 résumées, finitions/dettes terminées retirées (vivent dans le code + git). Ne restent que les décisions arrêtées, la Phase 9 (distribution), la Phase 10 (sécurité prod) et les TODO ouverts.)*

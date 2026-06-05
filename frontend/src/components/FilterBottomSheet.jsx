@@ -112,16 +112,25 @@ function FilterBottomSheet({
   }
 
   /**
-   * Réinitialise tous les filtres du brouillon à leur valeur par défaut.
+   * Réinitialise tous les filtres ET applique immédiatement.
+   *
+   * On remet le brouillon à zéro (pour l'affichage) puis on remonte
+   * directement les filtres par défaut au parent et on ferme le panneau :
+   * un seul clic suffit, plus besoin de cliquer ensuite sur "Appliquer".
+   * On passe l'objet par défaut explicitement à onApply car setDraftFilters
+   * est asynchrone (draftFilters contiendrait encore l'ancienne valeur).
    */
   function handleReset() {
-    setDraftFilters({
+    const defaultFilters = {
       type: "",
       genres: [],
       plateforms: [],
       yearMin: "",
       yearMax: "",
-    });
+    };
+    setDraftFilters(defaultFilters);
+    onApply(defaultFilters);
+    onClose();
   }
 
   /**

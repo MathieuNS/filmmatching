@@ -11,6 +11,12 @@ import { getAvatarUrl } from "../utils/avatars";
 import "../styles/Home.css";
 import "../styles/MatchAnimation.css";
 
+// Nombre maximum d'amis affichés avec leur avatar dans l'overlay de match.
+// Au-delà, on remplace le surplus par une pastille "+N" cliquable qui ouvre
+// la liste complète. Évite que l'overlay déborde quand BEAUCOUP d'amis likent
+// le même film. (Même réglage que la version mobile.)
+const MAX_VISIBLE_FRIENDS = 4;
+
 /**
  * Page d'accueil — Swipe de films.
  *
@@ -52,6 +58,9 @@ function Home() {
   // --- State pour l'animation de match ---
   // Contient les données du match à afficher (film + amis), ou null si pas de match
   const [matchData, setMatchData] = useState(null);
+  // Ouverture/fermeture de la liste complète des amis (second overlay),
+  // déclenchée par un clic sur la pastille "+N".
+  const [showAllFriends, setShowAllFriends] = useState(false);
 
   // --- States pour les filtres ---
   // Contrôle l'ouverture/fermeture du bottom sheet
@@ -234,6 +243,9 @@ function Home() {
       // Si c'est un like et que des amis ont aussi liké → animation de match !
       const matchedFriends = response.data.matched_friends || [];
       if (swipeStatus === "like" && matchedFriends.length > 0) {
+        // On repart toujours liste refermée pour un nouveau match (sinon elle
+        // pourrait rester ouverte d'un match précédent).
+        setShowAllFriends(false);
         setMatchData({
           film: swipedFilm,
           friends: matchedFriends,
@@ -814,21 +826,40 @@ function Home() {
               <p className="match-overlay__film-title">{matchData.film.title}</p>
             </div>
 
-            {/* Avatars des amis qui ont aussi liké */}
+            {/* Avatars des amis qui ont aussi liké.
+                On limite à MAX_VISIBLE_FRIENDS ; au-delà → pastille "+N". */}
             <div className="match-overlay__friends">
-              {matchData.friends.map((friend, index) => (
-                <div key={index} className="match-overlay__friend">
-                  <div className="match-overlay__friend-avatar">
-                    <img
-                      src={getAvatarUrl(friend.avatar)}
-                      alt={friend.username}
-                    />
+              {matchData.friends
+                .slice(0, MAX_VISIBLE_FRIENDS)
+                .map((friend, index) => (
+                  <div key={index} className="match-overlay__friend">
+                    <div className="match-overlay__friend-avatar">
+                      <img
+                        src={getAvatarUrl(friend.avatar)}
+                        alt={friend.username}
+                      />
+                    </div>
+                    <span className="match-overlay__friend-name">
+                      {friend.username}
+                    </span>
                   </div>
-                  <span className="match-overlay__friend-name">
-                    {friend.username}
-                  </span>
-                </div>
-              ))}
+                ))}
+
+              {/* Pastille "+N" cliquable : n'apparaît que s'il reste des amis
+                  cachés. Ouvre la liste complète (second overlay). */}
+              {matchData.friends.length > MAX_VISIBLE_FRIENDS && (
+                <button
+                  type="button"
+                  className="match-overlay__friend match-overlay__more"
+                  onClick={() => setShowAllFriends(true)}
+                  aria-label={`Voir les ${matchData.friends.length} amis qui ont liké`}
+                >
+                  <div className="match-overlay__more-badge">
+                    +{matchData.friends.length - MAX_VISIBLE_FRIENDS}
+                  </div>
+                  <span className="match-overlay__friend-name">autres</span>
+                </button>
+              )}
             </div>
 
             {/* Bouton pour fermer */}
@@ -839,6 +870,54 @@ function Home() {
               Continuer à swiper
             </button>
           </div>
+
+          {/* === Liste complète des amis (second overlay) ===
+              S'affiche par-dessus le match quand on clique sur la pastille "+N".
+              stopPropagation sur les clics internes pour ne pas fermer le match. */}
+          {showAllFriends && (
+            <div
+              className="match-friends-modal"
+              onClick={(e) => {
+                // Clic sur le fond → on ferme juste cette liste, pas le match.
+                e.stopPropagation();
+                setShowAllFriends(false);
+              }}
+            >
+              <div
+                className="match-friends-modal__content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="match-friends-modal__title">
+                  {matchData.friends.length} amis ont liké
+                </h3>
+
+                {/* Liste déroulante : un avatar + pseudo par ligne. */}
+                <div className="match-friends-modal__list">
+                  {matchData.friends.map((friend, index) => (
+                    <div key={index} className="match-friends-modal__row">
+                      <div className="match-overlay__friend-avatar">
+                        <img
+                          src={getAvatarUrl(friend.avatar)}
+                          alt={friend.username}
+                        />
+                      </div>
+                      <span className="match-friends-modal__row-name">
+                        {friend.username}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="match-friends-modal__close-btn"
+                  onClick={() => setShowAllFriends(false)}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

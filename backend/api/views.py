@@ -309,14 +309,28 @@ class CustomTokenObtainView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # On retire les espaces parasites en début/fin que l'auto-complétion
+        # ou le clavier du téléphone ajoutent parfois (ex: "mat@gmail.com ").
+        login = login.strip()
+
         # Étape 1 : vérifier si l'utilisateur existe (par pseudo ou par email)
         # Si le champ contient un "@", on cherche par email.
         # Sinon, on cherche par pseudo.
         try:
             if "@" in login:
-                user = User.objects.get(email=login)
+                # Recherche insensible à la casse (email__iexact).
+                # Sur mobile, le clavier met souvent une majuscule à la 1re
+                # lettre ("Mat@gmail.com"), alors que l'email est stocké en
+                # minuscules à la création. Une comparaison exacte échouerait
+                # et renverrait "Identifiants incorrects" à tort. iexact évite
+                # ça, et reste sûr car les emails sont uniques à la casse près.
+                user = User.objects.get(email__iexact=login)
             else:
-                user = User.objects.get(username=login)
+                # Idem pour le pseudo : on accepte "Mat" comme "mat".
+                # La casse stockée est préservée (on ne force pas en minuscules),
+                # mais la connexion ignore la casse. C'est sûr car la création
+                # garantit l'unicité du pseudo à la casse près (validate_username).
+                user = User.objects.get(username__iexact=login)
         except User.DoesNotExist:
             logger.warning("Tentative de connexion avec un identifiant inexistant : %s", login)
             return Response(
