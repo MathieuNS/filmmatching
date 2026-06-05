@@ -19,7 +19,8 @@ FilmMatching résout le problème du "on regarde quoi ce soir ?" :
 
 | Couche | Technologie |
 |--------|-------------|
-| **Frontend** | React 19, Vite, React Router |
+| **Frontend web** | React 19, Vite, React Router |
+| **App mobile** | React Native 0.85, Expo SDK 56, React Navigation, Redux Toolkit |
 | **Backend** | Django 6, Django REST Framework |
 | **Auth** | JWT (SimpleJWT) |
 | **Base de données** | PostgreSQL 16 |
@@ -30,11 +31,14 @@ FilmMatching résout le problème du "on regarde quoi ce soir ?" :
 
 ## Installation locale
 
+> Le projet compte **deux clients** qui partagent le même backend/API Django : le **frontend web** (`frontend/`, React + Vite) et l'**app mobile** (`mobile_app/`, React Native + Expo).
+
 ### Prérequis
 
 - Python 3.10+
 - Node.js 18+
 - PostgreSQL (ou SQLite pour le dev)
+- [Expo Go](https://expo.dev/go) sur votre téléphone (pour tester l'app mobile)
 
 ### Backend
 
@@ -72,6 +76,25 @@ cp .env.example .env
 
 # Lancer le serveur de dev
 npm run dev
+```
+
+### App mobile (React Native + Expo)
+
+```bash
+cd mobile_app
+
+# Installer les dépendances
+npm install
+
+# Configurer les variables d'environnement
+cp .env.example .env
+# Remplir EXPO_PUBLIC_API_URL
+# ⚠️ "localhost" pointe vers le téléphone lui-même : utilisez l'IP LAN
+# de votre ordinateur (ex. http://192.xxx.x.x:8000), ou 10.0.2.2 sur
+# l'émulateur Android, pour que l'appareil atteigne le backend de dev.
+
+# Lancer le serveur Expo (scanner le QR code avec Expo Go)
+npm start
 ```
 
 ## Commandes de management
@@ -114,13 +137,22 @@ filmmatching/
 │   ├── logs/                   # Logs applicatifs (app.log, scripts.log)
 │   ├── Dockerfile
 │   └── requirement.txt
-├── frontend/                   # Application React + Vite
+├── frontend/                   # Application web React + Vite
 │   ├── src/
 │   │   ├── components/         # Composants réutilisables (Film, HamburgerMenu...)
 │   │   ├── pages/              # Pages (home, login, films_list...)
 │   │   └── styles/             # Fichiers CSS
 │   ├── nginx.conf              # Config Nginx (production)
 │   ├── Dockerfile
+│   └── package.json
+├── mobile_app/                 # App mobile React Native + Expo
+│   ├── api/                    # Client axios, stockage tokens/filtres
+│   ├── components/             # Composants réutilisables (FilterSheet, FilmCard...)
+│   ├── screens/                # Écrans (portage des pages web)
+│   ├── navigation/             # RootNavigator, AuthStack, AppStack
+│   ├── store/                  # Slices Redux Toolkit
+│   ├── constants/              # Thème (couleurs, fonts, espacements)
+│   ├── ROADMAP.md              # Feuille de route du portage mobile
 │   └── package.json
 └── docker-compose.yml          # Orchestration des services
 ```
