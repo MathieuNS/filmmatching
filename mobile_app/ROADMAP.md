@@ -104,8 +104,8 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 - [ ] **Swipe ultra-rapide** (Phase 5) : enchaîner plus vite que le réseau peut afficher « Tu as tout vu ! » à tort. À durcir si gênant.
 - [ ] **Notifications** : à faire.
 - [ ] *(optionnel)* `pendingCount` dans un slice Redux (rafraîchir le badge après accept/decline).
-- [ ] lower case lors de la connexion avec email et création du compte (mat@gmail.com = Mat@gmail.com) (app et web)
-- [ ] lower case sur les pseudo (web et mobile app) pour éviter d'avoir deux pseudo identiques avec des majuscule et minuscules
+- [x] lower case lors de la connexion avec email et création du compte (mat@gmail.com = Mat@gmail.com) (app et web)
+- [x] lower case sur les pseudo (web et mobile app) pour éviter d'avoir deux pseudo identiques avec des majuscule et minuscules
 - [x] Filtre bouton réinitialiser devrait valider les filtres
 
 ### Limites connues (pas des bugs)

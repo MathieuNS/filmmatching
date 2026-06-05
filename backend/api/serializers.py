@@ -74,6 +74,34 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.profile.share_seen_with_friends
         return True
 
+    def validate_username(self, value):
+        """
+        Vérifie que le pseudo n'est pas déjà pris, SANS tenir compte de la casse.
+
+        Par défaut, Django impose l'unicité du pseudo mais de façon EXACTE :
+        "Mat" et "mat" seraient considérés comme deux pseudos différents.
+        On veut l'empêcher pour ne pas avoir deux comptes visuellement
+        identiques à la casse près.
+
+        Important : contrairement à l'email, on NE met PAS le pseudo en
+        minuscules. Si l'utilisateur choisit "Mat", on garde "Mat" en base
+        (c'est cette orthographe qui s'affichera). On vérifie seulement
+        qu'aucun "mat"/"MAT"/... n'existe déjà.
+
+        Args:
+            value: Le pseudo saisi par l'utilisateur
+
+        Returns:
+            Le pseudo validé, tel que saisi (casse préservée)
+
+        Raises:
+            ValidationError: Si un compte utilise déjà ce pseudo (à la casse près)
+        """
+        # iexact = comparaison insensible à la casse ("Mat" == "mat")
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Ce pseudo est déjà utilisé.")
+        return value
+
     def validate_email(self, value):
         """
         Vérifie que l'email n'est pas déjà utilisé par un autre compte.
