@@ -112,9 +112,16 @@ export default function FilterSheet({
     setDraft((prev) => ({ ...prev, [field]: value.replace(/[^0-9]/g, "") }));
   }
 
-  /** Réinitialise le brouillon (aucun filtre). */
+  /**
+   * Réinitialise les filtres ET applique immédiatement.
+   * On remet le brouillon à zéro (pour l'affichage) puis on remonte
+   * directement les filtres par défaut au parent et on ferme : un seul
+   * clic suffit, plus besoin de cliquer ensuite sur "Appliquer".
+   */
   function handleReset() {
     setDraft({ ...DEFAULT_FILTERS });
+    onApply({ ...DEFAULT_FILTERS });
+    onClose();
   }
 
   /** Applique le brouillon au parent et ferme. */
