@@ -28,7 +28,7 @@ import { FONTS } from "../constants/fonts";
 import { RADII, SPACING, BORDERS } from "../constants/spacing";
 
 // Nombre de colonnes de la grille de films.
-const NUM_COLUMNS = 3;
+const NUM_COLUMNS = 2;
 
 /**
  * MatchList — films likés en commun avec un ou plusieurs amis (mobile).

@@ -8,7 +8,7 @@ import { FONTS } from "../constants/fonts";
 import { RADII, SPACING, BORDERS } from "../constants/spacing";
 
 // Nombre de colonnes de la grille (comme Ma liste / Matchs).
-const NUM_COLUMNS = 3;
+const NUM_COLUMNS = 2;
 
 /**
  * Métadonnées du badge de statut affiché en coin de carte.
