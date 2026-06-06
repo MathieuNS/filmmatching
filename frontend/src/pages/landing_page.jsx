@@ -160,7 +160,7 @@ function LandingPage() {
             setIsAuthenticated(false);
           }
         }
-      } catch (error) {
+      } catch {
         // Token invalide ou refresh échoué -> pas connecté
         setIsAuthenticated(false);
       }

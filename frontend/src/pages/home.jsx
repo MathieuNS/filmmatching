@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-// useNavigate permet de naviguer vers une autre page sans recharger l'app
-import { useNavigate } from "react-router-dom";
 import api from "../api";
 import Film from "../components/Film";
 import FilterBottomSheet from "../components/FilterBottomSheet";
@@ -33,9 +31,6 @@ const MAX_VISIBLE_FRIENDS = 4;
  * @returns {JSX.Element} La page d'accueil avec le système de swipe
  */
 function Home() {
-  // Hook pour naviguer vers d'autres pages (ex: /compte, /amis, /liste)
-  const navigate = useNavigate();
-
   // Le film actuellement affiché
   const [film, setFilm] = useState(null);
   // Le prochain film, pré-chargé en avance pour un affichage instantané
@@ -118,9 +113,13 @@ function Home() {
     loadFilterOptions();
   }, []);
 
-  // Quand les filtres changent, on recharge les films depuis zéro
+  // Quand les filtres changent, on recharge les films depuis zéro.
+  // On veut que cet effet se déclenche UNIQUEMENT au changement de filtres,
+  // pas quand l'identité de la fonction initializeFilms change à chaque rendu :
+  // on ignore donc volontairement l'avertissement de dépendance.
   useEffect(() => {
     initializeFilms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilters]);
 
   /**
