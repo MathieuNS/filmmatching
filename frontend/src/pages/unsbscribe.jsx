@@ -7,8 +7,9 @@ import "../styles/ActivateAccount.css";
  * Page de désinscription des notifications email.
  *
  * L'utilisateur arrive ici en cliquant sur le lien "Unsubscribe"
- * dans un email de notification. L'URL contient un uid encodé
- * en base64 qui permet d'identifier l'utilisateur sans connexion.
+ * dans un email de notification. L'URL contient un token SIGNÉ
+ * (généré côté backend) qui identifie l'utilisateur sans connexion
+ * et ne peut pas être forgé pour désinscrire quelqu'un d'autre.
  *
  * Au clic sur le bouton, on envoie un POST à l'API qui désactive
  * les notifications email sur le Profile de l'utilisateur.
@@ -16,7 +17,9 @@ import "../styles/ActivateAccount.css";
  * @returns {JSX.Element} La page de désinscription
  */
 function Unsubscribe() {
-  // Récupère l'uid depuis l'URL (ex: /unsubscribe/Mg → uid = "Mg")
+  // Récupère le token signé depuis l'URL et le transmet tel quel à l'API.
+  // (Le paramètre de route s'appelle encore "uid" pour des raisons historiques,
+  // mais sa valeur est désormais un token signé, pas un simple ID.)
   const { uid } = useParams();
   const navigate = useNavigate();
 

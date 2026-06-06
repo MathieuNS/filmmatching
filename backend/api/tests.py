@@ -4,6 +4,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from api.views import make_unsubscribe_token
+
 
 class LoginThrottleTests(APITestCase):
     """
@@ -191,3 +193,50 @@ class LogoutTests(APITestCase):
         """Sans refresh dans le corps, l'endpoint renvoie 400."""
         response = self.client.post(reverse('logout'), {})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UnsubscribeTests(APITestCase):
+    """
+    Vérifie la désinscription des notifications email via un token SIGNÉ.
+
+    Objectif sécurité : seul le détenteur d'un token valide (présent dans son
+    propre email) peut se désinscrire. Un token forgé/deviné doit être refusé,
+    pour qu'un tiers ne puisse pas désinscrire quelqu'un d'autre (ancienne faille
+    où l'ID était en clair dans l'URL).
+    """
+
+    def setUp(self):
+        """Crée un utilisateur ayant activé les notifications email."""
+        self.user = User.objects.create_user(
+            username='franck', email='franck@example.com', password='Tournesol-42-Cinema'
+        )
+        # email_notifications est False par défaut : on l'active pour pouvoir
+        # vérifier que la désinscription le repasse bien à False.
+        self.user.profile.email_notifications = True
+        self.user.profile.save()
+
+    def test_token_valide_desinscrit(self):
+        """Un token signé valide désinscrit l'utilisateur (200 + flag à False)."""
+        token = make_unsubscribe_token(self.user)
+        url = reverse('unsubscribe-email', kwargs={'token': token})
+
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # On recharge le profil depuis la BDD pour lire la valeur réellement persistée.
+        self.user.profile.refresh_from_db()
+        self.assertFalse(self.user.profile.email_notifications)
+
+    def test_token_forge_est_refuse(self):
+        """
+        Un token bidon (non signé par le serveur) est rejeté en 400, et NE
+        désinscrit personne : c'est le cœur de la protection anti-falsification.
+        """
+        url = reverse('unsubscribe-email', kwargs={'token': 'nimporte.quoi.forge'})
+
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Les notifications de l'utilisateur ne doivent PAS avoir été touchées.
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.email_notifications)
