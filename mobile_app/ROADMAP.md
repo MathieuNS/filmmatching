@@ -73,7 +73,7 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 - [x] **Rate limiting** — throttling DRF (`ScopedRateThrottle`) : login 10/min, inscription 5/h, mdp oublié 3/h, reset 10/h, contact 3/h + test `LoginThrottleTests`. UX 429 gérée côté front (web + mobile) via helper `getThrottleMessage` (« Réessaie dans X s »), `Retry-After` exposé via `CORS_EXPOSE_HEADERS`. **Vraie IP derrière Nginx** : OK — `nginx.conf` pose déjà `X-Forwarded-For` + `NUM_PROXIES=1` ajouté dans `settings.py` (non contournable). ⏳ **Reste (faible enjeu)** : cache `LocMemCache` = par worker (gunicorn `--workers 3`) → limite effective ×3 ; passer à **Redis** (cache partagé) si besoin de précision à plus grande échelle.
 - [x] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`) — appliquée via helper `validate_password_strength` (serializers.py) à l'**inscription** (`UserSerializer.validate`) et à la **modif de profil** (`UpdateProfileSerializer.validate`), + `validate_password` dans `ResetPasswordView`. Messages en français (`LANGUAGE_CODE='fr-fr'`). Le front (web + mobile) affiche les vraies raisons (`data.password`). Tests `PasswordValidationTests` (court / trop commun / robuste).
 - [ ] **Permissions par endpoint** (`IsAuthenticated`) + anti-**IDOR** (swipes, amitiés, filmothèque privée, `me/...`)
-- [ ] **Tokens JWT** : durées revues + rotation/blacklist des refresh à la déconnexion
+- [x] **Tokens JWT** : access 30 min, **refresh 30 jours** + **rotation** (`ROTATE_REFRESH_TOKENS` + `BLACKLIST_AFTER_ROTATION`, app `token_blacklist` + migration) = session glissante. Les 3 clients re-stockent le nouveau refresh à chaque rafraîchissement (web `ProtectedRoute`/`landing_page`, mobile `client.js`/`authSlice`). **Déconnexion serveur** : endpoint `POST /api/logout/` (`LogoutView`, AllowAny) qui blackliste le refresh ; web (`logoutServer` dans `App.jsx`) + mobile (`authSlice.logout`) l'appellent avant de vider le stockage local. Tests `JWTRotationTests` + `LogoutTests`. ⏳ Prod : migration + cron `flushexpiredtokens` (cf. section D).
 - [ ] Throttle / `maxLength` sur champs libres (contact, commentaires)
 
 ### B. Frontend web
@@ -89,6 +89,9 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ### D. Infra / déploiement
 - [x] Certificat HTTPS valide + auto-renouvelé (Let's Encrypt) ; renouvellement réparé via `pre_hook`/`post_hook` certbot (stop/start le `frontend` Docker pour libérer le port 80), validé par `--dry-run`
+- [ ] **Prod JWT rotation/blacklist** (suite de la section A) :
+  - [ ] **Migration** au déploiement : `python manage.py migrate` doit créer les tables `token_blacklist` en **PostgreSQL** (la migration n'a tourné qu'en SQLite dev). À faire après `docker compose up -d --build backend`.
+  - [ ] **Cron de purge** : la table `OutstandingToken` grossit à chaque rotation (1 ligne / rafraîchissement / utilisateur). Planifier `python manage.py flushexpiredtokens` (ex. hebdo) pour supprimer les jetons déjà expirés. À exécuter dans le conteneur backend (`docker compose exec backend ...`).
 - [ ] Nginx à jour, pas de listing, taille de requête limitée
 - [ ] BDD non exposée publiquement + sauvegardes testées
 - [ ] Secrets (`.env.production`) hors dépôt, droits restreints ; OS/Docker à jour, SSH durci, pare-feu 80/443
@@ -113,4 +116,4 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ---
 
-*Dernière mise à jour : 2026-06-06 (Phase 10 : `/security-review` → 0 vulné ; **rate limiting** (throttling DRF login/inscription/mdp oublié/reset/contact) ; **validation des mots de passe** appliquée (inscription + modif profil + reset), messages FR, tests OK. Reste section A : rotation/blacklist JWT à la déconnexion, fix unsubscribe ; + vérifs prod du throttling (IP derrière Nginx, LocMemCache×3).)*
+*Dernière mise à jour : 2026-06-06 (Phase 10 : `/security-review` → 0 vulné ; **rate limiting** ; **validation des mots de passe** (inscription + profil + reset, messages FR) ; **JWT rotation + refresh 30 j** (session glissante) ; **déconnexion serveur** `/api/logout/` (blacklist du refresh, web + mobile), tests OK (7). Reste section A : fix unsubscribe ; + vérifs/exécutions prod (migration token_blacklist + cron flushexpiredtokens, throttling IP derrière Nginx, LocMemCache×3).)*

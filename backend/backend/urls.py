@@ -4,6 +4,7 @@ from api.views import (
     CreateUserView,
     ActivateAccountView,
     CustomTokenObtainView,
+    LogoutView,
     CurrentUserView,
     UpdateProfileView,
     DeleteAccountView,
@@ -60,6 +61,8 @@ urlpatterns = [
     # Vue personnalisée pour distinguer "compte inactif" de "mauvais identifiants"
     path('api/token/', CustomTokenObtainView.as_view(), name='get_token'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Déconnexion : blackliste le refresh token (vraie déconnexion serveur)
+    path('api/logout/', LogoutView.as_view(), name='logout'),
     path("api-auth/", include("rest_framework.urls")),
 
     # --- Contact ---

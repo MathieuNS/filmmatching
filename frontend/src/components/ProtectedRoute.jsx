@@ -17,6 +17,13 @@ function ProtectedRoute({ children }) {
             const response = await api.post('/api/token/refresh/', { refresh: refreshToken });
             if (response.status === 200) {
                 localStorage.setItem(ACCESS_TOKEN, response.data.access);
+                // Rotation activée côté backend : le serveur renvoie aussi un
+                // NOUVEAU refresh token et blackliste l'ancien. On DOIT donc le
+                // re-stocker, sinon on garderait l'ancien (devenu invalide) et
+                // le prochain rafraîchissement échouerait → déconnexion.
+                if (response.data.refresh) {
+                    localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+                }
                 setIsAuthorized(true)
             } else {
                 setIsAuthorized(false)

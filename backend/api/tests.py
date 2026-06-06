@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
@@ -104,3 +105,89 @@ class PasswordValidationTests(APITestCase):
         response = self.client.post(url, payload)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class JWTRotationTests(APITestCase):
+    """
+    Vérifie la rotation des refresh tokens (ROTATE_REFRESH_TOKENS +
+    BLACKLIST_AFTER_ROTATION).
+
+    Comportement attendu : rafraîchir un access token renvoie AUSSI un nouveau
+    refresh token, et l'ancien refresh devient inutilisable (blacklisté).
+    """
+
+    def setUp(self):
+        """Crée un utilisateur actif et vide le cache (throttle login)."""
+        cache.clear()
+        # create_user hache le mot de passe ; is_active=True par défaut, donc
+        # la connexion (/api/token/) fonctionnera.
+        self.user = User.objects.create_user(
+            username='dora', email='dora@example.com', password='Tournesol-42-Cinema'
+        )
+
+    def test_rotation_invalide_ancien_refresh(self):
+        """
+        1) On se connecte → on récupère un refresh token.
+        2) On rafraîchit → on reçoit un access ET un nouveau refresh différent.
+        3) On réutilise l'ANCIEN refresh → il est refusé (401), car blacklisté.
+        """
+        # 1) Connexion
+        token_url = reverse('get_token')
+        login = self.client.post(
+            token_url, {'username': 'dora', 'password': 'Tournesol-42-Cinema'}
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+        ancien_refresh = login.data['refresh']
+
+        # 2) Rafraîchissement
+        refresh_url = reverse('token_refresh')
+        refreshed = self.client.post(refresh_url, {'refresh': ancien_refresh})
+        self.assertEqual(refreshed.status_code, status.HTTP_200_OK)
+        # La rotation renvoie un nouveau refresh, différent de l'ancien.
+        self.assertIn('refresh', refreshed.data)
+        self.assertNotEqual(refreshed.data['refresh'], ancien_refresh)
+
+        # 3) L'ancien refresh est maintenant blacklisté → rejeté.
+        rejouer = self.client.post(refresh_url, {'refresh': ancien_refresh})
+        self.assertEqual(rejouer.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutTests(APITestCase):
+    """
+    Vérifie la déconnexion serveur (POST /api/logout/) : le refresh token
+    fourni est blacklisté et ne peut plus servir à se rafraîchir.
+    """
+
+    def setUp(self):
+        """Crée un utilisateur actif et vide le cache (throttle login)."""
+        cache.clear()
+        self.user = User.objects.create_user(
+            username='emile', email='emile@example.com', password='Tournesol-42-Cinema'
+        )
+
+    def test_logout_blackliste_le_refresh(self):
+        """
+        1) Connexion → on récupère un refresh.
+        2) POST /api/logout/ avec ce refresh → 205.
+        3) Tenter de rafraîchir avec ce refresh → refusé (401).
+        """
+        # 1) Connexion
+        login = self.client.post(
+            reverse('get_token'),
+            {'username': 'emile', 'password': 'Tournesol-42-Cinema'},
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+        refresh = login.data['refresh']
+
+        # 2) Déconnexion serveur
+        logout = self.client.post(reverse('logout'), {'refresh': refresh})
+        self.assertEqual(logout.status_code, status.HTTP_205_RESET_CONTENT)
+
+        # 3) Le refresh blacklisté ne marche plus.
+        rejouer = self.client.post(reverse('token_refresh'), {'refresh': refresh})
+        self.assertEqual(rejouer.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_sans_refresh_renvoie_400(self):
+        """Sans refresh dans le corps, l'endpoint renvoie 400."""
+        response = self.client.post(reverse('logout'), {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

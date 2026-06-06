@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
@@ -381,6 +382,55 @@ class CustomTokenObtainView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         })
+
+
+class LogoutView(APIView):
+    """
+    Déconnexion côté serveur : met le refresh token sur liste noire.
+
+    - POST /api/logout/
+    - Body : { "refresh": "<refresh token>" }
+
+    Pourquoi cette vue ?
+    Effacer les tokens dans le navigateur / le téléphone ne fait disparaître
+    QUE la copie locale. Le refresh token, lui, resterait valable jusqu'à son
+    expiration (30 jours). Si quelqu'un en avait une copie (vol, fuite), il
+    pourrait continuer à générer des accès. En blacklistant le refresh ici, on
+    le rend immédiatement inutilisable : c'est la "vraie" déconnexion.
+
+    AllowAny + authentication_classes = [] : on n'exige PAS d'access token
+    valide. C'est volontaire — au moment où l'utilisateur se déconnecte, son
+    access token peut déjà être expiré ; on ne veut pas que la déconnexion
+    échoue pour autant. La seule "preuve" nécessaire est le refresh token
+    lui-même (on ne peut blacklister qu'un jeton qu'on possède déjà).
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Blackliste le refresh token fourni dans le corps de la requête."""
+        refresh = request.data.get("refresh")
+        if not refresh:
+            return Response(
+                {"error": "Le refresh token est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # RefreshToken(...) valide la signature/l'expiration ; .blacklist()
+            # insère le jeton dans la table token_blacklist → il sera refusé
+            # à tout usage ultérieur.
+            token = RefreshToken(refresh)
+            token.blacklist()
+        except TokenError:
+            # Jeton déjà invalide, expiré ou déjà blacklisté : la déconnexion
+            # est de toute façon "réussie" du point de vue de l'utilisateur,
+            # on ne renvoie donc pas d'erreur.
+            pass
+
+        # 205 Reset Content : convention pour "c'est bon, vide ton état local".
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
 class CurrentUserView(APIView):

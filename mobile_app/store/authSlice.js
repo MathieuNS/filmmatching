@@ -60,7 +60,12 @@ export const bootstrapAuth = createAsyncThunk("auth/bootstrap", async () => {
   }
   try {
     const response = await api.post("/api/token/refresh/", { refresh });
-    await setTokens({ access: response.data.access });
+    // Rotation backend : on stocke aussi le nouveau refresh renvoyé (l'ancien
+    // est blacklisté). Sans ça, le prochain rafraîchissement échouerait.
+    await setTokens({
+      access: response.data.access,
+      refresh: response.data.refresh,
+    });
     return true;
   } catch {
     // Refresh mort lui aussi : session terminée.
@@ -121,6 +126,18 @@ export const login = createAsyncThunk(
  * @returns {Promise<boolean>} false (plus connecté)
  */
 export const logout = createAsyncThunk("auth/logout", async () => {
+  // Déconnexion SERVEUR d'abord : on envoie le refresh token à /api/logout/
+  // pour le blacklister (il devient inutilisable même si une copie a fuité).
+  const refresh = await getRefreshToken();
+  if (refresh) {
+    try {
+      await api.post("/api/logout/", { refresh });
+    } catch {
+      // Hors-ligne ou jeton déjà invalide : on déconnecte localement quand
+      // même (ci-dessous). L'utilisateur ne doit jamais rester coincé connecté.
+    }
+  }
+  // Puis on vide le coffre-fort local.
   await clearTokens();
   return false;
 });

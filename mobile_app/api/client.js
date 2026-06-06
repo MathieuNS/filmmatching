@@ -140,8 +140,11 @@ api.interceptors.response.use(
       const response = await api.post("/api/token/refresh/", { refresh });
       const newAccess = response.data.access;
 
-      // On le stocke, on réveille les requêtes en attente, puis on rejoue la nôtre.
-      await setTokens({ access: newAccess });
+      // Rotation activée côté backend : la réponse contient AUSSI un nouveau
+      // refresh token, et l'ancien est blacklisté. On stocke donc les deux ;
+      // sinon on garderait l'ancien refresh (invalide) → déconnexion au
+      // prochain rafraîchissement. (setTokens ignore les champs absents.)
+      await setTokens({ access: newAccess, refresh: response.data.refresh });
       flushQueue(newAccess);
       originalRequest.headers.Authorization = `Bearer ${newAccess}`;
       return api(originalRequest);

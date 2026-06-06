@@ -150,6 +150,11 @@ function LandingPage() {
           if (response.status === 200) {
             // Refresh réussi -> on stocke le nouveau access token
             localStorage.setItem(ACCESS_TOKEN, response.data.access);
+            // Rotation backend : un nouveau refresh est renvoyé et l'ancien est
+            // blacklisté. On le re-stocke pour ne pas garder un jeton invalide.
+            if (response.data.refresh) {
+              localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+            }
             setIsAuthenticated(true);
           } else {
             setIsAuthenticated(false);

@@ -77,8 +77,23 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
+    # Jeton d'accès court (envoyé à chaque requête API) : limite la fenêtre
+    # d'exploitation s'il est volé. 30 min reste confortable.
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=2),
+    # Jeton de rafraîchissement long : c'est lui qui permet de rester connecté
+    # sans retaper son mot de passe. 30 jours + rotation ci-dessous = "session
+    # glissante" (l'utilisateur ne se reconnecte jamais tant qu'il revient au
+    # moins une fois par mois).
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    # ROTATE : à CHAQUE rafraîchissement, le serveur émet un NOUVEAU refresh
+    # token (avec un compteur de 30 jours remis à zéro). C'est ce qui réarme
+    # sans cesse l'horloge → la session glisse indéfiniment.
+    "ROTATE_REFRESH_TOKENS": True,
+    # BLACKLIST_AFTER_ROTATION : l'ancien refresh token est mis sur liste noire
+    # dès qu'il est tourné, donc il devient inutilisable. Sans ça, la rotation
+    # ne protégerait de rien (l'ancien jeton resterait valable). Nécessite l'app
+    # 'rest_framework_simplejwt.token_blacklist' (cf. INSTALLED_APPS) + migration.
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # Application definition
@@ -92,6 +107,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'rest_framework',
+    # Stocke les refresh tokens révoqués (rotation + déconnexion) dans une table
+    # en base. Active la possibilité de "couper" un jeton, impossible sans état.
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
 ]
 
