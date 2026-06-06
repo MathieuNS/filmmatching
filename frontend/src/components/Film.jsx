@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 // afin d'éviter les conflits d'événements avec la carte film (swipe, clics, etc.).
 import { createPortal } from "react-dom";
 import FriendRatingsSection from "./FriendRatingsSection";
+// Convertit l'URL d'embed YouTube en version "sans cookie" (vie privée / RGPD).
+import { toNoCookieEmbed } from "../utils/youtube";
 // Import du fichier CSS associé au composant
 import "../styles/Films.css";
 
@@ -332,11 +334,12 @@ function Film({
             </button>
 
             {/* Lecteur YouTube intégré via iframe.
-                L'URL est déjà au format embed (ex: https://www.youtube.com/embed/xxxxx).
+                L'URL est au format embed (ex: https://www.youtube.com/embed/xxxxx) ;
+                toNoCookieEmbed la bascule sur youtube-nocookie.com (sans cookie pub).
                 allowFullScreen permet au lecteur de passer en plein écran. */}
             <iframe
               className="film-card__trailer-iframe"
-              src={trailer_url}
+              src={toNoCookieEmbed(trailer_url)}
               title={`Bande-annonce de ${title}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

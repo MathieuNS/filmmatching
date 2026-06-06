@@ -1971,6 +1971,19 @@ class ContactView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Limite de longueur (anti-abus) : éviter qu'on nous envoie des Mo de
+        # texte et garder des emails lisibles. Au-delà → 400.
+        if (
+            len(name) > 100
+            or len(email) > 254       # longueur max d'une adresse email (RFC 5321)
+            or len(subject) > 150
+            or len(message) > 5000
+        ):
+            return Response(
+                {"error": "Un ou plusieurs champs dépassent la longueur maximale autorisée."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Construire le contenu de l'email envoyé à l'équipe
         full_message = (
             f"Nouveau message depuis le formulaire de contact :\n\n"

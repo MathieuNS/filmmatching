@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { getAvatarUrl } from "../utils/avatars";
+// Convertit l'URL d'embed YouTube en version "sans cookie" (vie privée / RGPD).
+import { toNoCookieEmbed } from "../utils/youtube";
 import TmdbAttribution from "../components/TmdbAttribution";
 import HamburgerMenu from "../components/HamburgerMenu";
 import "../styles/FilmList.css";
@@ -388,7 +390,7 @@ function AlAffiche() {
               </button>
               <iframe
                 className="film-card__trailer-iframe"
-                src={selectedFilm.trailer_url}
+                src={toNoCookieEmbed(selectedFilm.trailer_url)}
                 title="Bande-annonce"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

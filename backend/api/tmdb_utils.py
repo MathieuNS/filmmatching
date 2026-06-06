@@ -154,8 +154,10 @@ def get_trailer(movie_id, type_field="Film"):
                           /movie/ ou /tv/ sur TMDB
 
     Returns:
-        str|None: URL embed YouTube (ex: "https://www.youtube.com/embed/abc123")
-                  ou None si aucune bande-annonce n'est trouvée
+        str|None: URL embed YouTube "sans cookie" (ex:
+                  "https://www.youtube-nocookie.com/embed/abc123") ou None si
+                  aucune bande-annonce n'est trouvée. Le domaine nocookie évite
+                  de poser des cookies publicitaires avant lecture (vie privée/RGPD).
     """
     tv_or_movie = "movie" if type_field == "Film" else "tv"
     url = f"https://api.themoviedb.org/3/{tv_or_movie}/{movie_id}/videos"
@@ -169,6 +171,9 @@ def get_trailer(movie_id, type_field="Film"):
     # Chercher un trailer YouTube parmi les vidéos
     for video in results:
         if "Trailer" in video.get("name", "") and video.get("site") == "YouTube":
-            return f"https://www.youtube.com/embed/{video['key']}"
+            # Domaine "nocookie" : mode confidentialité renforcée (pas de cookie
+            # pub tant que la vidéo n'est pas lancée). Le frontend réécrit aussi
+            # les anciennes URL stockées en www.youtube.com (cf. utils/youtube.js).
+            return f"https://www.youtube-nocookie.com/embed/{video['key']}"
 
     return None
