@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -35,10 +35,29 @@ import { searchFilms } from "../api/films";
 export default function SearchOverlay({ visible, onClose, onSelect }) {
   const insets = useSafeAreaInsets();
 
+  // Référence vers le champ de saisie. Une "ref" est une poignée qui nous
+  // permet d'appeler des méthodes du composant en code (ici .focus()) sans
+  // passer par l'état React.
+  const inputRef = useRef(null);
+
   // Texte saisi, résultats reçus, et état de chargement.
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  /**
+   * Donne le focus au champ de recherche → ouvre le clavier.
+   *
+   * Appelée par la prop `onShow` du Modal, c.-à-d. une fois que le Modal est
+   * COMPLÈTEMENT affiché à l'écran. Sur Android, demander le focus pendant
+   * l'animation d'ouverture ne marche pas (le clavier ne s'ouvre pas), d'où
+   * ce petit délai de sécurité qui laisse l'OS finir d'afficher le Modal.
+   */
+  function focusInput() {
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  }
 
   // Quand l'overlay se ferme, on remet la recherche à zéro.
   useEffect(() => {
@@ -114,18 +133,29 @@ export default function SearchOverlay({ visible, onClose, onSelect }) {
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      onShow={focusInput}
     >
-      <View style={[styles.overlay, { paddingTop: insets.top + SPACING.lg }]}>
-        {/* Barre de saisie */}
-        <View style={styles.inputWrapper}>
+      {/* Fond sombre : un tap dessus (zone "vide") ferme l'overlay. */}
+      <Pressable
+        style={[styles.overlay, { paddingTop: insets.top + SPACING.lg }]}
+        onPress={onClose}
+      >
+        {/*
+          Conteneur du contenu (barre + résultats). Son onPress ne fait RIEN :
+          il sert juste à "absorber" le tap pour qu'il ne remonte pas au fond
+          → taper sur la barre ou un résultat ne ferme PAS l'overlay.
+        */}
+        <Pressable style={styles.content} onPress={() => {}}>
+          {/* Barre de saisie */}
+          <View style={styles.inputWrapper}>
           <Text style={styles.inputIcon}>🔍</Text>
           <TextInput
+            ref={inputRef}
             style={styles.input}
             placeholder="Rechercher un film..."
             placeholderTextColor={COLORS.grisTexte}
             value={query}
             onChangeText={setQuery}
-            autoFocus
             returnKeyType="search"
           />
           <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
@@ -151,7 +181,8 @@ export default function SearchOverlay({ visible, onClose, onSelect }) {
             Aucun film trouvé pour « {query} »
           </Text>
         )}
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -161,6 +192,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(13,13,15,0.95)",
     paddingHorizontal: SPACING.lg,
+  },
+  // Conteneur du contenu : pleine largeur, mais hauteur = celle de ses enfants
+  // (barre + résultats), pour laisser une zone "vide" en dessous qui ferme.
+  content: {
+    width: "100%",
   },
   inputWrapper: {
     flexDirection: "row",

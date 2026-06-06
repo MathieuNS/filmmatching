@@ -418,16 +418,25 @@ export default function FilmCard({ film, variant = "swipe" }) {
           animationType="fade"
           onRequestClose={() => setShowTrailer(false)}
         >
-          {/* Pressable en fond : un tap N'IMPORTE OÙ en dehors du lecteur
-              ferme la modale (comme la modale « Où regarder »). */}
-          <Pressable
-            style={styles.modalBackdrop}
-            onPress={() => setShowTrailer(false)}
-          >
-            {/* Pressable interne (onPress vide) : "absorbe" le tap pour qu'un
-                clic SUR le lecteur ne referme pas la modale (équiv.
-                stopPropagation du web). */}
-            <Pressable style={styles.trailerModal} onPress={() => {}}>
+          {/* Fond : une simple View (PAS un Pressable). On NE met PAS la zone
+              de fermeture derrière le lecteur, sinon le tap "play" traverse le
+              lecteur et ferme la modale. À la place, on place les zones
+              cliquables AU-DESSUS et EN DESSOUS du lecteur (voir ci-dessous). */}
+          <View style={styles.modalBackdrop}>
+            {/* Zone de fermeture du haut : remplit l'espace vide au-dessus du
+                lecteur. Un tap ici ferme la modale. */}
+            <Pressable
+              style={styles.trailerCloseZone}
+              onPress={() => setShowTrailer(false)}
+            />
+
+            {/* Conteneur du lecteur : une simple View (PAS un Pressable).
+                Un Pressable ici volerait le tap à la WebView du lecteur (il
+                fallait taper plusieurs fois pour play/pause). La View laisse
+                les touches aller directement à la WebView → 1 tap = play/pause.
+                Et comme cette zone n'est PAS cliquable, taper sur le lecteur ne
+                ferme jamais la modale. */}
+            <View style={styles.trailerModal}>
               <Pressable
                 style={styles.modalClose}
                 onPress={() => setShowTrailer(false)}
@@ -448,8 +457,14 @@ export default function FilmCard({ film, variant = "swipe" }) {
                   if (state === "ended") setShowTrailer(false);
                 }}
               />
-            </Pressable>
-          </Pressable>
+            </View>
+
+            {/* Zone de fermeture du bas : remplit l'espace vide sous le lecteur. */}
+            <Pressable
+              style={styles.trailerCloseZone}
+              onPress={() => setShowTrailer(false)}
+            />
+          </View>
         </Modal>
       ) : null}
 
@@ -732,6 +747,15 @@ const styles = StyleSheet.create({
   modalCloseText: {
     color: COLORS.blancDoux,
     fontSize: 16,
+  },
+
+  // Zones de fermeture (haut + bas) qui entourent le lecteur. flex:1 → elles
+  // se partagent tout l'espace vide et centrent le lecteur au milieu.
+  // alignSelf:"stretch" → elles prennent toute la largeur pour qu'un tap sur
+  // les côtés vides ferme aussi.
+  trailerCloseZone: {
+    flex: 1,
+    alignSelf: "stretch",
   },
 
   // Modale trailer (ratio 16:9)
