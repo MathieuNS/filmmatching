@@ -70,8 +70,8 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 - [~] `DEBUG=False` en prod ; `ALLOWED_HOSTS` restreint (pas `*`) ; `SECRET_KEY` unique hors dépôt
 - [~] CORS restreint (pas `ALLOW_ALL`) ; redirection HTTPS + cookies `Secure` + `SECURE_PROXY_SSL_HEADER`
 - [~] **HSTS** (`SECURE_HSTS_SECONDS` + subdomains) ajouté dans `settings.py` à **1 jour** (prudent) ; à passer à 1 an + preload après quelques jours stables
-- [x] **Rate limiting** — throttling DRF (`ScopedRateThrottle`) : login 10/min, inscription 5/h, mdp oublié 3/h, reset 10/h, contact 3/h + test `LoginThrottleTests`. UX 429 gérée côté front (web + mobile) via helper `getThrottleMessage` (« Réessaie dans X s »), `Retry-After` exposé via `CORS_EXPOSE_HEADERS`. ⚠️ **prod** : (1) vérifier que DRF voit la **vraie IP** derrière Nginx (`X-Forwarded-For` + `NUM_PROXIES`) sinon la limite est globale ou contournable ; (2) cache `LocMemCache` = par worker → compteur non partagé (OK à petite échelle, Redis plus tard).
-- [ ] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`)
+- [x] **Rate limiting** — throttling DRF (`ScopedRateThrottle`) : login 10/min, inscription 5/h, mdp oublié 3/h, reset 10/h, contact 3/h + test `LoginThrottleTests`. UX 429 gérée côté front (web + mobile) via helper `getThrottleMessage` (« Réessaie dans X s »), `Retry-After` exposé via `CORS_EXPOSE_HEADERS`. **Vraie IP derrière Nginx** : OK — `nginx.conf` pose déjà `X-Forwarded-For` + `NUM_PROXIES=1` ajouté dans `settings.py` (non contournable). ⏳ **Reste (faible enjeu)** : cache `LocMemCache` = par worker (gunicorn `--workers 3`) → limite effective ×3 ; passer à **Redis** (cache partagé) si besoin de précision à plus grande échelle.
+- [x] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`) — appliquée via helper `validate_password_strength` (serializers.py) à l'**inscription** (`UserSerializer.validate`) et à la **modif de profil** (`UpdateProfileSerializer.validate`), + `validate_password` dans `ResetPasswordView`. Messages en français (`LANGUAGE_CODE='fr-fr'`). Le front (web + mobile) affiche les vraies raisons (`data.password`). Tests `PasswordValidationTests` (court / trop commun / robuste).
 - [ ] **Permissions par endpoint** (`IsAuthenticated`) + anti-**IDOR** (swipes, amitiés, filmothèque privée, `me/...`)
 - [ ] **Tokens JWT** : durées revues + rotation/blacklist des refresh à la déconnexion
 - [ ] Throttle / `maxLength` sur champs libres (contact, commentaires)
@@ -113,4 +113,4 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ---
 
-*Dernière mise à jour : 2026-06-06 (Phase 10 : `/security-review` lancé → 0 vulné ; **rate limiting** ajouté (throttling DRF sur login/inscription/mdp oublié/reset/contact) + 1er test ; HSTS passé à 3 jours (palier de test). Reste section A : validation mdp à appliquer, rotation/blacklist JWT, fix unsubscribe ; + vérifs prod du throttling (IP derrière Nginx).)*
+*Dernière mise à jour : 2026-06-06 (Phase 10 : `/security-review` → 0 vulné ; **rate limiting** (throttling DRF login/inscription/mdp oublié/reset/contact) ; **validation des mots de passe** appliquée (inscription + modif profil + reset), messages FR, tests OK. Reste section A : rotation/blacklist JWT à la déconnexion, fix unsubscribe ; + vérifs prod du throttling (IP derrière Nginx, LocMemCache×3).)*

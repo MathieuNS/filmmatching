@@ -66,7 +66,9 @@ export default function CreateLogin({ navigation }) {
       } else if (data?.email) {
         setError("Cette adresse email est déjà utilisée.");
       } else if (data?.password) {
-        setError("Le mot de passe est trop court ou trop simple.");
+        // L'API renvoie une liste de raisons précises (en français) ; on les
+        // affiche telles quelles plutôt qu'un message générique.
+        setError(data.password.join(" "));
       } else {
         setError("Une erreur est survenue. Vérifie tes informations.");
       }

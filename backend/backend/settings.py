@@ -59,6 +59,21 @@ REST_FRAMEWORK = {
         "reset_password": "10/hour",  # brute-force du token de réinitialisation
         "contact": "3/hour",          # spam du formulaire de contact
     },
+    # NUM_PROXIES : nombre de reverse proxies (Nginx) entre le client et Django.
+    # En prod, l'archi est : Client → Nginx → Django, donc UN seul proxy → 1.
+    # Pourquoi c'est important pour le rate limiting :
+    #   - Django ne voit pas l'IP du visiteur (il voit celle de Nginx). Nginx la
+    #     transmet dans l'en-tête X-Forwarded-For (voir frontend/nginx.conf).
+    #   - Mais cet en-tête est falsifiable : un attaquant peut écrire de fausses
+    #     IP devant pour obtenir un compteur neuf à chaque requête et contourner
+    #     la limite. Nginx ajoute TOUJOURS la vraie IP à la fin de la liste.
+    #   - Avec NUM_PROXIES=1, DRF prend la DERNIÈRE IP (celle ajoutée par Nginx,
+    #     fiable) et ignore les fausses mises devant → throttling non contournable.
+    # ⚠️ Si un jour on ajoute un proxy supplémentaire (ex: Cloudflare devant
+    # Nginx), il faudra passer cette valeur à 2.
+    # En dev (pas de Nginx, pas de X-Forwarded-For), DRF retombe sur REMOTE_ADDR,
+    # donc ce réglage est sans effet en local.
+    "NUM_PROXIES": 1,
 }
 
 SIMPLE_JWT = {
@@ -156,7 +171,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# 'fr-fr' : Django traduit alors automatiquement ses messages intégrés en
+# français — notamment les erreurs des validateurs de mot de passe
+# (AUTH_PASSWORD_VALIDATORS), affichées telles quelles à l'utilisateur.
+LANGUAGE_CODE = 'fr-fr'
 
 TIME_ZONE = 'UTC'
 

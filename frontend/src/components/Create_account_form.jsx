@@ -67,7 +67,9 @@ function CreateAccountForm() {
       } else if (data?.email) {
         setErrorMessage("Cette adresse email est déjà utilisée.");
       } else if (data?.password) {
-        setErrorMessage("Le mot de passe est trop court ou trop simple.");
+        // L'API renvoie une liste de raisons précises (en français) ; on les
+        // affiche telles quelles plutôt qu'un message générique.
+        setErrorMessage(data.password.join(" "));
       } else {
         setErrorMessage("Une erreur est survenue. Vérifie tes informations.");
       }

@@ -1,6 +1,39 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile
+
+
+def validate_password_strength(password, user=None):
+    """
+    Applique les règles de AUTH_PASSWORD_VALIDATORS à un mot de passe.
+
+    Django ne vérifie JAMAIS la robustesse d'un mot de passe tout seul : il
+    faut appeler `validate_password()` explicitement. Cette fonction centralise
+    cet appel pour les endroits où un mot de passe est défini (inscription,
+    modification de profil), afin que la règle soit identique partout.
+
+    `validate_password` lève une `ValidationError` de django.core (pas celle de
+    DRF). On l'attrape et on la "retraduit" en `serializers.ValidationError`
+    sous la clé 'password' : c'est ce que DRF renvoie en 400, et c'est la clé
+    que les formulaires (inscription, compte) lisent pour afficher l'erreur au
+    bon endroit.
+
+    Args:
+        password (str): le mot de passe en clair (avant hachage).
+        user (User, optionnel): l'utilisateur concerné. Sert au validateur de
+            similarité (refuse un mdp trop proche du pseudo/email). On peut
+            passer une instance non sauvegardée à la création du compte.
+
+    Raises:
+        serializers.ValidationError: si une règle de robustesse échoue.
+    """
+    try:
+        validate_password(password, user=user)
+    except DjangoValidationError as exc:
+        # exc.messages = liste des raisons (ex: ["Ce mot de passe est trop court…"])
+        raise serializers.ValidationError({"password": list(exc.messages)})
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -123,6 +156,33 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Cet email est déjà utilisé.")
         return value.lower()
 
+    def validate(self, data):
+        """
+        Vérifie la robustesse du mot de passe à la création du compte.
+
+        Appelée après les validations de champ (validate_username/email).
+        On construit un `User` NON sauvegardé (juste en mémoire) avec le pseudo
+        et l'email saisis : le validateur de similarité s'en sert pour refuser
+        un mot de passe trop proche du pseudo ou de l'email (ex: pseudo "alice"
+        + mot de passe "alice2024").
+
+        Args:
+            data (dict): tous les champs déjà validés (username, email, password…).
+
+        Returns:
+            dict: les données inchangées si le mot de passe est assez robuste.
+
+        Raises:
+            serializers.ValidationError: sous la clé 'password' si trop faible.
+        """
+        password = data.get('password')
+        if password:
+            # User(...) sans .save() = objet temporaire, jamais écrit en base ;
+            # il sert uniquement de contexte au validateur de similarité.
+            temp_user = User(username=data.get('username', ''), email=data.get('email', ''))
+            validate_password_strength(password, user=temp_user)
+        return data
+
     def create(self, validated_data):
         """
         Utilise create_user() au lieu de create() pour que
@@ -231,6 +291,13 @@ class UpdateProfileSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'password_confirm': "Les mots de passe ne correspondent pas."
                 })
+
+            # Une fois la confirmation OK, on vérifie la robustesse du nouveau
+            # mot de passe. self.context['request'].user = l'utilisateur connecté
+            # (passé par la vue) ; il sert au validateur de similarité.
+            request = self.context.get('request')
+            user = request.user if request else None
+            validate_password_strength(password, user=user)
 
         # On retire password_confirm des données validées car on n'en a
         # plus besoin pour la sauvegarde (seul password sera utilisé)

@@ -3,7 +3,9 @@ import logging
 from collections import defaultdict
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
@@ -1823,6 +1825,19 @@ class ResetPasswordView(APIView):
         if not password:
             return Response(
                 {"error": "Le nouveau mot de passe est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier la robustesse du nouveau mot de passe (mêmes règles que
+        # l'inscription, via AUTH_PASSWORD_VALIDATORS). On passe `user` pour
+        # que le validateur de similarité compare au pseudo/email.
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError as exc:
+            # Le front (reset_password.jsx) lit data.error → on regroupe les
+            # raisons en une seule phrase sous cette clé.
+            return Response(
+                {"error": " ".join(exc.messages)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
