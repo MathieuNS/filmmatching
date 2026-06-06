@@ -38,6 +38,20 @@ DEBUG = os.getenv("DEBUG", "True") == "True"
 # os.getenv(...).split(",") permet de mettre plusieurs domaines séparés par des virgules.
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
+# ──────────────────────────────────────────────
+# Limite de taille des requêtes entrantes (anti-abus)
+# ──────────────────────────────────────────────
+# DATA_UPLOAD_MAX_MEMORY_SIZE : taille max (en octets) du corps d'une requête
+# que Django accepte. Au-delà → erreur 400. Notre API n'a AUCUN upload de
+# fichier (images = URL TMDB, avatars = courtes chaînes SVG), donc 1 Mo est
+# déjà très large. Ça évite qu'on nous envoie des dizaines de Mo pour saturer
+# la mémoire/le réseau.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1 * 1024 * 1024  # 1 Mo
+# DATA_UPLOAD_MAX_NUMBER_FIELDS : nombre max de champs dans un POST. Protège
+# contre l'envoi de milliers de champs visant à faire ramer le serveur.
+# 1000 = valeur par défaut de Django, qu'on rend explicite ici.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",

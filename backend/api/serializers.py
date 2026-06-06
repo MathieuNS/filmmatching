@@ -463,6 +463,17 @@ class SwipeSerializer(serializers.ModelSerializer):
     # c'est le backend qui le remplit automatiquement.
     user = serializers.PrimaryKeyRelatedField(read_only=True)
 
+    # Commentaire personnel : côté modèle c'est un TextField, donc DRF ne lui
+    # met AUCUNE limite de longueur par défaut. On la fixe ici, au niveau de
+    # l'API, pour borner l'entrée : 2000 caractères = largement assez pour un
+    # avis perso, sans permettre qu'on stocke des Mo de texte par swipe.
+    # allow_blank/required gèrent le cas "pas de commentaire" ou "effacer" ("").
+    comment = serializers.CharField(
+        max_length=2000,
+        required=False,
+        allow_blank=True,
+    )
+
     class Meta:
         model = Swipe
         fields = ['id', 'user', 'film', 'status', 'rating', 'comment', 'created_at']
