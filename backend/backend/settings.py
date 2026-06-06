@@ -242,7 +242,7 @@ else:
     # laisser passer des requêtes non autorisées.
     cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
     CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins.split(",") if o.strip()]
-CORS_ALLOWS_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = True
 
 # CORS_EXPOSE_HEADERS : liste des en-têtes de réponse que le navigateur
 # autorise JavaScript à lire sur une requête cross-origin. Par défaut, seuls
@@ -285,12 +285,16 @@ if not DEBUG:
     # jamais du HTTP". Ça protège contre les attaques d'interception.
     # ⚠️ Quasi irréversible : le navigateur MÉMORISE cette consigne. Si le HTTPS
     # casse pendant ce temps, le site devient inaccessible (pas de repli sur HTTP).
-    # On commence donc PRUDEMMENT à 1 jour (86400s) ; une fois sûr que tout tient
-    # dans la durée, passer à 31536000 (1 an) et activer SECURE_HSTS_PRELOAD.
-    SECURE_HSTS_SECONDS = 259200  # 3 jours (palier de test ; viser 1 an une fois stable)
+    # On a monté le palier progressivement (1 j → 3 j) ; le HTTPS étant stable
+    # (certificat Let's Encrypt auto-renouvelé), on passe à 1 an.
+    SECURE_HSTS_SECONDS = 31536000  # 1 an
     # INCLUDE_SUBDOMAINS : applique aussi la règle aux sous-domaines (www, etc.).
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    # SECURE_HSTS_PRELOAD = True  # à activer seulement avec SECURE_HSTS_SECONDS = 31536000
+    # PRELOAD : volontairement laissé DÉSACTIVÉ. C'est l'étape quasi irréversible
+    # (inscription du domaine en dur dans les navigateurs via hstspreload.org,
+    # sortie = plusieurs mois). À n'activer que si on est certain de rester en
+    # HTTPS pour toujours, sur le domaine ET tous ses sous-domaines.
+    # SECURE_HSTS_PRELOAD = True
 
 # ──────────────────────────────────────────────
 # Configuration des logs
