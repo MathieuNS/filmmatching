@@ -245,19 +245,20 @@ export default function FilmCard({ film, variant = "swipe" }) {
   // la Phase 5.
   const friendRatings = film.friend_ratings;
 
-  // --- Limite du synopsis déplié (anti-débordement de la carte de swipe) ---
-  // Sur la carte de swipe (variant "swipe"), l'overlay est ancré en bas et
-  // grandit vers le HAUT au dépliage : un synopsis très long dépassait le haut
-  // de la carte (overflow:hidden) → son DÉBUT était rogné. On borne donc le
-  // synopsis déplié à ~40% de la hauteur réelle de la carte (mesurée via
-  // onLayout). En "detail" (FilmDetailModal, dans un ScrollView qui scrolle),
-  // pas de limite : 0 = illimité.
+  // --- Limite du synopsis déplié (anti-débordement de la carte) ---
+  // L'overlay (où vit le synopsis) est ancré en bas de la carte et grandit vers
+  // le HAUT au dépliage. La carte a `overflow:hidden` et une hauteur fixe (flex:1
+  // en "swipe", aspectRatio 2:3 en "detail") : un synopsis très long dépassait
+  // donc le haut de la carte → son DÉBUT était rogné. On borne le synopsis déplié
+  // à ~35% de la hauteur réelle de la carte (mesurée via onLayout) ; au-delà il
+  // SCROLLE (cf. ExpandableText.expandedMaxHeight) au lieu de déborder.
+  // Même comportement dans les deux variantes → le "voir plus" scrollable de
+  // l'écran Home est reproduit à l'identique dans FilmDetailModal.
   const [cardHeight, setCardHeight] = useState(0);
-  // Hauteur max (px) du synopsis déplié ≈ 35% de la carte → au-delà il SCROLLE
-  // (cf. ExpandableText.expandedMaxHeight) au lieu de déborder. Repli à 180px
-  // tant que la carte n'est pas mesurée. En "detail" (modale scrollable) : 0.
-  const synopsisExpandedMaxHeight =
-    variant === "detail" ? 0 : cardHeight ? Math.round(cardHeight * 0.35) : 180;
+  // Repli à 180px tant que la carte n'est pas encore mesurée.
+  const synopsisExpandedMaxHeight = cardHeight
+    ? Math.round(cardHeight * 0.35)
+    : 180;
 
   return (
     <View
@@ -541,11 +542,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: COLORS.noirCinema,
   },
-  // Variante "détail" : hauteur propre (ratio d'affiche 2:3) au lieu de flex:1,
-  // pour s'afficher dans une modale sans parent qui impose la hauteur.
+  // Variante "détail" : comme la carte de swipe, elle remplit l'espace que lui
+  // donne son parent (flex:1). Dans FilmDetailModal ce parent a une hauteur fixe
+  // (90% de l'écran), donc la carte s'adapte à l'écran exactement comme sur Home
+  // → le synopsis garde son scroll interne SANS ScrollView parent qui le bloque.
   cardDetail: {
-    flex: 0,
-    aspectRatio: 2 / 3,
+    flex: 1,
   },
   image: {
     width: "100%",

@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   Modal,
-  ScrollView,
   StyleSheet,
 } from "react-native";
 import FilmCard from "./FilmCard";
@@ -136,19 +135,28 @@ export default function FilmDetailModal({
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        {/* onPress vide : absorbe le tap pour ne pas fermer en cliquant dedans */}
-        <Pressable style={styles.modal} onPress={() => {}}>
+      {/* Conteneur plein écran qui centre la carte. */}
+      <View style={styles.root}>
+        {/* Fond sombre cliquable placé DERRIÈRE la carte (c'est un FRÈRE, pas un
+            parent). Tap sur les marges = fermeture. Comme il n'enveloppe pas la
+            carte, aucun Pressable ne vole le geste de scroll du synopsis (c'était
+            la cause du synopsis non scrollable). Même principe que la modale
+            bande-annonce. */}
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        {/* La carte : une simple View (PAS un Pressable) → le ScrollView interne
+            du synopsis garde son geste de défilement. */}
+        <View style={styles.modal}>
           {/* Bouton fermer */}
           <Pressable style={styles.close} onPress={onClose} hitSlop={8}>
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
 
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* La carte film, en variante "detail" (hauteur propre). */}
+          {/* Contenu en colonne (PAS de ScrollView) : la carte remplit l'espace
+              restant (flex:1) et les sections d'action prennent leur hauteur
+              naturelle en dessous. Sans ScrollView parent, le scroll interne du
+              synopsis (quand on déplie "voir plus") refonctionne comme sur Home. */}
+          <View style={styles.content}>
+            {/* La carte film, en variante "detail" : elle s'étire (flex:1). */}
             <FilmCard film={film} variant="detail" />
 
             {/* Contexte "À l'affiche" : 3 boutons de swipe directs.
@@ -297,25 +305,38 @@ export default function FilmDetailModal({
                 </View>
               </View>
             )}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
+          </View>
+        </View>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  // Conteneur plein écran : centre la carte, réserve une marge autour, et porte
+  // l'assombrissement du fond (sur tout l'écran, marges comprises).
+  root: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.85)",
     alignItems: "center",
     justifyContent: "center",
     padding: SPACING.lg,
+    backgroundColor: "rgba(0,0,0,0.85)",
+  },
+  // Zone cliquable transparente derrière la carte : un tap dessus ferme la
+  // modale. Elle ne fait que capter le tap (l'assombrissement est sur `root`).
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modal: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "90%",
+    // Hauteur fixe (et non maxHeight) : indispensable pour que la carte enfant
+    // en flex:1 sache quelle place remplir. La carte s'adapte donc à l'écran.
+    height: "90%",
     backgroundColor: COLORS.noirCarte,
     borderRadius: RADII.modal,
     borderWidth: BORDERS.width,
@@ -338,7 +359,10 @@ const styles = StyleSheet.create({
     color: COLORS.blancDoux,
     fontSize: 16,
   },
-  scrollContent: {
+  // Conteneur du contenu (colonne) : la carte (flex:1) remplit l'espace, les
+  // sections d'action prennent leur hauteur naturelle dessous.
+  content: {
+    flex: 1,
     padding: SPACING.lg,
     gap: SPACING.lg,
   },
