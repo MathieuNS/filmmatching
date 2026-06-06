@@ -194,8 +194,12 @@ function UserAccount() {
         // car DRF renvoie les erreurs sous forme de tableaux
         const formattedErrors = {};
         for (const key in apiErrors) {
+          // On joint TOUTES les raisons (et pas seulement la 1ère) : un mot de
+          // passe faible peut échouer sur plusieurs règles à la fois (trop
+          // court ET trop courant). Pour les autres champs il n'y a en général
+          // qu'un message, donc join() renvoie simplement cette seule phrase.
           formattedErrors[key] = Array.isArray(apiErrors[key])
-            ? apiErrors[key][0]
+            ? apiErrors[key].join(" ")
             : apiErrors[key];
         }
         setErrors(formattedErrors);

@@ -3,7 +3,10 @@ import logging
 from collections import defaultdict
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core import signing
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
@@ -13,7 +16,9 @@ from rest_framework import generics, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
     UserSerializer,
@@ -34,6 +39,30 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+# Sel (salt) qui isole les tokens de désinscription des autres usages de
+# signature dans l'app. Deux tokens signés avec des sels différents ne sont
+# jamais interchangeables : ça empêche de détourner un token d'un usage à l'autre.
+UNSUBSCRIBE_SALT = "email-unsubscribe"
+
+
+def make_unsubscribe_token(user):
+    """Génère un token signé identifiant l'utilisateur pour la désinscription email.
+
+    Le token contient l'ID de l'utilisateur ET une signature calculée avec la
+    SECRET_KEY du serveur. Sans cette clé, impossible de forger un token valide
+    pour un autre utilisateur (contrairement à un simple ID en base64, devinable).
+    On ne met PAS d'expiration : un lien de désinscription doit rester valable
+    même dans un vieil email.
+
+    Args:
+        user: L'utilisateur à qui appartient le lien de désinscription.
+
+    Returns:
+        str: Le token signé à placer dans l'URL (un seul segment, sans "/").
+    """
+    return signing.dumps(user.pk, salt=UNSUBSCRIBE_SALT)
+
+
 class CreateUserView(generics.CreateAPIView):
     """
     Vue pour créer un nouveau compte utilisateur.
@@ -51,6 +80,11 @@ class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+    # Rate limiting : 5 inscriptions/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche un robot de créer des comptes en masse (et donc d'envoyer
+    # des centaines d'emails d'activation depuis notre serveur SMTP).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'create_account'
     # authentication_classes = [] désactive complètement l'authentification
     # pour cette vue. Sans ça, si un token JWT expiré traîne dans localStorage,
     # l'intercepteur Axios l'envoie → simplejwt le rejette avec 401
@@ -96,8 +130,10 @@ class CreateUserView(generics.CreateAPIView):
         # dev (localhost:5173) et production (filmmatching.com) sans modifier le code
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         activation_link = f"{frontend_url}/activate/{uid}/{token}"
-        # Lien de désinscription des notifications email
-        unsubscribe_link = f"{frontend_url}/unsubscribe/{uid}"
+        # Lien de désinscription des notifications email.
+        # On utilise un token signé (et non l'uid en clair) pour qu'un tiers ne
+        # puisse pas désinscrire quelqu'un d'autre en devinant son ID.
+        unsubscribe_link = f"{frontend_url}/unsubscribe/{make_unsubscribe_token(user)}"
 
         # Envoyer l'email de confirmation
         logger.info("Envoi de l'email d'activation à %s", user.email)
@@ -295,6 +331,11 @@ class CustomTokenObtainView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 10 tentatives/minute par IP (voir DEFAULT_THROTTLE_RATES).
+    # Ralentit fortement le brute-force du mot de passe sans gêner un
+    # utilisateur légitime qui se trompe une ou deux fois.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request):
         """Authentifie l'utilisateur et renvoie les tokens JWT."""
@@ -368,6 +409,55 @@ class CustomTokenObtainView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         })
+
+
+class LogoutView(APIView):
+    """
+    Déconnexion côté serveur : met le refresh token sur liste noire.
+
+    - POST /api/logout/
+    - Body : { "refresh": "<refresh token>" }
+
+    Pourquoi cette vue ?
+    Effacer les tokens dans le navigateur / le téléphone ne fait disparaître
+    QUE la copie locale. Le refresh token, lui, resterait valable jusqu'à son
+    expiration (30 jours). Si quelqu'un en avait une copie (vol, fuite), il
+    pourrait continuer à générer des accès. En blacklistant le refresh ici, on
+    le rend immédiatement inutilisable : c'est la "vraie" déconnexion.
+
+    AllowAny + authentication_classes = [] : on n'exige PAS d'access token
+    valide. C'est volontaire — au moment où l'utilisateur se déconnecte, son
+    access token peut déjà être expiré ; on ne veut pas que la déconnexion
+    échoue pour autant. La seule "preuve" nécessaire est le refresh token
+    lui-même (on ne peut blacklister qu'un jeton qu'on possède déjà).
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Blackliste le refresh token fourni dans le corps de la requête."""
+        refresh = request.data.get("refresh")
+        if not refresh:
+            return Response(
+                {"error": "Le refresh token est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # RefreshToken(...) valide la signature/l'expiration ; .blacklist()
+            # insère le jeton dans la table token_blacklist → il sera refusé
+            # à tout usage ultérieur.
+            token = RefreshToken(refresh)
+            token.blacklist()
+        except TokenError:
+            # Jeton déjà invalide, expiré ou déjà blacklisté : la déconnexion
+            # est de toute façon "réussie" du point de vue de l'utilisateur,
+            # on ne renvoie donc pas d'erreur.
+            pass
+
+        # 205 Reset Content : convention pour "c'est bon, vide ton état local".
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
 class CurrentUserView(APIView):
@@ -1100,24 +1190,29 @@ class UnsubscribeEmailView(APIView):
     """
     Désabonne un utilisateur des notifications email.
 
-    - POST /api/users/unsubscribe/<uidb64>/
+    - POST /api/users/unsubscribe/<token>/
     - Accessible sans authentification (le lien est dans l'email).
 
-    L'uid est encodé en base64 dans le lien de désinscription.
-    On le décode pour retrouver l'utilisateur et mettre
-    email_notifications à False sur son Profile.
+    Le <token> est un jeton SIGNÉ (django.core.signing) qui contient l'ID de
+    l'utilisateur. On vérifie sa signature avec la SECRET_KEY : un token forgé
+    ou modifié est rejeté. C'est ce qui empêche un tiers de désinscrire
+    n'importe qui en devinant un ID (l'ancienne version, avec l'ID en clair en
+    base64, était vulnérable à ça).
     """
 
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def post(self, request, uidb64):
-        """Désactive les notifications email pour l'utilisateur identifié par l'uid."""
+    def post(self, request, token):
+        """Désactive les notifications email pour l'utilisateur identifié par le token signé."""
         try:
-            # Décoder l'uid base64 pour retrouver l'ID de l'utilisateur
-            uid = force_str(urlsafe_base64_decode(uidb64))
+            # signing.loads vérifie la signature ET le sel, puis renvoie l'ID
+            # d'origine. Pas de max_age : le lien ne périme pas (un email peut
+            # être ouvert des semaines plus tard). BadSignature est levée si le
+            # token a été modifié/forgé ou signé avec une autre clé.
+            uid = signing.loads(token, salt=UNSUBSCRIBE_SALT)
             user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        except (signing.BadSignature, User.DoesNotExist):
             return Response(
                 {"error": "Lien de désinscription invalide."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -1238,10 +1333,9 @@ class FriendshipView(generics.ListCreateAPIView):
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         friends_link = f"{frontend_url}/amis"
 
-        # Lien de désinscription — contient l'uid encodé en base64
-        # pour identifier l'utilisateur sans qu'il soit connecté
-        uid = urlsafe_base64_encode(force_bytes(receiver.pk))
-        unsubscribe_link = f"{frontend_url}/unsubscribe/{uid}"
+        # Lien de désinscription — token signé (infalsifiable) identifiant le
+        # destinataire sans qu'il soit connecté, et sans exposer un ID devinable.
+        unsubscribe_link = f"{frontend_url}/unsubscribe/{make_unsubscribe_token(receiver)}"
 
         # Version texte brut
         text_message = (
@@ -1704,6 +1798,11 @@ class ForgotPasswordView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 3 demandes/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche d'utiliser notre serveur pour spammer une boîte mail de liens
+    # de réinitialisation, et protège le quota SMTP Hostinger.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'forgot_password'
 
     def post(self, request):
         """Cherche l'utilisateur par email et envoie le lien de réinitialisation."""
@@ -1777,6 +1876,11 @@ class ResetPasswordView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 10 tentatives/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Ralentit un éventuel brute-force du token de réinitialisation présent
+    # dans l'URL.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'reset_password'
 
     def post(self, request, uidb64, token):
         """Vérifie le token et met à jour le mot de passe."""
@@ -1802,6 +1906,19 @@ class ResetPasswordView(APIView):
         if not password:
             return Response(
                 {"error": "Le nouveau mot de passe est requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier la robustesse du nouveau mot de passe (mêmes règles que
+        # l'inscription, via AUTH_PASSWORD_VALIDATORS). On passe `user` pour
+        # que le validateur de similarité compare au pseudo/email.
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError as exc:
+            # Le front (reset_password.jsx) lit data.error → on regroupe les
+            # raisons en une seule phrase sous cette clé.
+            return Response(
+                {"error": " ".join(exc.messages)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1834,6 +1951,11 @@ class ContactView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 3 messages/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche le spam du formulaire de contact (qui nous envoie un email
+    # à chaque soumission).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'contact'
 
     def post(self, request):
         """Valide les champs du formulaire et envoie l'email."""

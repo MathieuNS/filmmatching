@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "../styles/FilterBottomSheet.css";
 
 /**
@@ -37,11 +37,18 @@ function FilterBottomSheet({
 
   // Quand le panneau s'ouvre, on recopie les filtres actifs dans le brouillon.
   // Comme ça, si l'utilisateur ferme sans appliquer, les modifications sont perdues.
-  useEffect(() => {
+  // Motif React "ajuster un état quand une prop change" : on détecte la
+  // transition fermé → ouvert PENDANT le rendu (via `wasOpen`), au lieu d'un
+  // useEffect + setState qui provoquerait un rendu en cascade.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    // À l'ouverture seulement, on réinitialise le brouillon sur les filtres actifs.
     if (isOpen) {
       setDraftFilters({ ...currentFilters });
     }
-  }, [isOpen, currentFilters]);
+  }
 
   // Si le panneau est fermé, on n'affiche rien
   if (!isOpen) return null;

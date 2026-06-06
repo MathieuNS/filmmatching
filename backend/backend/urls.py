@@ -4,6 +4,7 @@ from api.views import (
     CreateUserView,
     ActivateAccountView,
     CustomTokenObtainView,
+    LogoutView,
     CurrentUserView,
     UpdateProfileView,
     DeleteAccountView,
@@ -51,8 +52,9 @@ urlpatterns = [
     path('api/users/me/avatar/', UpdateAvatarView.as_view(), name='update-avatar'),
     # Recherche d'un utilisateur par pseudo (pour envoyer une demande d'ami)
     path('api/users/search/', UserSearchView.as_view(), name='user-search'),
-    # Désinscription des notifications email (lien dans les emails)
-    path('api/users/unsubscribe/<str:uidb64>/', UnsubscribeEmailView.as_view(), name='unsubscribe-email'),
+    # Désinscription des notifications email (lien dans les emails).
+    # <token> = jeton signé (django.core.signing) contenant l'ID utilisateur.
+    path('api/users/unsubscribe/<str:token>/', UnsubscribeEmailView.as_view(), name='unsubscribe-email'),
     # Mot de passe oublié : envoie un email avec un lien de réinitialisation
     path('api/users/forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     # Réinitialisation du mot de passe via le lien reçu par email
@@ -60,6 +62,8 @@ urlpatterns = [
     # Vue personnalisée pour distinguer "compte inactif" de "mauvais identifiants"
     path('api/token/', CustomTokenObtainView.as_view(), name='get_token'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Déconnexion : blackliste le refresh token (vraie déconnexion serveur)
+    path('api/logout/', LogoutView.as_view(), name='logout'),
     path("api-auth/", include("rest_framework.urls")),
 
     # --- Contact ---

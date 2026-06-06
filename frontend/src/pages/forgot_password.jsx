@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+import { getThrottleMessage } from "../utils/throttle";
 import TmdbAttribution from "../components/TmdbAttribution";
 import "../styles/Forms.css";
 
@@ -36,8 +37,11 @@ function ForgotPassword() {
       // Afficher le message de confirmation renvoyé par l'API
       setSuccessMessage(res.data.message);
     } catch (error) {
+      // 429 = limite de débit (trop de demandes de réinitialisation) → message dédié.
+      const throttled = getThrottleMessage(error);
       setErrorMessage(
-        error.response?.data?.error ||
+        throttled ||
+          error.response?.data?.error ||
           "Une erreur est survenue. Réessaie plus tard."
       );
     } finally {

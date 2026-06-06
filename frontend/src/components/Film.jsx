@@ -78,15 +78,22 @@ function Film({
   const platformsRef = useRef(null);
 
   // Réinitialiser les sections dépliées quand le film change
-  // (sinon le "voir plus" resterait ouvert d'un film à l'autre)
-  useEffect(() => {
+  // (sinon le "voir plus" resterait ouvert d'un film à l'autre).
+  // Motif React "ajuster un état quand une prop change" : on compare
+  // l'identité du film courant à la précédente PENDANT le rendu, au lieu
+  // d'un useEffect qui déclencherait un second rendu en cascade.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const filmId = `${title}|${img}`;
+  const [prevFilmId, setPrevFilmId] = useState(filmId);
+  if (filmId !== prevFilmId) {
+    setPrevFilmId(filmId);
     setExpanded({
       synopsis: false,
       actors: false,
       tags: false,
       platforms: false,
     });
-  }, [title, img]);
+  }
 
   // Vérifier la troncature après chaque rendu
   // On ne vérifie que les sections qui sont repliées (collapsed),

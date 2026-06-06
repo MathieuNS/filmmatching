@@ -32,7 +32,15 @@
           "backgroundColor": "#0D0D0F"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

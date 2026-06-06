@@ -20,6 +20,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { jwtDecode } from "jwt-decode";
 import api from "../api/client";
+import { getThrottleMessage } from "../api/throttle";
 import {
   getAccessToken,
   getRefreshToken,
@@ -59,7 +60,12 @@ export const bootstrapAuth = createAsyncThunk("auth/bootstrap", async () => {
   }
   try {
     const response = await api.post("/api/token/refresh/", { refresh });
-    await setTokens({ access: response.data.access });
+    // Rotation backend : on stocke aussi le nouveau refresh renvoyé (l'ancien
+    // est blacklisté). Sans ça, le prochain rafraîchissement échouerait.
+    await setTokens({
+      access: response.data.access,
+      refresh: response.data.refresh,
+    });
     return true;
   } catch {
     // Refresh mort lui aussi : session terminée.
@@ -101,6 +107,11 @@ export const login = createAsyncThunk(
       if (!error.response) {
         message =
           "Impossible de joindre le serveur. Vérifie ta connexion";
+      } else if (getThrottleMessage(error)) {
+        // 429 = limite de débit atteinte. Message dédié (centralisé dans
+        // api/throttle) plutôt que "Erreur d'identifiants.", qui ferait croire
+        // à tort à un mauvais mot de passe et pousserait à réessayer.
+        message = getThrottleMessage(error);
       } else {
         message = error.response.data?.error || "Erreur d'identifiants.";
       }
@@ -115,6 +126,18 @@ export const login = createAsyncThunk(
  * @returns {Promise<boolean>} false (plus connecté)
  */
 export const logout = createAsyncThunk("auth/logout", async () => {
+  // Déconnexion SERVEUR d'abord : on envoie le refresh token à /api/logout/
+  // pour le blacklister (il devient inutilisable même si une copie a fuité).
+  const refresh = await getRefreshToken();
+  if (refresh) {
+    try {
+      await api.post("/api/logout/", { refresh });
+    } catch {
+      // Hors-ligne ou jeton déjà invalide : on déconnecte localement quand
+      // même (ci-dessous). L'utilisateur ne doit jamais rester coincé connecté.
+    }
+  }
+  // Puis on vide le coffre-fort local.
   await clearTokens();
   return false;
 });

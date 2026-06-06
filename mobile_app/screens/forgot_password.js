@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Text, StyleSheet } from "react-native";
 import { AuthLayout, Input, Button } from "../components";
 import api from "../api/client";
+import { getThrottleMessage } from "../api/throttle";
 import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { SPACING } from "../constants/spacing";
@@ -34,8 +35,11 @@ export default function ForgotPassword({ navigation }) {
       const res = await api.post("/api/users/forgot-password/", { email });
       setSuccess(res.data.message);
     } catch (err) {
+      // 429 = limite de débit (trop de demandes de réinitialisation) → message dédié.
       setError(
-        err.response?.data?.error || "Une erreur est survenue. Réessaie plus tard."
+        getThrottleMessage(err) ||
+          err.response?.data?.error ||
+          "Une erreur est survenue. Réessaie plus tard."
       );
     } finally {
       setSubmitting(false);

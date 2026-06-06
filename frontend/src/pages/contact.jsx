@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+import { getThrottleMessage } from "../utils/throttle";
 import "../styles/Contact.css";
 
 /**
@@ -58,10 +59,13 @@ function Contact() {
       setSubject("");
       setMessage("");
     } catch (err) {
+      // 429 = limite de débit (trop de messages envoyés) → message dédié.
+      const throttled = getThrottleMessage(err);
       // err.response?.data?.error contient le message d'erreur de l'API
       // Si l'API ne répond pas du tout, on affiche un message générique
       setError(
-        err.response?.data?.error ||
+        throttled ||
+          err.response?.data?.error ||
           "Une erreur est survenue. Réessaie plus tard."
       );
     } finally {

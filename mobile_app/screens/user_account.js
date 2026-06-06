@@ -153,13 +153,16 @@ export default function UserAccount() {
       setSuccessMessage("Modifications enregistrées !");
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
-      // DRF renvoie les erreurs sous forme de tableaux : on garde le 1er message.
+      // DRF renvoie les erreurs sous forme de tableaux : on joint TOUTES les
+      // raisons. Un mot de passe faible peut échouer sur plusieurs règles à la
+      // fois (trop court ET trop courant) ; pour les autres champs il n'y a
+      // qu'un message, donc join() renvoie simplement cette seule phrase.
       if (error.response && error.response.data) {
         const apiErrors = error.response.data;
         const formatted = {};
         for (const key in apiErrors) {
           formatted[key] = Array.isArray(apiErrors[key])
-            ? apiErrors[key][0]
+            ? apiErrors[key].join(" ")
             : apiErrors[key];
         }
         setErrors(formatted);
