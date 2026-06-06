@@ -43,9 +43,14 @@ const TRAILER_HEIGHT = Math.round((TRAILER_WIDTH * 9) / 16);
  * @param {React.ReactNode} props.children - le texte à afficher
  * @param {number} props.numberOfLines - nombre de lignes max quand replié
  * @param {Object|Object[]} [props.style] - style du texte
+ * @param {number} [props.expandedMaxHeight=0] - hauteur max (px) du texte quand
+ *   DÉPLIÉ. Si > 0, le texte déplié est placé dans un `ScrollView` de cette hauteur :
+ *   on lit l'intégralité SANS déborder d'un conteneur à hauteur fixe (ex : la carte
+ *   de swipe), et le scroll part du HAUT → le début reste toujours visible. 0 = pas
+ *   de limite (le texte grandit librement, ex : dans une modale déjà scrollable).
  * @returns {JSX.Element} Le texte + éventuellement le bouton voir plus
  */
-function ExpandableText({ children, numberOfLines, style }) {
+function ExpandableText({ children, numberOfLines, style, expandedMaxHeight = 0 }) {
   // La section est-elle dépliée ?
   const [expanded, setExpanded] = useState(false);
   // Le texte dépasse-t-il la limite (donc "voir plus" utile) ?
@@ -70,14 +75,28 @@ function ExpandableText({ children, numberOfLines, style }) {
 
   return (
     <View style={styles.section}>
-      <Text
-        style={style}
-        // numberOfLines limite l'affichage quand replié ; 0 = illimité (déplié)
-        numberOfLines={expanded ? 0 : numberOfLines}
-        onTextLayout={handleTextLayout}
-      >
-        {children}
-      </Text>
+      {expanded && expandedMaxHeight > 0 ? (
+        // Déplié + hauteur bornée : le texte va dans un ScrollView de hauteur
+        // fixe. Il ne peut donc plus déborder de la carte, et le scroll démarre
+        // EN HAUT → le début du texte est toujours visible. nestedScrollEnabled
+        // + l'arbitrage du responder font que le scroll vertical du synopsis
+        // prime sur le swipe (qui garde l'horizontal et le vertical hors synopsis).
+        <ScrollView
+          style={{ maxHeight: expandedMaxHeight }}
+          nestedScrollEnabled
+        >
+          <Text style={style}>{children}</Text>
+        </ScrollView>
+      ) : (
+        <Text
+          style={style}
+          // Replié : limité à numberOfLines. Déplié sans borne : illimité (0).
+          numberOfLines={expanded ? 0 : numberOfLines}
+          onTextLayout={handleTextLayout}
+        >
+          {children}
+        </Text>
+      )}
       {isTruncated && (
         <Pressable
           onPress={() => setExpanded((prev) => !prev)}
@@ -226,8 +245,26 @@ export default function FilmCard({ film, variant = "swipe" }) {
   // la Phase 5.
   const friendRatings = film.friend_ratings;
 
+  // --- Limite du synopsis déplié (anti-débordement de la carte de swipe) ---
+  // Sur la carte de swipe (variant "swipe"), l'overlay est ancré en bas et
+  // grandit vers le HAUT au dépliage : un synopsis très long dépassait le haut
+  // de la carte (overflow:hidden) → son DÉBUT était rogné. On borne donc le
+  // synopsis déplié à ~40% de la hauteur réelle de la carte (mesurée via
+  // onLayout). En "detail" (FilmDetailModal, dans un ScrollView qui scrolle),
+  // pas de limite : 0 = illimité.
+  const [cardHeight, setCardHeight] = useState(0);
+  // Hauteur max (px) du synopsis déplié ≈ 35% de la carte → au-delà il SCROLLE
+  // (cf. ExpandableText.expandedMaxHeight) au lieu de déborder. Repli à 180px
+  // tant que la carte n'est pas mesurée. En "detail" (modale scrollable) : 0.
+  const synopsisExpandedMaxHeight =
+    variant === "detail" ? 0 : cardHeight ? Math.round(cardHeight * 0.35) : 180;
+
   return (
-    <View style={[styles.card, variant === "detail" && styles.cardDetail]}>
+    <View
+      style={[styles.card, variant === "detail" && styles.cardDetail]}
+      // Mesure la hauteur de la carte pour borner le synopsis déplié (cf. ci-dessus).
+      onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
+    >
       {/* --- Affiche en fond --- */}
       <Image
         style={styles.image}
@@ -316,9 +353,13 @@ export default function FilmCard({ film, variant = "swipe" }) {
           ) : null}
         </View>
 
-        {/* Synopsis — 3 lignes max, dépliable */}
+        {/* Synopsis — 3 lignes max replié ; déplié borné à la carte (anti-rognage) */}
         {film.synopsis ? (
-          <ExpandableText numberOfLines={3} style={styles.synopsis}>
+          <ExpandableText
+            numberOfLines={3}
+            expandedMaxHeight={synopsisExpandedMaxHeight}
+            style={styles.synopsis}
+          >
             {film.synopsis}
           </ExpandableText>
         ) : null}
