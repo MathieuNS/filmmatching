@@ -45,6 +45,20 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # DEFAULT_THROTTLE_RATES : limites de débit (rate limiting) par "scope".
+    # Un scope est une étiquette qu'on pose sur une vue (throttle_scope = "...").
+    # DRF compte les requêtes par IP (pour les vues publiques) et renvoie une
+    # erreur 429 "Too Many Requests" quand la limite est dépassée.
+    # Format : "<nombre>/<période>" où période ∈ {second, minute, hour, day}.
+    # On ne throttle QUE les endpoints sensibles (login, emails) ; les autres
+    # vues n'ont pas de throttle_scope, donc elles ne sont pas limitées.
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "10/min",            # brute-force du mot de passe
+        "create_account": "5/hour",   # spam d'inscriptions (= spam d'emails)
+        "forgot_password": "3/hour",  # spam d'emails / quota SMTP Hostinger
+        "reset_password": "10/hour",  # brute-force du token de réinitialisation
+        "contact": "3/hour",          # spam du formulaire de contact
+    },
 }
 
 SIMPLE_JWT = {
@@ -180,6 +194,13 @@ else:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins.split(",") if o.strip()]
 CORS_ALLOWS_CREDENTIALS = True
 
+# CORS_EXPOSE_HEADERS : liste des en-têtes de réponse que le navigateur
+# autorise JavaScript à lire sur une requête cross-origin. Par défaut, seuls
+# quelques en-têtes "sûrs" sont lisibles ; les autres (dont Retry-After) sont
+# masqués au front. On expose Retry-After pour que la page de connexion puisse
+# afficher "Réessaie dans X secondes" quand le rate limiting renvoie un 429.
+CORS_EXPOSE_HEADERS = ["Retry-After"]
+
 # ──────────────────────────────────────────────
 # Sécurité en production
 # ──────────────────────────────────────────────
@@ -216,7 +237,7 @@ if not DEBUG:
     # casse pendant ce temps, le site devient inaccessible (pas de repli sur HTTP).
     # On commence donc PRUDEMMENT à 1 jour (86400s) ; une fois sûr que tout tient
     # dans la durée, passer à 31536000 (1 an) et activer SECURE_HSTS_PRELOAD.
-    SECURE_HSTS_SECONDS = 86400  # 1 jour
+    SECURE_HSTS_SECONDS = 259200  # 3 jours (palier de test ; viser 1 an une fois stable)
     # INCLUDE_SUBDOMAINS : applique aussi la règle aux sous-domaines (www, etc.).
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     # SECURE_HSTS_PRELOAD = True  # à activer seulement avec SECURE_HSTS_SECONDS = 31536000

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import { getThrottleMessage } from "../utils/throttle";
 import TmdbAttribution from "./TmdbAttribution";
 import "../styles/Forms.css";
 
@@ -32,11 +33,19 @@ function LoginForm() {
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
       navigate("/home");
     } catch (error) {
-      // Le backend renvoie un message différent selon le cas :
-      // - 401 : identifiants incorrects
-      // - 403 : compte non activé (l'utilisateur n'a pas cliqué sur le lien email)
-      const serverMessage = error.response?.data?.error;
-      setErrorMessage(serverMessage || "Erreur d'identifiants.");
+      // 429 = limite de débit atteinte. On affiche un message dédié plutôt
+      // que "Erreur d'identifiants." (qui ferait croire à un mauvais mot de
+      // passe et pousserait à réessayer). Logique centralisée dans utils/throttle.
+      const throttled = getThrottleMessage(error);
+      if (throttled) {
+        setErrorMessage(throttled);
+      } else {
+        // Le backend renvoie un message différent selon le cas :
+        // - 401 : identifiants incorrects
+        // - 403 : compte non activé (l'utilisateur n'a pas cliqué sur le lien email)
+        const serverMessage = error.response?.data?.error;
+        setErrorMessage(serverMessage || "Erreur d'identifiants.");
+      }
     } finally {
       setLoading(false);
     }

@@ -20,6 +20,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { jwtDecode } from "jwt-decode";
 import api from "../api/client";
+import { getThrottleMessage } from "../api/throttle";
 import {
   getAccessToken,
   getRefreshToken,
@@ -101,6 +102,11 @@ export const login = createAsyncThunk(
       if (!error.response) {
         message =
           "Impossible de joindre le serveur. Vérifie ta connexion";
+      } else if (getThrottleMessage(error)) {
+        // 429 = limite de débit atteinte. Message dédié (centralisé dans
+        // api/throttle) plutôt que "Erreur d'identifiants.", qui ferait croire
+        // à tort à un mauvais mot de passe et pousserait à réessayer.
+        message = getThrottleMessage(error);
       } else {
         message = error.response.data?.error || "Erreur d'identifiants.";
       }

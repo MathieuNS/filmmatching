@@ -19,6 +19,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import TmdbAttribution from "../components/TmdbAttribution";
 import { sendContact } from "../api/account";
+import { getThrottleMessage } from "../api/throttle";
 import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { RADII, SPACING, BORDERS } from "../constants/spacing";
@@ -64,8 +65,10 @@ export default function Contact() {
       setSubject("");
       setMessage("");
     } catch (err) {
+      // 429 = limite de débit (trop de messages envoyés) → message dédié.
       setError(
-        err.response?.data?.error ||
+        getThrottleMessage(err) ||
+          err.response?.data?.error ||
           "Une erreur est survenue. Réessaie plus tard."
       );
     } finally {

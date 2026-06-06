@@ -13,6 +13,7 @@ from rest_framework import generics, serializers, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Films, Genres, Plateform, Swipe, Friendship, Profile, AVATAR_CHOICES
 from .serializers import (
@@ -51,6 +52,11 @@ class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+    # Rate limiting : 5 inscriptions/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche un robot de créer des comptes en masse (et donc d'envoyer
+    # des centaines d'emails d'activation depuis notre serveur SMTP).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'create_account'
     # authentication_classes = [] désactive complètement l'authentification
     # pour cette vue. Sans ça, si un token JWT expiré traîne dans localStorage,
     # l'intercepteur Axios l'envoie → simplejwt le rejette avec 401
@@ -295,6 +301,11 @@ class CustomTokenObtainView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 10 tentatives/minute par IP (voir DEFAULT_THROTTLE_RATES).
+    # Ralentit fortement le brute-force du mot de passe sans gêner un
+    # utilisateur légitime qui se trompe une ou deux fois.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request):
         """Authentifie l'utilisateur et renvoie les tokens JWT."""
@@ -1704,6 +1715,11 @@ class ForgotPasswordView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 3 demandes/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche d'utiliser notre serveur pour spammer une boîte mail de liens
+    # de réinitialisation, et protège le quota SMTP Hostinger.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'forgot_password'
 
     def post(self, request):
         """Cherche l'utilisateur par email et envoie le lien de réinitialisation."""
@@ -1777,6 +1793,11 @@ class ResetPasswordView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 10 tentatives/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Ralentit un éventuel brute-force du token de réinitialisation présent
+    # dans l'URL.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'reset_password'
 
     def post(self, request, uidb64, token):
         """Vérifie le token et met à jour le mot de passe."""
@@ -1834,6 +1855,11 @@ class ContactView(APIView):
 
     permission_classes = [AllowAny]
     authentication_classes = []
+    # Rate limiting : 3 messages/heure par IP (voir DEFAULT_THROTTLE_RATES).
+    # Empêche le spam du formulaire de contact (qui nous envoie un email
+    # à chaque soumission).
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'contact'
 
     def post(self, request):
         """Valide les champs du formulaire et envoie l'email."""

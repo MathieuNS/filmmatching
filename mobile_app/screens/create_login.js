@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Text, StyleSheet } from "react-native";
 import { AuthLayout, Input, Button, Checkbox } from "../components";
 import api from "../api/client";
+import { getThrottleMessage } from "../api/throttle";
 import { COLORS } from "../constants/colors";
 import { FONTS } from "../constants/fonts";
 import { SPACING } from "../constants/spacing";
@@ -56,7 +57,11 @@ export default function CreateLogin({ navigation }) {
     } catch (err) {
       // L'API renvoie un objet { champ: ["message"] } selon le champ fautif.
       const data = err.response?.data;
-      if (data?.username) {
+      // 429 = limite de débit (trop d'inscriptions depuis cette IP) → message dédié.
+      const throttled = getThrottleMessage(err);
+      if (throttled) {
+        setError(throttled);
+      } else if (data?.username) {
         setError("Ce pseudo est déjà pris.");
       } else if (data?.email) {
         setError("Cette adresse email est déjà utilisée.");

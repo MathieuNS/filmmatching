@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
+import { getThrottleMessage } from "../utils/throttle";
 import TmdbAttribution from "./TmdbAttribution";
 import "../styles/Forms.css";
 
@@ -57,7 +58,11 @@ function CreateAccountForm() {
       // ex: { "email": ["Cet email est déjà utilisé."] }
       const data = error.response?.data;
 
-      if (data?.username) {
+      // 429 = limite de débit (trop d'inscriptions depuis cette IP) → message dédié.
+      const throttled = getThrottleMessage(error);
+      if (throttled) {
+        setErrorMessage(throttled);
+      } else if (data?.username) {
         setErrorMessage("Ce pseudo est déjà pris.");
       } else if (data?.email) {
         setErrorMessage("Cette adresse email est déjà utilisée.");

@@ -64,13 +64,13 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ### Premiers pas (rapides)
 - [~] `python manage.py check --deploy` (avec `DEBUG=False`, sur le VPS) → lancé ; restait 3 warnings : `SECRET_KEY` faible (à régénérer dans `.env.production`), HSTS (ajouté), `static` manquant (corrigé via `.gitignore`). Objectif 0 alerte.
-- [ ] `/security-review` (Claude Code) → revue du code (injections, IDOR, secrets, logs sensibles)
+- [x] `/security-review` (Claude Code) → revue du code (injections, IDOR, secrets, logs sensibles) : **0 vulnérabilité** sur le diff de la branche.
 
 ### A. Backend / API (Django)
 - [~] `DEBUG=False` en prod ; `ALLOWED_HOSTS` restreint (pas `*`) ; `SECRET_KEY` unique hors dépôt
 - [~] CORS restreint (pas `ALLOW_ALL`) ; redirection HTTPS + cookies `Secure` + `SECURE_PROXY_SSL_HEADER`
 - [~] **HSTS** (`SECURE_HSTS_SECONDS` + subdomains) ajouté dans `settings.py` à **1 jour** (prudent) ; à passer à 1 an + preload après quelques jours stables
-- [ ] **Rate limiting** sur endpoints sensibles (login, création, mdp oublié, contact) — throttling DRF
+- [x] **Rate limiting** — throttling DRF (`ScopedRateThrottle`) : login 10/min, inscription 5/h, mdp oublié 3/h, reset 10/h, contact 3/h + test `LoginThrottleTests`. UX 429 gérée côté front (web + mobile) via helper `getThrottleMessage` (« Réessaie dans X s »), `Retry-After` exposé via `CORS_EXPOSE_HEADERS`. ⚠️ **prod** : (1) vérifier que DRF voit la **vraie IP** derrière Nginx (`X-Forwarded-For` + `NUM_PROXIES`) sinon la limite est globale ou contournable ; (2) cache `LocMemCache` = par worker → compteur non partagé (OK à petite échelle, Redis plus tard).
 - [ ] **Validation des mots de passe** (`AUTH_PASSWORD_VALIDATORS`)
 - [ ] **Permissions par endpoint** (`IsAuthenticated`) + anti-**IDOR** (swipes, amitiés, filmothèque privée, `me/...`)
 - [ ] **Tokens JWT** : durées revues + rotation/blacklist des refresh à la déconnexion
@@ -113,4 +113,4 @@ Phases 0 à 8 **terminées** (fondations, thème, auth, navigation, swipe, socia
 
 ---
 
-*Dernière mise à jour : 2026-06-06 (Phase 10 démarrée : `check --deploy` lancé en prod ; renouvellement HTTPS auto réparé (hooks certbot) ; HSTS ajouté (1 jour, prudent) ; dossier `static` source dé-ignoré. Reste : régénérer `SECRET_KEY`, déployer ces correctifs.)*
+*Dernière mise à jour : 2026-06-06 (Phase 10 : `/security-review` lancé → 0 vulné ; **rate limiting** ajouté (throttling DRF sur login/inscription/mdp oublié/reset/contact) + 1er test ; HSTS passé à 3 jours (palier de test). Reste section A : validation mdp à appliquer, rotation/blacklist JWT, fix unsubscribe ; + vérifs prod du throttling (IP derrière Nginx).)*
