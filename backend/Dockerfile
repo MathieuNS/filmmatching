@@ -43,7 +43,14 @@ RUN mkdir -p logs
 # 9. Collecter les fichiers statiques de Django (CSS admin, etc.).
 #    collectstatic rassemble tous les fichiers statiques dans STATIC_ROOT.
 #    --noinput = pas de question interactive.
-RUN python manage.py collectstatic --noinput
+#
+#    ⚠️ SECRET_KEY bidon UNIQUEMENT pour cette commande : au build, il n'y a pas
+#    de .env.production, or l'app `token_blacklist` (JWT) lit settings.SECRET_KEY
+#    dès l'import de son admin.py (scanné par collectstatic). Sans clé → plantage
+#    "SECRET_KEY must not be empty". collectstatic ne signe rien, donc une clé
+#    jetable suffit. Elle est inline (portée à cette seule ligne), PAS un ENV
+#    persistant : au runtime, c'est la vraie clé de .env.production qui est utilisée.
+RUN SECRET_KEY="build-time-dummy-not-used-at-runtime" python manage.py collectstatic --noinput
 
 # 10. Exposer le port 8000 (informatif, indique quel port le conteneur utilise).
 EXPOSE 8000
