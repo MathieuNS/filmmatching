@@ -214,7 +214,7 @@ export default function FilmDetailModal({
                       userStatus === "dislike" && styles.afficheTextActive,
                     ]}
                   >
-                    ✕ Pas intéressé
+                    ✕ Zapper
                   </Text>
                 </Pressable>
               </View>

@@ -63,7 +63,11 @@ function CreateAccountForm() {
       if (throttled) {
         setErrorMessage(throttled);
       } else if (data?.username) {
-        setErrorMessage("Ce pseudo est déjà pris.");
+        // L'erreur sur `username` n'est pas forcément un doublon : le validateur
+        // de Django refuse aussi les caractères interdits (espace, etc.). On
+        // affiche donc le message exact renvoyé par l'API (déjà en français)
+        // plutôt qu'un "déjà pris" trompeur. Même traitement que le mot de passe.
+        setErrorMessage(data.username.join(" "));
       } else if (data?.email) {
         setErrorMessage("Cette adresse email est déjà utilisée.");
       } else if (data?.password) {

@@ -137,15 +137,22 @@ export default function FilterSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      {/* Fond sombre cliquable pour fermer */}
-      <Pressable style={styles.backdrop} onPress={onClose} />
-
-      {/* Le panneau, ancré en bas */}
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.lg }]}>
-        {/* Poignée décorative */}
-        <View style={styles.handle}>
-          <View style={styles.handleBar} />
-        </View>
+      {/* Fond sombre cliquable : un tap dessus ferme le panneau. Le panneau est
+          IMBRIQUÉ dedans (et non posé à côté en position absolue) : c'est le
+          pattern fiable du reste de l'app (FriendRatingsSheet, modale trailer).
+          Un montage en frères absolus ne routait pas le tap au fond sur Android,
+          d'où le panneau qui restait ouvert au clic en dehors. */}
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        {/* Le panneau, ancré en bas. onPress vide → absorbe le tap pour qu'un
+            clic DANS le panneau ne le ferme pas (équiv. stopPropagation du web). */}
+        <Pressable
+          style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.lg }]}
+          onPress={() => {}}
+        >
+          {/* Poignée décorative */}
+          <View style={styles.handle}>
+            <View style={styles.handleBar} />
+          </View>
 
         {/* En-tête */}
         <View style={styles.header}>
@@ -245,22 +252,22 @@ export default function FilterSheet({
             </LinearGradient>
           </Pressable>
         </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   backdrop: {
-    // Couvre tout l'écran derrière le panneau
-    ...StyleSheet.absoluteFillObject,
+    // Remplit tout l'écran (flex:1) et ancre le panneau imbriqué en bas.
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
   },
   sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    // Plus de position absolue : le panneau est un enfant en flux du fond,
+    // poussé en bas par le justifyContent:"flex-end" du backdrop.
     maxHeight: "85%",
     backgroundColor: COLORS.noirCarte,
     borderTopLeftRadius: RADII.card,

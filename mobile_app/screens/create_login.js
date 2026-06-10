@@ -62,7 +62,11 @@ export default function CreateLogin({ navigation }) {
       if (throttled) {
         setError(throttled);
       } else if (data?.username) {
-        setError("Ce pseudo est déjà pris.");
+        // L'erreur sur `username` n'est pas forcément un doublon : le validateur
+        // de Django refuse aussi les caractères interdits (espace, etc.). On
+        // affiche donc le message exact renvoyé par l'API (déjà en français)
+        // plutôt qu'un "déjà pris" trompeur. Même traitement que le mot de passe.
+        setError(data.username.join(" "));
       } else if (data?.email) {
         setError("Cette adresse email est déjà utilisée.");
       } else if (data?.password) {
