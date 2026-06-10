@@ -542,13 +542,30 @@ export default function MatchList({ route }) {
           <Pressable style={styles.randomModal} onPress={() => {}}>
             {randomFilm && (
               <>
-                <Image
-                  style={styles.randomPoster}
-                  source={{ uri: randomFilm.img }}
-                />
+                {/* Affiche cliquable : ouvre la fiche complète (où regarder,
+                    bande-annonce, synopsis) en réutilisant FilmDetailModal,
+                    affichée PAR-DESSUS ce tirage (Relancer reste accessible
+                    derrière une fois la fiche fermée). */}
+                <Pressable onPress={() => setSelectedFilm(randomFilm)}>
+                  <Image
+                    style={styles.randomPoster}
+                    source={{ uri: randomFilm.img }}
+                  />
+                </Pressable>
                 <Text style={styles.randomLabel}>Ce soir vous regardez</Text>
                 <Text style={styles.randomTitle}>{randomFilm.title}</Text>
                 <Text style={styles.randomYear}>{randomFilm.release_year}</Text>
+                {/* Lien explicite vers les détails (au cas où on ne devine pas
+                    que l'affiche est cliquable). */}
+                <Pressable
+                  style={styles.randomDetailsLink}
+                  onPress={() => setSelectedFilm(randomFilm)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.randomDetailsLinkText}>
+                    ℹ️ Voir les détails ›
+                  </Text>
+                </Pressable>
                 <View style={styles.randomActions}>
                   <Pressable
                     style={[styles.randomActionBtn, styles.randomClose]}
@@ -888,7 +905,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.grisTexte,
     marginTop: 2,
+    marginBottom: SPACING.md,
+  },
+  // Lien "Voir les détails" sous le titre : ouvre la fiche complète.
+  randomDetailsLink: {
+    paddingVertical: SPACING.xs,
     marginBottom: SPACING.lg,
+  },
+  randomDetailsLinkText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 13,
+    color: COLORS.violetNuit,
   },
   randomActions: {
     flexDirection: "row",

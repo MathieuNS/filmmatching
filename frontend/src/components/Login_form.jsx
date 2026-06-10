@@ -33,14 +33,22 @@ function LoginForm() {
       localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
       navigate("/home");
     } catch (error) {
-      // 429 = limite de débit atteinte. On affiche un message dédié plutôt
-      // que "Erreur d'identifiants." (qui ferait croire à un mauvais mot de
-      // passe et pousserait à réessayer). Logique centralisée dans utils/throttle.
-      const throttled = getThrottleMessage(error);
-      if (throttled) {
-        setErrorMessage(throttled);
+      if (!error.response) {
+        // PAS de réponse du serveur => la requête n'a jamais abouti (API
+        // injoignable, mauvaise URL d'API, blocage CSP/CORS, réseau coupé).
+        // Ce n'est SURTOUT PAS un problème d'identifiants : afficher "Erreur
+        // d'identifiants." ici est trompeur et fait perdre du temps à chercher
+        // un mauvais mot de passe. Même distinction que l'app mobile.
+        setErrorMessage(
+          "Impossible de joindre le serveur. Vérifie ta connexion."
+        );
+      } else if (getThrottleMessage(error)) {
+        // 429 = limite de débit atteinte. On affiche un message dédié plutôt
+        // que "Erreur d'identifiants." (qui ferait croire à un mauvais mot de
+        // passe et pousserait à réessayer). Logique centralisée dans utils/throttle.
+        setErrorMessage(getThrottleMessage(error));
       } else {
-        // Le backend renvoie un message différent selon le cas :
+        // Le serveur a répondu : message différent selon le cas :
         // - 401 : identifiants incorrects
         // - 403 : compte non activé (l'utilisateur n'a pas cliqué sur le lien email)
         const serverMessage = error.response?.data?.error;

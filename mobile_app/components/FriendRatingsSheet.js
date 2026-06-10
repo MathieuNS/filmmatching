@@ -7,6 +7,10 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+// useSafeAreaInsets : hauteur des zones système (barre de navigation du bas).
+// On l'ajoute au paddingBottom du panneau pour que la fin de la liste ne passe
+// pas derrière les boutons du téléphone (même correctif que FilterSheet).
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "./Avatar";
 import StarRating from "./StarRating";
 import CommentModal from "./CommentModal";
@@ -67,6 +71,8 @@ export default function FriendRatingsSheet({
   // Ami dont on consulte le commentaire (null = aucune modale ouverte).
   // ⚠️ Le useState doit être avant tout return conditionnel (règle des Hooks).
   const [viewingCommentFriend, setViewingCommentFriend] = useState(null);
+  // Hauteur de la barre système du bas (boutons / barre de geste Android).
+  const insets = useSafeAreaInsets();
 
   if (!isOpen || !friendRatings) return null;
 
@@ -79,8 +85,13 @@ export default function FriendRatingsSheet({
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       {/* Backdrop : clic dessus ferme la feuille */}
       <Pressable style={styles.backdrop} onPress={onClose}>
-        {/* Le panneau, ancré en bas. onPress vide pour absorber le tap. */}
-        <Pressable style={styles.sheet} onPress={() => {}}>
+        {/* Le panneau, ancré en bas. onPress vide pour absorber le tap.
+            paddingBottom = barre système (insets.bottom) + marge habituelle,
+            pour que la fin de la liste ne soit pas masquée par les boutons. */}
+        <Pressable
+          style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.xxl }]}
+          onPress={() => {}}
+        >
           {/* Poignée visuelle (mimétique des bottom sheets natifs) */}
           <View style={styles.handle} />
 
@@ -173,7 +184,8 @@ const styles = StyleSheet.create({
     borderWidth: BORDERS.width,
     borderColor: BORDERS.colorStrong,
     paddingHorizontal: SPACING.xl,
-    paddingBottom: SPACING.xxl,
+    // paddingBottom est appliqué dynamiquement (insets.bottom + SPACING.xxl)
+    // dans le composant pour tenir compte de la barre système du bas.
     maxHeight: "75%",
   },
   handle: {
